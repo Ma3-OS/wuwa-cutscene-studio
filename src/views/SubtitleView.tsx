@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { Button } from "../components/ui/Button";
+import { useApp } from "../context/AppContext";
 
 interface AppConfig {
   ffmpeg_path: string;
@@ -68,6 +69,7 @@ const BG_THEMES = [
 ];
 
 export function SubtitleView() {
+  const { t, playSound } = useApp();
   const [config, setConfig] = useState<AppConfig>({
     ffmpeg_path: "",
     vgmstream_path: "",
@@ -199,7 +201,8 @@ export function SubtitleView() {
   };
 
   const handleResetDefaults = () => {
-    const defaultStyles: AppConfig = {
+    playSound("click");
+    setConfig({
       ...config,
       sub_font: "Kanit Medium",
       sub_size: 42,
@@ -207,17 +210,15 @@ export function SubtitleView() {
       sub_shadow: 1.5,
       sub_color: "#FFFFFF",
       sub_margin_v: 50,
-      subtitle_mode: "Hard-sub",
-      render_resolution: "original",
-    };
-    updateConfig(defaultStyles);
+    });
     setFontWeight("500");
     setEnableRuby(false);
     setBaseText("ประกายแสงแห่งจุดกำเนิด พวกเราจะค้ำจุนไว้เอง");
-    toast.success("Reset subtitle styles to WuWa 1080p In-Game Cutscene preset");
+    toast.success("Reset to game default styling");
   };
 
   const applyPreset = (preset: "exact_game" | "thai_game" | "fansub" | "minimal" | "bold") => {
+    playSound("click");
     let updated = { ...config };
     if (preset === "exact_game") {
       updated = { ...updated, sub_font: "Kanit Medium", sub_size: 42, sub_outline: 2.2, sub_shadow: 1.5, sub_color: "#FFFFFF", sub_margin_v: 50 };
@@ -245,6 +246,7 @@ export function SubtitleView() {
   };
 
   const handleSave = async () => {
+    playSound("click");
     setSaving(true);
     try {
       await invoke("update_config", { newConfig: config });
@@ -257,12 +259,9 @@ export function SubtitleView() {
     }
   };
 
-  // Math Scale factors against 1080p Reference Canvas
-  // Accounts for proportional scaling relative to native 1080p reference canvas
   const previewScale = previewZoomMode === "actual" ? 1.0 : Math.max(0.1, previewHeight / 1080);
   const fullscreenScale = Math.max(0.1, fullscreenHeight / 1080);
 
-  // Computed visual styles with true font stroke rasterization (paint-order)
   const getSubtitleCSS = (scale: number) => {
     const fontSize = config.sub_size * scale;
     const strokePx = config.sub_outline * scale;
@@ -323,7 +322,7 @@ export function SubtitleView() {
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-xl font-bold tracking-tight text-fg">Subtitle & Typography Studio</h1>
+                <h1 className="text-xl font-bold tracking-tight text-fg">{t("subStudioTitle")}</h1>
                 {lastSavedTime && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     <CheckCheck className="w-3 h-3" /> Synced {lastSavedTime}
@@ -331,7 +330,7 @@ export function SubtitleView() {
                 )}
               </div>
               <p className="text-xs text-fg-muted mt-0.5 leading-relaxed">
-                1080p Reference Canvas engine matching FFmpeg video exports with exact stroke and placement.
+                {t("subStudioDesc")}
               </p>
             </div>
           </div>
@@ -339,11 +338,11 @@ export function SubtitleView() {
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={handleResetDefaults} className="text-xs px-3 py-1.5 h-8">
               <RotateCcw className="w-3 h-3 mr-1.5" />
-              Reset
+              {t("btnResetDefault")}
             </Button>
             <Button onClick={handleSave} disabled={saving} className="text-xs px-3.5 py-1.5 h-8">
               <Check className="w-3 h-3 mr-1.5" />
-              Save Style
+              {t("btnSaveSubtitleStyle")}
             </Button>
           </div>
         </header>
@@ -359,14 +358,14 @@ export function SubtitleView() {
             className="flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar cursor-grab active:cursor-grabbing select-none"
           >
             <span className="text-[11px] font-bold uppercase tracking-wider text-fg-muted mr-1 flex items-center gap-1 shrink-0">
-              <Sparkles className="w-3.5 h-3.5 text-accent" /> Presets:
+              <Sparkles className="w-3.5 h-3.5 text-accent" /> {t("presetStyles")}:
             </span>
             {[
-              { id: "exact_game", label: "🎮 In-Game 1080p" },
-              { id: "thai_game", label: "🇹🇭 Thai Cutscene" },
-              { id: "fansub", label: "🟡 Anime Fansub" },
-              { id: "minimal", label: "⚪ Clean Minimal" },
-              { id: "bold", label: "💥 Bold Impact" },
+              { id: "exact_game", label: t("presetExactGame") },
+              { id: "thai_game", label: t("presetThaiGame") },
+              { id: "fansub", label: t("presetAnimeFansub") },
+              { id: "minimal", label: t("presetCleanMinimal") },
+              { id: "bold", label: t("presetBoldImpact") },
             ].map((p) => (
               <button
                 key={p.id}
@@ -386,7 +385,7 @@ export function SubtitleView() {
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-accent" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-fg">
-                Live Preview ({previewZoomMode === "actual" ? "1:1 Native 1080p Actual Size" : "Proportional Frame Scale"})
+                {t("livePreviewTitle")} ({previewZoomMode === "actual" ? t("previewActual") : t("previewFitFrame")})
               </h3>
             </div>
 
@@ -402,7 +401,7 @@ export function SubtitleView() {
                   }`}
                   title="Fit whole frame to preview box"
                 >
-                  Fit Frame
+                  {t("previewFitFrame")}
                 </button>
                 <button
                   type="button"
@@ -413,7 +412,7 @@ export function SubtitleView() {
                   title="100% 1:1 Pixel-Perfect Native 1080p Size (No Shrinking)"
                 >
                   <ZoomIn className="w-3 h-3" />
-                  <span>1:1 Actual</span>
+                  <span>{t("previewActual")}</span>
                 </button>
               </div>
 
@@ -429,7 +428,7 @@ export function SubtitleView() {
                 title="Toggle Safe Area Guides"
               >
                 <Grid className="w-3.5 h-3.5" />
-                <span>Guides</span>
+                <span>{t("previewGuides")}</span>
               </button>
 
               {/* Aspect Ratio Toggle (16:9 vs 21:9) */}
@@ -481,7 +480,7 @@ export function SubtitleView() {
                 title="Enter Real OS Fullscreen Preview"
               >
                 <Maximize2 className="w-3 h-3" />
-                <span>Fullscreen</span>
+                <span>{t("btnFullscreen")}</span>
               </Button>
             </div>
           </div>
@@ -511,7 +510,7 @@ export function SubtitleView() {
                     <span className="text-[9px] font-mono text-cyan-400/40 uppercase tracking-widest text-right">Lower Third</span>
                   </div>
 
-                  <div className="absolute inset-[2.5%] border border-dotted border-purple-400/20 rounded pointer-events-none" />
+                  <div className="absolute inset-[2.5%] border border-dotted border-accent/30 rounded pointer-events-none" />
                   <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-cyan-400/15" />
                   <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-cyan-400/15" />
                 </div>
@@ -550,7 +549,7 @@ export function SubtitleView() {
           {/* Editable Preview Inputs */}
           <div className="pt-2 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Preview Text Customization</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">{t("previewCustomization")}</span>
               <button
                 type="button"
                 onClick={() => setEnableRuby(!enableRuby)}
@@ -558,14 +557,14 @@ export function SubtitleView() {
                   enableRuby ? "bg-accent/20 border-accent text-accent-bright" : "bg-white/5 border-white/10 text-fg-muted"
                 }`}
               >
-                {enableRuby ? "✓ 2-Line Ruby Annotation Active" : "+ Enable Ruby Top Line"}
+                {enableRuby ? t("rubyActive") : t("rubyEnable")}
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {enableRuby && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase font-semibold text-fg-subtle">Ruby Annotation (Top Line)</label>
+                  <label className="text-[10px] uppercase font-semibold text-fg-subtle">{t("rubyTopLabel")}</label>
                   <input
                     type="text"
                     value={rubyText}
@@ -576,7 +575,7 @@ export function SubtitleView() {
                 </div>
               )}
               <div className={`space-y-1.5 ${!enableRuby ? "md:col-span-2" : ""}`}>
-                <label className="text-[10px] uppercase font-semibold text-fg-subtle">Dialogue Text (Main Line)</label>
+                <label className="text-[10px] uppercase font-semibold text-fg-subtle">{t("dialogueMainLabel")}</label>
                 <input
                   type="text"
                   value={baseText}
@@ -596,13 +595,13 @@ export function SubtitleView() {
           <SpotlightCard className="p-6 space-y-5 border-white/5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-fg flex items-center gap-2">
               <Type className="w-4 h-4 text-accent" />
-              Resolution, Language & Font
+              {t("resAndFontTitle")}
             </h3>
 
             <div className="space-y-4">
               {/* Output Resolution Selector without stretching */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-fg-muted block">Output Resolution</label>
+                <label className="text-xs font-medium text-fg-muted block">{t("renderResLabel")}</label>
                 <select
                   value={config.render_resolution}
                   onChange={(e) => updateConfig({ ...config, render_resolution: e.target.value })}
@@ -616,22 +615,22 @@ export function SubtitleView() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-fg-muted block">Subtitle Language</label>
+                <label className="text-xs font-medium text-fg-muted block">{t("subLangLabel")}</label>
                 <select
                   value={config.subtitle_lang}
                   onChange={(e) => updateConfig({ ...config, subtitle_lang: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-fg outline-none focus:border-accent/50 appearance-none"
                 >
-                  <option value="th" className="bg-bg-deep text-fg">Thai (ไทย)</option>
-                  <option value="en" className="bg-bg-deep text-fg">English (en)</option>
-                  <option value="ja" className="bg-bg-deep text-fg">Japanese (日本語)</option>
-                  <option value="ko" className="bg-bg-deep text-fg">Korean (한국어)</option>
-                  <option value="zh" className="bg-bg-deep text-fg">Chinese (中文)</option>
+                  <option value="th" className="bg-bg-deep text-fg">{t("langTh")}</option>
+                  <option value="en" className="bg-bg-deep text-fg">{t("langEn")}</option>
+                  <option value="ja" className="bg-bg-deep text-fg">{t("langJa")}</option>
+                  <option value="ko" className="bg-bg-deep text-fg">{t("langKo")}</option>
+                  <option value="zh" className="bg-bg-deep text-fg">{t("langZh")}</option>
                 </select>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-fg-muted block">Subtitle Mode</label>
+                <label className="text-xs font-medium text-fg-muted block">{t("subtitleModeTitle")}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["Hard-sub", "Soft-sub", "None"] as const).map((mode) => (
                     <button
@@ -651,7 +650,7 @@ export function SubtitleView() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-fg-muted block">Font Family</label>
+                <label className="text-xs font-medium text-fg-muted block">{t("fontFamilyLabel")}</label>
                 <select
                   value={config.sub_font}
                   onChange={(e) => updateConfig({ ...config, sub_font: e.target.value })}
@@ -666,7 +665,7 @@ export function SubtitleView() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-fg-muted block">Text Color</label>
+                <label className="text-xs font-medium text-fg-muted block">{t("textColorLabel")}</label>
                 <div className="flex items-center gap-1.5">
                   {COLOR_PRESETS.map((col) => (
                     <button
@@ -692,14 +691,14 @@ export function SubtitleView() {
           <SpotlightCard className="p-6 space-y-5 border-white/5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-fg flex items-center gap-2">
               <Sliders className="w-4 h-4 text-accent" />
-              Dimensions, Stroke & Shadow (1080p Exact)
+              {t("strokeAndShadowTitle")}
             </h3>
 
             <div className="space-y-4">
               {/* Font Size with Number Input */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-fg-muted font-medium">Font Size (px @ 1080p)</span>
+                  <span className="text-fg-muted font-medium">{t("fontSizeLabel")} (px @ 1080p)</span>
                   <input
                     type="number"
                     min="16"
@@ -724,7 +723,7 @@ export function SubtitleView() {
               {/* Outline Stroke with Number Input */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-fg-muted font-medium">Outline Thickness (px)</span>
+                  <span className="text-fg-muted font-medium">{t("outlineWidthLabel")} (px)</span>
                   <input
                     type="number"
                     min="0"
@@ -749,7 +748,7 @@ export function SubtitleView() {
               {/* Shadow Depth with Number Input */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-fg-muted font-medium">Drop Shadow Depth (px)</span>
+                  <span className="text-fg-muted font-medium">{t("shadowDepthLabel")} (px)</span>
                   <input
                     type="number"
                     min="0"
@@ -774,7 +773,7 @@ export function SubtitleView() {
               {/* Vertical Margin with Number Input */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-fg-muted font-medium">Bottom Margin Offset (px @ 1080p)</span>
+                  <span className="text-fg-muted font-medium">{t("verticalMarginLabel")} (px @ 1080p)</span>
                   <input
                     type="number"
                     min="0"

@@ -28,12 +28,17 @@ pub fn run() {
             commands::wwiser::run_wwiser,
             commands::status::check_dependencies,
             commands::status::open_folder,
+            commands::status::open_file,
             commands::status::open_output_dir,
+            commands::status::get_cache_size,
+            commands::status::clear_app_cache,
             commands::generator::generate_single_video_info,
             commands::generator::get_video_audio_event,
             commands::renderer::render_video,
             commands::scanner::get_exported_videos,
             commands::scanner::scan_audio_banks,
+            commands::scanner::get_video_thumbnail,
+            commands::scanner::get_video_meta,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

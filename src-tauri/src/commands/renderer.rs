@@ -27,7 +27,7 @@ pub async fn render_video(
     state: tauri::State<'_, ConfigState>,
     video_info: VideoInfo,
     subtitle_mode: String,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let config = state.0.lock().unwrap().clone();
     let tools_dir = get_tools_dir(&app);
     let vgmstream_exe = tools_dir.join("vgmstream-cli.exe");
@@ -103,11 +103,13 @@ pub async fn render_video(
         let mut v_filter_chain = Vec::new();
 
         if is_rescaling {
-            if config.render_resolution == "2560x1080" {
-                v_filter_chain.push("scale=2560:1080:force_original_aspect_ratio=increase,crop=2560:1080".to_string());
-            } else if config.render_resolution == "1920x1080" || config.render_resolution.contains("1080p") {
+            if config.render_resolution.contains("21:9") || config.render_resolution.contains("2560") || config.render_resolution == "2560x1080" {
+                // 21:9 UltraWide fitted to 1920x1080 screen with Letterboxing
+                v_filter_chain.push("scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black".to_string());
+            } else if config.render_resolution.contains("16:9") || config.render_resolution.contains("1920") || config.render_resolution.contains("1080p") {
+                // 16:9 Full Screen: Zoom and Crop to fill full 1920x1080
                 v_filter_chain.push("scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080".to_string());
-            } else if config.render_resolution == "3840x2160" || config.render_resolution.contains("4K") {
+            } else if config.render_resolution.contains("4K") || config.render_resolution.contains("3840") {
                 v_filter_chain.push("scale=3840:2160:force_original_aspect_ratio=increase,crop=3840:2160".to_string());
             }
         }
@@ -209,5 +211,5 @@ pub async fn render_video(
         let _ = fs::remove_file(wav);
     }
 
-    Ok(())
+    Ok(out_path)
 }

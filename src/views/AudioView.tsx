@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { 
@@ -13,28 +12,10 @@ import {
 } from "lucide-react";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { Button } from "../components/ui/Button";
-import { soundManager } from "../utils/sound";
-
-interface AppConfig {
-  ffmpeg_path: string;
-  vgmstream_path: string;
-  export_dir: string;
-  char_selection: string;
-  locale_selection: string;
-  subtitle_lang: string;
-  subtitle_mode: string;
-}
+import { useApp } from "../context/AppContext";
 
 export function AudioView() {
-  const [config, setConfig] = useState<AppConfig>({
-    ffmpeg_path: "",
-    vgmstream_path: "",
-    export_dir: "",
-    char_selection: "Girl",
-    locale_selection: "ja",
-    subtitle_lang: "th",
-    subtitle_mode: "Hard-sub",
-  });
+  const { config, updateConfig, t, playSound } = useApp();
 
   const [voiceVolume, setVoiceVolume] = useState<number>(100);
   const [bgmVolume, setBgmVolume] = useState<number>(100);
@@ -43,21 +24,8 @@ export function AudioView() {
   const [cacheStatus, setCacheStatus] = useState<string>("Ready");
   const [clearing, setClearing] = useState(false);
 
-  useEffect(() => {
-    invoke<AppConfig>("get_config").then(setConfig).catch(console.error);
-  }, []);
-
-  const updateConfig = async (newConfig: AppConfig) => {
-    setConfig(newConfig);
-    try {
-      await invoke("update_config", { newConfig });
-      toast.success("Audio preference updated");
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleClearCache = async () => {
+    playSound("click");
     setClearing(true);
     try {
       setCacheStatus("Cache cleared");
@@ -84,9 +52,9 @@ export function AudioView() {
             <Headphones className="w-5 h-5 text-accent-bright" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-fg">Audio & Voice Engine</h1>
+            <h1 className="text-xl font-bold tracking-tight text-fg">{t("audioEngineTitle")}</h1>
             <p className="text-xs text-fg-muted mt-0.5 leading-relaxed">
-              Configure localized character voice tracks, Rover gender matching, and audio mixing quality.
+              {t("audioEngineDesc")}
             </p>
           </div>
         </header>
@@ -99,7 +67,7 @@ export function AudioView() {
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="w-5 h-5 rounded-md bg-accent/15 text-accent-bright flex items-center justify-center text-xs font-bold">1</span>
-                <h3 className="text-xs font-bold tracking-wide uppercase text-fg">Protagonist Rover</h3>
+                <h3 className="text-xs font-bold tracking-wide uppercase text-fg">{t("roverProtagonist")}</h3>
               </div>
               <p className="text-xs text-fg-muted leading-relaxed pl-7 mb-5">
                 Directs Wwiser to match voice events and cutscenes for your chosen Rover.
@@ -108,7 +76,10 @@ export function AudioView() {
               <div className="grid grid-cols-2 gap-3.5 pl-1">
                 <button
                   type="button"
-                  onClick={() => updateConfig({ ...config, char_selection: "Girl" })}
+                  onClick={() => {
+                    playSound("click");
+                    updateConfig({ char_selection: "Girl" });
+                  }}
                   className={`p-4 rounded-2xl border flex flex-col items-center gap-2.5 transition-all duration-200 ${
                     config.char_selection === "Girl"
                       ? "bg-accent/15 border-accent text-white shadow-lg shadow-accent/10 ring-1 ring-accent/30"
@@ -119,14 +90,17 @@ export function AudioView() {
                     ♀
                   </div>
                   <div className="text-center">
-                    <span className="text-xs font-bold block text-fg">Female Rover</span>
+                    <span className="text-xs font-bold block text-fg">{t("roverGirl")}</span>
                     <span className="text-[10px] text-fg-subtle mt-0.5 block">Nvzhu (Girl)</span>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => updateConfig({ ...config, char_selection: "Boy" })}
+                  onClick={() => {
+                    playSound("click");
+                    updateConfig({ char_selection: "Boy" });
+                  }}
                   className={`p-4 rounded-2xl border flex flex-col items-center gap-2.5 transition-all duration-200 ${
                     config.char_selection === "Boy"
                       ? "bg-accent/15 border-accent text-white shadow-lg shadow-accent/10 ring-1 ring-accent/30"
@@ -137,7 +111,7 @@ export function AudioView() {
                     ♂
                   </div>
                   <div className="text-center">
-                    <span className="text-xs font-bold block text-fg">Male Rover</span>
+                    <span className="text-xs font-bold block text-fg">{t("roverBoy")}</span>
                     <span className="text-[10px] text-fg-subtle mt-0.5 block">Nanzhu (Boy)</span>
                   </div>
                 </button>
@@ -150,15 +124,15 @@ export function AudioView() {
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="w-5 h-5 rounded-md bg-accent/15 text-accent-bright flex items-center justify-center text-xs font-bold">2</span>
-                <h3 className="text-xs font-bold tracking-wide uppercase text-fg">Voiceover Language</h3>
+                <h3 className="text-xs font-bold tracking-wide uppercase text-fg">{t("voiceLanguageTitle")}</h3>
               </div>
               <p className="text-xs text-fg-muted leading-relaxed pl-7 mb-5">
-                Selects character dialogue language extracted from Wwise Media audio banks.
+                {t("voiceoverLocaleDesc")}
               </p>
 
               <div className="grid grid-cols-2 gap-3 pl-1">
                 {[
-                  { label: "Japanese", code: "ja", sub: "日本語 (Default)" },
+                  { label: "Japanese", code: "ja", sub: "日本語" },
                   { label: "English", code: "en", sub: "English Dub" },
                   { label: "Korean", code: "ko", sub: "한국어" },
                   { label: "Chinese", code: "zh-Hans", sub: "简体中文" },
@@ -168,7 +142,10 @@ export function AudioView() {
                     <button
                       key={loc.code}
                       type="button"
-                      onClick={() => updateConfig({ ...config, locale_selection: loc.code })}
+                      onClick={() => {
+                        playSound("click");
+                        updateConfig({ locale_selection: loc.code });
+                      }}
                       className={`p-3 rounded-xl border text-left transition-all duration-200 ${
                         isSelected
                           ? "bg-accent/15 border-accent text-white shadow-md shadow-accent/10 ring-1 ring-accent/30"
@@ -189,7 +166,7 @@ export function AudioView() {
         <SpotlightCard className="p-6 space-y-6 border-white/5">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-md bg-accent/15 text-accent-bright flex items-center justify-center text-xs font-bold">3</span>
-            <h3 className="text-xs font-bold tracking-wide uppercase text-fg">Audio Mixing & Quality</h3>
+            <h3 className="text-xs font-bold tracking-wide uppercase text-fg">{t("audioMixingTitle")}</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
@@ -197,7 +174,7 @@ export function AudioView() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-fg-muted font-medium">Voice Dialogue Volume</span>
+                  <span className="text-fg-muted font-medium">{t("voiceVolLabel")}</span>
                   <span className="text-fg font-mono font-bold">{voiceVolume}%</span>
                 </div>
                 <input
@@ -213,7 +190,7 @@ export function AudioView() {
 
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-fg-muted font-medium">BGM & SFX Track Volume</span>
+                  <span className="text-fg-muted font-medium">{t("bgmVolLabel")}</span>
                   <span className="text-fg font-mono font-bold">{bgmVolume}%</span>
                 </div>
                 <input
@@ -231,7 +208,7 @@ export function AudioView() {
             {/* Bitrate & Peak Limiter */}
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-fg-muted block">Output Audio Bitrate</label>
+                <label className="text-xs font-medium text-fg-muted block">{t("audioBitrateLabel")}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { label: "320 kbps", value: "320k", sub: "Studio" },
@@ -241,7 +218,10 @@ export function AudioView() {
                     <button
                       key={b.value}
                       type="button"
-                      onClick={() => setBitrate(b.value)}
+                      onClick={() => {
+                        playSound("click");
+                        setBitrate(b.value);
+                      }}
                       className={`py-1.5 px-2 rounded-xl border text-center transition-all ${
                         bitrate === b.value
                           ? "bg-accent/20 border-accent text-white font-semibold shadow-sm"
@@ -259,13 +239,16 @@ export function AudioView() {
                 <div>
                   <div className="text-xs font-medium text-fg flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    Audio Peak Limiter
+                    {t("normalizeAudioLabel")}
                   </div>
-                  <div className="text-[11px] text-fg-subtle mt-0.5">Prevents audio clipping during multi-track mixing</div>
+                  <div className="text-[11px] text-fg-subtle mt-0.5">{t("normalizeAudioDesc")}</div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setNormalizeAudio(!normalizeAudio)}
+                  onClick={() => {
+                    playSound("click");
+                    setNormalizeAudio(!normalizeAudio);
+                  }}
                   className={`w-10 h-5 rounded-full transition-colors relative p-0.5 ${normalizeAudio ? 'bg-accent' : 'bg-white/10'}`}
                 >
                   <div className={`w-4 h-4 rounded-full bg-white transition-transform ${normalizeAudio ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -276,17 +259,17 @@ export function AudioView() {
                 <div>
                   <div className="text-xs font-medium text-fg flex items-center gap-1.5">
                     <Bell className="w-3.5 h-3.5 text-accent-bright" />
-                    Completion Chime
+                    {t("chimeLabel")}
                   </div>
-                  <div className="text-[11px] text-fg-subtle mt-0.5">Play sound when a video finishes rendering</div>
+                  <div className="text-[11px] text-fg-subtle mt-0.5">{t("chimeDesc")}</div>
                 </div>
                 <Button
                   variant="secondary"
-                  onClick={() => soundManager.playSuccessChime()}
+                  onClick={() => playSound("success")}
                   className="text-xs py-1 px-2.5 h-7 flex items-center gap-1"
                 >
                   <Volume2 className="w-3 h-3" />
-                  <span>Test Sound</span>
+                  <span>{t("btnTestSound")}</span>
                 </Button>
               </div>
             </div>
@@ -301,19 +284,19 @@ export function AudioView() {
                 <Database className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-fg">Wwiser Audio Pipeline</h3>
-                <p className="text-[11px] text-fg-muted">Targeted bank extraction with 48kHz Opus decoding</p>
+                <h3 className="text-xs font-bold text-fg">{t("pipelineTitle")}</h3>
+                <p className="text-[11px] text-fg-muted">{t("pipelineDesc")}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2.5">
               <span className="text-xs text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                {cacheStatus}
+                {cacheStatus === "Ready" ? t("cacheReady") : cacheStatus}
               </span>
               <Button variant="secondary" onClick={handleClearCache} disabled={clearing} className="text-xs py-1 px-2.5 h-7">
                 <Trash2 className="w-3 h-3 mr-1" />
-                Clear Cache
+                {t("btnClearCache")}
               </Button>
             </div>
           </div>

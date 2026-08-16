@@ -1,4 +1,12 @@
-export function BlobBackground() {
+interface BlobBackgroundProps {
+  enabled?: boolean;
+}
+
+export function BlobBackground({ enabled = true }: BlobBackgroundProps) {
+  if (!enabled) {
+    return <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-[#090a0f]" />;
+  }
+
   return (
     <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none radial-bg">
       <div className="noise-bg" />
@@ -13,7 +21,7 @@ export function BlobBackground() {
       {/* Secondary Blob */}
       <div 
         className="absolute top-[20%] left-[-10%] w-[600px] h-[800px] rounded-full blur-[120px] opacity-15 animate-float-slow"
-        style={{ background: 'rgb(192, 132, 252)' }}
+        style={{ background: 'var(--color-accent-secondary, rgb(192, 132, 252))' }}
       />
       
       {/* Tertiary Blob */}

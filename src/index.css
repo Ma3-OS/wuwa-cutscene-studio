@@ -12,25 +12,89 @@
   --color-fg-muted: #8A8F98;
   --color-fg-subtle: rgba(255, 255, 255, 0.60);
   
-  --color-accent: #5E6AD2;
-  --color-accent-bright: #6872D9;
-  --color-accent-glow: rgba(94, 106, 210, 0.3);
+  --color-accent: var(--color-accent, #6366F1);
+  --color-accent-bright: var(--color-accent-bright, #818CF8);
+  --color-accent-glow: var(--color-accent-glow, rgba(99, 102, 241, 0.35));
   
   --color-border-default: rgba(255, 255, 255, 0.06);
   --color-border-hover: rgba(255, 255, 255, 0.10);
-  --color-border-accent: rgba(94, 106, 210, 0.30);
+  --color-border-accent: var(--color-accent-glow, rgba(99, 102, 241, 0.30));
   
-  --font-sans: "Inter", "Geist Sans", system-ui, sans-serif;
+  --font-sans: var(--app-font-family, 'Kanit', sans-serif);
   
   --shadow-card: 0 0 0 1px rgba(255,255,255,0.06), 0 2px 20px rgba(0,0,0,0.4), 0 0 40px rgba(0,0,0,0.2);
-  --shadow-card-hover: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 40px rgba(0,0,0,0.5), 0 0 80px rgba(94,106,210,0.1);
-  --shadow-btn-glow: 0 0 0 1px rgba(94,106,210,0.5), 0 4px 12px rgba(94,106,210,0.3), inset 0 1px 0 0 rgba(255,255,255,0.2);
+  --shadow-card-hover: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 40px rgba(0,0,0,0.5), 0 0 80px var(--color-accent-glow, rgba(94,106,210,0.1));
+  --shadow-btn-glow: 0 0 0 1px var(--color-accent, rgba(94,106,210,0.5)), 0 4px 12px var(--color-accent-glow, rgba(94,106,210,0.3)), inset 0 1px 0 0 rgba(255,255,255,0.2);
   --shadow-inner-glow: inset 0 1px 0 0 rgba(255,255,255,0.1);
+}
+
+:root {
+  --color-accent: #6366F1;
+  --color-accent-bright: #818CF8;
+  --color-accent-secondary: #C084FC;
+  --color-accent-glow: rgba(99, 102, 241, 0.35);
+  --app-font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
+}
+
+[data-accent="purple"], :root[data-accent="purple"], body[data-accent="purple"] {
+  --color-accent: #6366F1;
+  --color-accent-bright: #818CF8;
+  --color-accent-secondary: #C084FC;
+  --color-accent-glow: rgba(99, 102, 241, 0.35);
+}
+
+[data-accent="cyan"], :root[data-accent="cyan"], body[data-accent="cyan"] {
+  --color-accent: #06B6D4;
+  --color-accent-bright: #22D3EE;
+  --color-accent-secondary: #38BDF8;
+  --color-accent-glow: rgba(6, 182, 212, 0.35);
+}
+
+[data-accent="emerald"], :root[data-accent="emerald"], body[data-accent="emerald"] {
+  --color-accent: #10B981;
+  --color-accent-bright: #34D399;
+  --color-accent-secondary: #2DD4BF;
+  --color-accent-glow: rgba(16, 185, 129, 0.35);
+}
+
+[data-accent="crimson"], :root[data-accent="crimson"], body[data-accent="crimson"] {
+  --color-accent: #E11D48;
+  --color-accent-bright: #F43F5E;
+  --color-accent-secondary: #FB7185;
+  --color-accent-glow: rgba(225, 29, 72, 0.35);
+}
+
+[data-accent="amber"], :root[data-accent="amber"], body[data-accent="amber"] {
+  --color-accent: #F59E0B;
+  --color-accent-bright: #FBBF24;
+  --color-accent-secondary: #FDE047;
+  --color-accent-glow: rgba(245, 158, 11, 0.35);
+}
+
+[data-font="Kanit"], :root[data-font="Kanit"], body[data-font="Kanit"] {
+  --app-font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
+}
+
+[data-font="Prompt"], :root[data-font="Prompt"], body[data-font="Prompt"] {
+  --app-font-family: 'Prompt', 'Noto Sans Thai', sans-serif;
+}
+
+[data-font="Inter"], :root[data-font="Inter"], body[data-font="Inter"] {
+  --app-font-family: 'Inter', system-ui, sans-serif;
+}
+
+[data-font="Noto Sans Thai"], :root[data-font="Noto Sans Thai"], body[data-font="Noto Sans Thai"] {
+  --app-font-family: 'Noto Sans Thai', system-ui, sans-serif;
+}
+
+* {
+  font-family: var(--app-font-family, 'Kanit', sans-serif);
 }
 
 @layer base {
   body {
-    @apply bg-bg-base text-fg font-sans overflow-x-hidden min-h-screen selection:bg-accent/30 selection:text-white antialiased;
+    @apply bg-bg-base text-fg overflow-x-hidden min-h-screen selection:bg-accent/30 selection:text-white antialiased;
+    font-family: var(--app-font-family, 'Kanit', sans-serif) !important;
   }
 }
 
@@ -40,7 +104,9 @@
   }
   
   .text-gradient-accent {
-    @apply bg-gradient-to-r from-[#5E6AD2] via-indigo-400 to-[#5E6AD2] bg-clip-text text-transparent;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-bright), var(--color-accent-secondary, var(--color-accent-bright)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     background-size: 200%;
     animation: shimmer 4s infinite linear;
   }
@@ -110,3 +176,57 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* UI Font Families */
+.font-kanit {
+  font-family: 'Kanit', 'Noto Sans Thai', sans-serif !important;
+}
+
+.font-prompt {
+  font-family: 'Prompt', 'Noto Sans Thai', sans-serif !important;
+}
+
+.font-inter {
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+.font-noto {
+  font-family: 'Noto Sans Thai', system-ui, sans-serif !important;
+}
+
+/* Theme Accent Color Palettes */
+:root[data-accent="purple"], body[data-accent="purple"] {
+  --color-accent: #6366F1;
+  --color-accent-bright: #818CF8;
+  --color-accent-secondary: #C084FC;
+  --color-accent-glow: rgba(99, 102, 241, 0.35);
+}
+
+:root[data-accent="cyan"], body[data-accent="cyan"] {
+  --color-accent: #06B6D4;
+  --color-accent-bright: #22D3EE;
+  --color-accent-secondary: #38BDF8;
+  --color-accent-glow: rgba(6, 182, 212, 0.35);
+}
+
+:root[data-accent="emerald"], body[data-accent="emerald"] {
+  --color-accent: #10B981;
+  --color-accent-bright: #34D399;
+  --color-accent-secondary: #2DD4BF;
+  --color-accent-glow: rgba(16, 185, 129, 0.35);
+}
+
+:root[data-accent="crimson"], body[data-accent="crimson"] {
+  --color-accent: #E11D48;
+  --color-accent-bright: #F43F5E;
+  --color-accent-secondary: #FB7185;
+  --color-accent-glow: rgba(225, 29, 72, 0.35);
+}
+
+:root[data-accent="amber"], body[data-accent="amber"] {
+  --color-accent: #F59E0B;
+  --color-accent-bright: #FBBF24;
+  --color-accent-secondary: #FDE047;
+  --color-accent-glow: rgba(245, 158, 11, 0.35);
+}
+

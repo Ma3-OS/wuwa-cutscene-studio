@@ -38,15 +38,20 @@ pub async fn generate_single_video_info(
 
     emit_log(&app, &format!("Parsing metadata for {}...", mp4.file_name().unwrap().to_string_lossy()));
 
+    let lang = if config.subtitle_lang.is_empty() { "th".to_string() } else { config.subtitle_lang.clone() };
     let videodata_path = data_dir.join("videodata.json");
     let videosound_path = data_dir.join("videosound.json");
     let videocaption_path = data_dir.join("videocaption.json");
-    let multitext_path = data_dir.join("MultiText.json");
+    let multitext_lang_path = data_dir.join(format!("MultiText_{}.json", lang));
+    let multitext_path = if multitext_lang_path.exists() {
+        multitext_lang_path
+    } else {
+        data_dir.join("MultiText.json")
+    };
 
     if !videodata_path.exists() || !videosound_path.exists() || !videocaption_path.exists() || !multitext_path.exists() {
-        emit_log(&app, "Required JSON data missing. Auto-downloading from Arikatsu/WutheringWaves_Data (3.5)...");
-        let lang = if config.subtitle_lang.is_empty() { "th".to_string() } else { config.subtitle_lang.clone() };
-        let _ = crate::commands::downloader::download_data(app.clone(), lang).await;
+        emit_log(&app, &format!("Required JSON data for language '{}' missing. Auto-downloading...", lang));
+        let _ = crate::commands::downloader::download_data(app.clone(), Some(lang)).await;
     }
 
     let videodata_str = fs::read_to_string(&videodata_path).map_err(|e| e.to_string())?;
@@ -94,8 +99,7 @@ pub async fn generate_single_video_info(
         }
     }
 
-    // Also find any companion music events/banks for this CG (sequence music, boss state music, story music)
-    let cg_lower = target_cg_name.to_lowercase();
+    // Scan all bnk files in export_dir to extract missing banks on-demand
     let mut all_bnks = Vec::new();
     let mut dirs_to_visit = vec![export_dir.clone()];
     while let Some(dir) = dirs_to_visit.pop() {
@@ -111,23 +115,63 @@ pub async fn generate_single_video_info(
         }
     }
 
-    let mut companion_bnks = Vec::new();
+    // Find any companion BGM/state banks specifically associated with this CG
+    let cg_lower = target_cg_name.to_lowercase();
+    let mut companion_bgm_tracks: Vec<(String, Vec<u32>)> = Vec::new();
+    let mut banks_to_extract = Vec::new();
+
     for bnk in &all_bnks {
-        let file_stem = bnk.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
-        if file_stem.contains(&cg_lower) {
-            companion_bnks.push(bnk.clone());
-            
-            // If it's a state/music bank (e.g. set_state_boss_3_3_aliefuyi_m0357_stage3_loop.bnk), find the main parent music bank
-            if file_stem.starts_with("set_state_") || file_stem.starts_with("set_music_") {
-                let cleaned = file_stem.replace("set_state_", "").replace("set_music_", "");
-                let tokens: Vec<&str> = cleaned.split('_').filter(|&p| p.len() >= 3 && p != cg_lower).collect();
-                for ob in &all_bnks {
-                    let ostem = ob.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
-                    if ostem.starts_with("play_music_") || ostem.starts_with("play_bgm_") {
-                        if tokens.iter().any(|&t| ostem.contains(t)) {
-                            companion_bnks.push(ob.clone());
-                        }
+        let bnk_stem = bnk.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+        // Check if the bank explicitly names this specific CG (e.g. set_state_boss_3_3_aliefuyi_m0357_stage3_loop.bnk or play_sequence_music_m0357.bnk)
+        if bnk_stem.contains(&format!("_{}", cg_lower)) || bnk_stem.contains(&format!("{}_", cg_lower)) || bnk_stem == cg_lower {
+            if bnk_stem.starts_with("play_sequence_music_") || bnk_stem.starts_with("play_story_music_") {
+                if !events.contains(&bnk_stem) {
+                    events.push(bnk_stem);
+                }
+            } else if bnk_stem.starts_with("set_state_") || bnk_stem.starts_with("set_music_") {
+                let cleaned = bnk_stem.replace("set_state_", "").replace("set_music_", "");
+                let tokens: Vec<&str> = cleaned.split('_').collect();
+                let mut matched_parent_bank: Option<PathBuf> = None;
+                for k in (2..=tokens.len()).rev() {
+                    let candidate_music = format!("play_music_{}", tokens[..k].join("_"));
+                    if let Some(pb) = all_bnks.iter().find(|b| b.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase() == candidate_music) {
+                        matched_parent_bank = Some(pb.clone());
+                        break;
                     }
+                    let candidate_bgm = format!("play_bgm_{}", tokens[..k].join("_"));
+                    if let Some(pb) = all_bnks.iter().find(|b| b.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase() == candidate_bgm) {
+                        matched_parent_bank = Some(pb.clone());
+                        break;
+                    }
+                }
+
+                if let Some(parent_bnk) = matched_parent_bank {
+                    let state_ids = extract_state_ids_from_small_bnk(bnk);
+                    let parent_stem = parent_bnk.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                    banks_to_extract.push(parent_bnk);
+                    banks_to_extract.push(bnk.clone());
+                    companion_bgm_tracks.push((parent_stem, state_ids));
+                }
+            }
+        }
+    }
+
+    // If events was not found in videosound.json, look for direct exact bnk matches for base_name
+    if events.is_empty() {
+        let possible_stems = [
+            format!("play_all_sound_{}", base_name),
+            format!("play_sound_{}", base_name),
+            format!("play_sfx_lva_{}", base_name),
+            format!("play_sfx_{}", base_name),
+            format!("play_sequence_music_{}", base_name),
+            base_name.clone(),
+        ];
+        for bnk in &all_bnks {
+            let bnk_stem = bnk.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+            for ps in &possible_stems {
+                if bnk_stem == *ps || bnk_stem.starts_with(&format!("{}_", ps)) || bnk_stem.starts_with(&format!("{} ", ps)) {
+                    events.push(bnk_stem.clone());
+                    break;
                 }
             }
         }
@@ -137,7 +181,6 @@ pub async fn generate_single_video_info(
     let mut txtp_cache = index_directory(&txtp_dir, "txtp");
 
     // Collect banks to extract on-demand if missing
-    let mut banks_to_extract = Vec::new();
     for event in &events {
         let exists = txtp_cache.iter().any(|p| is_event_txtp_match(p, event));
         if !exists {
@@ -149,14 +192,6 @@ pub async fn generate_single_video_info(
                     break;
                 }
             }
-        }
-    }
-
-    for cbnk in &companion_bnks {
-        let cstem = cbnk.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
-        let exists = txtp_cache.iter().any(|p| is_event_txtp_match(p, &cstem) || p.to_lowercase().contains(&cstem));
-        if !exists {
-            banks_to_extract.push(cbnk.clone());
         }
     }
 
@@ -179,7 +214,7 @@ pub async fn generate_single_video_info(
     let norm_locale = locale.to_lowercase();
     let all_locales = ["ja", "en", "ko", "zh-hans", "zh-hant", "zh"];
 
-    // 1. Match primary cutscene dialogue/SFX events
+    // 1. Match primary cutscene dialogue/SFX/Music events strictly
     for event in &events {
         let mut matched = Vec::new();
         for txtp in &txtp_cache {
@@ -215,21 +250,13 @@ pub async fn generate_single_video_info(
         }
     }
 
-    // 2. Match companion music tracks (sequence music, boss music, story music)
-    for cbnk in &companion_bnks {
-        let cstem = cbnk.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
-        if cstem.starts_with("play_sequence_music_") || cstem.starts_with("play_story_music_") || cstem.starts_with("play_video_music_") || cstem.starts_with("play_seq_music_") {
-            for txtp in &txtp_cache {
-                if is_event_txtp_match(txtp, &cstem) {
-                    let txtp_path = PathBuf::from(txtp);
-                    let _ = crate::commands::wwiser::resolve_wem_paths_in_txtp(&txtp_path, &wem_map);
-                    sounds.push(txtp.clone());
-                }
-            }
-        } else if cstem.starts_with("set_state_") || cstem.starts_with("set_music_") {
-            let state_ids = extract_state_ids_from_bnk(cbnk);
-            for txtp in &txtp_cache {
-                let is_state_match = state_ids.iter().any(|&sid| txtp.contains(&format!("={})", sid)));
+    // 2. Match companion BGM tracks matching the exact state IDs
+    for (parent_stem, state_ids) in companion_bgm_tracks {
+        for txtp in &txtp_cache {
+            let p = Path::new(txtp);
+            let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+            if stem.starts_with(&parent_stem) {
+                let is_state_match = state_ids.iter().any(|&sid| stem.contains(&format!("={})", sid)));
                 if is_state_match {
                     let txtp_path = PathBuf::from(txtp);
                     let _ = crate::commands::wwiser::resolve_wem_paths_in_txtp(&txtp_path, &wem_map);
@@ -242,7 +269,7 @@ pub async fn generate_single_video_info(
     sounds.sort();
     sounds.dedup();
 
-    emit_log(&app, &format!("Ready to mix {} audio track(s):", sounds.len()));
+    emit_log(&app, &format!("Ready to mix {} authoritative audio track(s):", sounds.len()));
     for s in &sounds {
         let fname = PathBuf::from(s).file_name().unwrap_or_default().to_string_lossy().to_string();
         emit_log(&app, &format!("  -> {}", fname));
@@ -297,6 +324,12 @@ fn hex_to_ass_color(hex: &str) -> String {
 
 /// Clean game dialogue tags for SRT
 pub fn clean_subtitle_text(raw: &str) -> String {
+    // 0. Filter out developer censorship placeholders (e.g. ********************)
+    let non_star = raw.trim().chars().filter(|&c| c != '*' && c != ' ' && c != '\t' && c != '\n' && c != '\r').count();
+    if non_star == 0 {
+        return String::new();
+    }
+
     let mut text = raw.to_string();
 
     // 1. Replace <ano=RubyText>BaseText</ano> with BaseText
@@ -316,7 +349,14 @@ pub fn clean_subtitle_text(raw: &str) -> String {
         }
     }
 
-    // 2. Remove any remaining XML/HTML tags
+    // 2. Intelligent game placeholder replacement (Human dialogue polish)
+    // Replace {PlayerName} with standard in-game Rover title
+    text = text.replace("{PlayerName}", "ผู้พเนจร");
+    text = text.replace("{Rover}", "ผู้พเนจร");
+    text = text.replace("{Cus:Ipt,Touch=แตะ PC=คลิก Gamepad=กด}", "คลิก");
+    text = text.replace("{Touch=แตะ PC=คลิก Gamepad=กด}", "คลิก");
+
+    // 3. Remove any remaining XML/HTML tags
     let mut clean_chars = String::new();
     let mut in_tag = false;
     for ch in text.chars() {
@@ -329,7 +369,7 @@ pub fn clean_subtitle_text(raw: &str) -> String {
         }
     }
 
-    // 3. Remove placeholders like {0}, {1}, {PlayerName}
+    // 4. Remove unhandled bracket placeholders like {0}, {1}, {Score}
     let mut res = String::new();
     let mut in_bracket = false;
     for ch in clean_chars.chars() {
@@ -342,11 +382,11 @@ pub fn clean_subtitle_text(raw: &str) -> String {
         }
     }
 
-    // 4. Clean extra spaces per line
+    // 5. Clean extra spaces per line & skip pure asterisk censor strings
     let lines: Vec<String> = res
         .lines()
         .map(|line| line.split_whitespace().collect::<Vec<&str>>().join(" "))
-        .filter(|line| !line.is_empty())
+        .filter(|line| !line.is_empty() && line.chars().any(|c| c != '*' && c != ' '))
         .collect();
 
     lines.join("\n")
@@ -401,11 +441,17 @@ fn generate_captions(
     config: &crate::config::AppConfig
 ) -> Result<(Option<String>, Option<String>), String> {
     let data_dir = get_data_dir(app);
+    let lang = if config.subtitle_lang.is_empty() { "th".to_string() } else { config.subtitle_lang.clone() };
     let videocaption_path = data_dir.join("videocaption.json");
-    let multitext_path = data_dir.join("MultiText.json");
+    let multitext_lang_path = data_dir.join(format!("MultiText_{}.json", lang));
+    let multitext_path = if multitext_lang_path.exists() {
+        multitext_lang_path
+    } else {
+        data_dir.join("MultiText.json")
+    };
     
     if !videocaption_path.exists() || !multitext_path.exists() {
-        emit_log(app, "Subtitles skipped: videocaption.json or MultiText.json not found in data dir.");
+        emit_log(app, &format!("Subtitles skipped: videocaption.json or MultiText (lang: {}) not found in data dir.", lang));
         return Ok((None, None));
     }
 
@@ -593,15 +639,13 @@ fn is_event_txtp_match(txtp_path_str: &str, event_name: &str) -> bool {
     false
 }
 
-fn extract_state_ids_from_bnk(bnk_path: &Path) -> Vec<u32> {
+fn extract_state_ids_from_small_bnk(bnk_path: &Path) -> Vec<u32> {
     let mut ids = Vec::new();
     if let Ok(data) = fs::read(bnk_path) {
-        if let Some(hirc_idx) = data.windows(4).position(|w| w == b"HIRC") {
-            for i in hirc_idx..data.len().saturating_sub(3) {
-                let val = u32::from_le_bytes([data[i], data[i+1], data[i+2], data[i+3]]);
-                if val > 1000000 && val != 2234941458 {
-                    ids.push(val);
-                }
+        for i in 0..data.len().saturating_sub(3) {
+            let val = u32::from_le_bytes([data[i], data[i+1], data[i+2], data[i+3]]);
+            if val > 100000 && val != 2234941458 {
+                ids.push(val);
             }
         }
     }

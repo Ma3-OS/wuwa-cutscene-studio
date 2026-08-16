@@ -16,6 +16,12 @@ fn default_sub_color() -> String { "#FFFFFF".to_string() }
 fn default_sub_margin_v() -> u32 { 45 }
 
 fn default_original_res() -> String { "Exact In-Game Cutscene (1080p Match)".to_string() }
+fn default_app_lang() -> String { "th".to_string() }
+fn default_app_font() -> String { "Kanit".to_string() }
+fn default_theme_accent() -> String { "purple".to_string() }
+fn default_true() -> bool { true }
+fn default_false() -> bool { false }
+fn default_volume() -> f32 { 0.7 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AppConfig {
@@ -51,6 +57,24 @@ pub struct AppConfig {
     pub sub_color: String,
     #[serde(default = "default_sub_margin_v")]
     pub sub_margin_v: u32,
+
+    // App Preferences (Non-Video Settings)
+    #[serde(default = "default_app_lang")]
+    pub app_language: String,
+    #[serde(default = "default_app_font")]
+    pub app_font: String,
+    #[serde(default = "default_theme_accent")]
+    pub theme_accent: String,
+    #[serde(default = "default_true")]
+    pub enable_glow: bool,
+    #[serde(default = "default_true")]
+    pub enable_ui_sounds: bool,
+    #[serde(default = "default_volume")]
+    pub ui_sound_volume: f32,
+    #[serde(default = "default_false")]
+    pub auto_open_output: bool,
+    #[serde(default = "default_true")]
+    pub enable_notifications: bool,
 }
 
 impl Default for AppConfig {
@@ -71,6 +95,14 @@ impl Default for AppConfig {
             sub_shadow: default_sub_shadow(),
             sub_color: default_sub_color(),
             sub_margin_v: default_sub_margin_v(),
+            app_language: default_app_lang(),
+            app_font: default_app_font(),
+            theme_accent: default_theme_accent(),
+            enable_glow: true,
+            enable_ui_sounds: true,
+            ui_sound_volume: 0.7,
+            auto_open_output: false,
+            enable_notifications: true,
         }
     }
 }

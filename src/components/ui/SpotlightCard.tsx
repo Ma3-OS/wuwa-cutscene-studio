@@ -58,7 +58,7 @@ export function SpotlightCard({ children, className, innerClassName, ...props }:
         className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 z-0"
         style={{
           opacity,
-          background: `radial-gradient(400px circle at ${position.x}px ${position.y}px, rgba(94,106,210,0.1), transparent 40%)`,
+          background: `radial-gradient(400px circle at ${position.x}px ${position.y}px, var(--color-accent-glow, rgba(99,102,241,0.2)), transparent 45%)`,
         }}
       />
       <div className={cn("relative z-10", innerClassName)}>{children}</div>

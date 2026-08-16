@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { motion } from "framer-motion";
 import { ScrollText, Trash2, Copy, Check, Filter } from "lucide-react";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
+import { useApp } from "../context/AppContext";
 
 interface LogEntry {
   text: string;
@@ -21,6 +22,7 @@ function classifyLog(text: string): LogEntry["type"] {
 type FilterType = "all" | "info" | "warn" | "error" | "success";
 
 export function LogView() {
+  const { t, playSound } = useApp();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [copied, setCopied] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
@@ -51,9 +53,13 @@ export function LogView() {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
-  const clearLogs = () => setLogs([]);
+  const clearLogs = () => {
+    playSound("click");
+    setLogs([]);
+  };
 
   const copyLogs = () => {
+    playSound("click");
     const text = logs.map((l) => `[${l.time}] ${l.text}`).join("\n");
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -63,11 +69,11 @@ export function LogView() {
   const filteredLogs = filter === "all" ? logs : logs.filter((l) => l.type === filter);
 
   const FILTERS: { key: FilterType; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "error", label: "Errors" },
-    { key: "warn", label: "Warnings" },
-    { key: "success", label: "Success" },
-    { key: "info", label: "Info" },
+    { key: "all", label: t("filterAll") },
+    { key: "error", label: t("filterError") },
+    { key: "warn", label: t("filterWarn") },
+    { key: "success", label: t("filterSuccess") },
+    { key: "info", label: t("filterInfo") },
   ];
 
   const logTypeColors: Record<LogEntry["type"], string> = {
@@ -89,8 +95,11 @@ export function LogView() {
     >
       <header className="mb-4 flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-gradient mb-1">Activity Log</h1>
-          <p className="text-fg-muted text-xs">
+          <h1 className="text-xl font-bold tracking-tight text-fg flex items-center gap-2">
+            <ScrollText className="w-5 h-5 text-accent" />
+            {t("logTitle")}
+          </h1>
+          <p className="text-fg-muted text-xs mt-0.5">
             {logs.length} entries
             {errorCount > 0 && <span className="text-red-400 ml-2">• {errorCount} errors</span>}
             {warnCount > 0 && <span className="text-amber-400 ml-2">• {warnCount} warnings</span>}
@@ -102,18 +111,18 @@ export function LogView() {
               <button
                 onClick={copyLogs}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-fg-muted hover:text-white transition-colors border border-white/[0.06]"
-                title="Copy all logs"
+                title={t("btnCopyLogs")}
               >
                 {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copied ? "Copied" : "Copy"}</span>
+                <span>{copied ? t("copiedSuccess") : t("btnCopyLogs")}</span>
               </button>
               <button
                 onClick={clearLogs}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-fg-muted hover:text-red-400 transition-colors border border-white/[0.06]"
-                title="Clear all logs"
+                title={t("btnClearLogs")}
               >
                 <Trash2 className="w-3 h-3" />
-                <span>Clear</span>
+                <span>{t("btnClearLogs")}</span>
               </button>
             </>
           )}
@@ -126,7 +135,10 @@ export function LogView() {
         {FILTERS.map((f) => (
           <button
             key={f.key}
-            onClick={() => setFilter(f.key)}
+            onClick={() => {
+              playSound("click");
+              setFilter(f.key);
+            }}
             className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
               filter === f.key
                 ? "bg-accent/20 text-accent-bright border border-accent/30"

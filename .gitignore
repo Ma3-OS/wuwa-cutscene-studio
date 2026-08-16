@@ -11,13 +11,20 @@ dist-ssr/
 
 # Tauri & Rust build artifacts
 src-tauri/target/
-src-tauri/gen/
+target/
 **/*.rs.bk
 *.exe
 *.pdb
 *.dll
 *.so
 *.dylib
+
+# Application Config & Runtime Caches
+app_config.json
+config.json
+cache/
+.cache/
+*.cache
 
 # Logs & Debugging
 logs/
@@ -38,14 +45,15 @@ tools/
 renders/
 output/
 temp/
+scratch/
+.system_generated/
 *.wav
 *.mp4
 *.mkv
 *.webm
-*.test.wav
-*.test.png
-*.png.test
+*.test.*
 *.tmp
+*.bak
 
 # Operating System & IDE Files
 .vscode/*
