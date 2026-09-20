@@ -20,24 +20,36 @@ pub fn scan_directory_recursive(dir: &Path, extensions: &[&str]) -> Vec<PathBuf>
     found_files
 }
 
+pub fn validate_local_dir(dir_str: &str) -> Result<PathBuf, String> {
+    let trimmed = dir_str.trim();
+    if trimmed.is_empty() {
+        return Err("Directory path is empty".into());
+    }
+    // Block remote UNC paths (\\attacker\share or //attacker/share)
+    if trimmed.starts_with(r"\\") || trimmed.starts_with("//") {
+        return Err("Remote network UNC paths are forbidden".into());
+    }
+    let p = PathBuf::from(trimmed);
+    if !p.exists() || !p.is_dir() {
+        return Err("Export directory does not exist or is not a directory".into());
+    }
+    Ok(p)
+}
+
 #[tauri::command]
 pub fn get_exported_videos(app: AppHandle, export_dir: String) -> Result<Vec<String>, String> {
-    if export_dir.is_empty() {
+    if export_dir.trim().is_empty() {
         return Ok(vec![]);
     }
     
-    emit_log(&app, &format!("Scanning for exported videos in: {}", export_dir));
-    let path = PathBuf::from(export_dir);
-    
-    if (!path.exists()) {
-        return Err("Export directory does not exist".into());
-    }
+    let path = validate_local_dir(&export_dir)?;
+    emit_log(&app, &format!("Scanning for exported videos in: {}", path.display()));
     
     let videos = scan_directory_recursive(&path, &["mp4", "mkv", "avi", "bk2"]);
     
     let mut video_names = Vec::new();
     for v in videos {
-        if let Some(name) = v.file_name().and_then(|n| n.to_str()) {
+        if let Some(_name) = v.file_name().and_then(|n| n.to_str()) {
             video_names.push(v.to_string_lossy().to_string());
         }
     }
@@ -48,16 +60,12 @@ pub fn get_exported_videos(app: AppHandle, export_dir: String) -> Result<Vec<Str
 
 #[tauri::command]
 pub fn scan_audio_banks(app: AppHandle, export_dir: String) -> Result<Vec<String>, String> {
-    if export_dir.is_empty() {
+    if export_dir.trim().is_empty() {
         return Ok(vec![]);
     }
     
-    emit_log(&app, &format!("Scanning for exported audio banks in: {}", export_dir));
-    let path = PathBuf::from(export_dir);
-    
-    if (!path.exists()) {
-        return Err("Export directory does not exist".into());
-    }
+    let path = validate_local_dir(&export_dir)?;
+    emit_log(&app, &format!("Scanning for exported audio banks in: {}", path.display()));
     
     let banks = scan_directory_recursive(&path, &["bnk", "wem", "txtp"]);
     
@@ -109,12 +117,16 @@ pub struct VideoMeta {
 
 #[tauri::command]
 pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, String> {
-    if video_path.is_empty() {
+    let trimmed = video_path.trim();
+    if trimmed.is_empty() {
         return Err("Video path is empty".into());
     }
+    if trimmed.starts_with(r"\\") || trimmed.starts_with("//") {
+        return Err("Remote network UNC paths are forbidden".into());
+    }
 
-    let p = PathBuf::from(&video_path);
-    if !p.exists() {
+    let p = PathBuf::from(trimmed);
+    if !p.exists() || !p.is_file() {
         return Err("Video file not found".into());
     }
 

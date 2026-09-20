@@ -32,3 +32,9 @@ tauri-plugin-fs = "2.5.1"
 tauri-plugin-shell = "2.3.5"
 open = "5.4.0"
 
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

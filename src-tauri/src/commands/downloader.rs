@@ -73,18 +73,26 @@ fn extract_zip(zip_path: &Path, dest_dir: &Path, app: &AppHandle, task_name: &st
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
         
+        // Enforce enclosed_name to eliminate Zip Slip (Path Traversal)
+        let safe_rel_path = match file.enclosed_name() {
+            Some(path) => path.to_owned(),
+            None => {
+                return Err(format!("Unsafe path detected in zip archive: {}", file.name()));
+            }
+        };
+
         // Handle ffmpeg rename logic
-        let mut outpath = dest_dir.join(file.name());
-        if file.name().ends_with("ffmpeg.exe") {
+        let mut outpath = dest_dir.join(&safe_rel_path);
+        if safe_rel_path.to_string_lossy().ends_with("ffmpeg.exe") {
             outpath = dest_dir.join("ffmpeg.exe");
         }
 
-        if (*file.name()).ends_with('/') {
+        if file.is_dir() {
             fs::create_dir_all(&outpath).map_err(|e| e.to_string())?;
         } else {
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(&p).map_err(|e| e.to_string())?;
+                    fs::create_dir_all(p).map_err(|e| e.to_string())?;
                 }
             }
             let mut outfile = File::create(&outpath).map_err(|e| e.to_string())?;

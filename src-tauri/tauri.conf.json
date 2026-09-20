@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; font-src 'self' https://fonts.gstatic.com data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: asset: blob:; connect-src 'self' ipc: http://localhost:* ws://localhost:*;"
     }
   },
   "bundle": {

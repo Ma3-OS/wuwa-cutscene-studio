@@ -40,31 +40,60 @@ pub fn check_dependencies(app: AppHandle) -> DependencyStatus {
 
                 // Removed Auto-Detect as per user request (FModel output is separate)
 
+const ALLOWED_OPEN_EXTENSIONS: &[&str] = &[
+    "mp4", "mkv", "avi", "webm", "srt", "ass", "txt", "log", "json", "jpg", "jpeg", "png", "wav"
+];
+
+fn is_safe_local_path(path_str: &str) -> Result<PathBuf, String> {
+    let trimmed = path_str.trim();
+    if trimmed.is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
+    // Block remote UNC paths (\\attacker\share or //attacker/share)
+    if trimmed.starts_with(r"\\") || trimmed.starts_with("//") {
+        return Err("Network UNC paths are forbidden for security reasons".to_string());
+    }
+    let p = PathBuf::from(trimmed);
+    if !p.is_absolute() {
+        return Err("Only absolute paths are allowed".to_string());
+    }
+    Ok(p)
+}
+
 #[tauri::command]
 pub fn open_folder(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
+    let p = is_safe_local_path(&path)?;
     let target = if p.is_file() {
         p.parent().map(|par| par.to_path_buf()).unwrap_or(p)
     } else {
         p
     };
-    if target.exists() {
+    if target.exists() && target.is_dir() {
         open::that(&target).map_err(|e| e.to_string())?;
         Ok(())
     } else {
-        Err("Folder does not exist".to_string())
+        Err("Folder does not exist or is invalid".to_string())
     }
 }
 
 #[tauri::command]
 pub fn open_file(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if p.exists() {
-        open::that(p).map_err(|e| e.to_string())?;
-        Ok(())
-    } else {
-        Err("File does not exist".to_string())
+    let p = is_safe_local_path(&path)?;
+    if !p.exists() || !p.is_file() {
+        return Err("File does not exist or is not a regular file".to_string());
     }
+
+    let ext = p.extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_default();
+
+    if !ALLOWED_OPEN_EXTENSIONS.contains(&ext.as_str()) {
+        return Err(format!("Opening '.{}' files is restricted for security reasons", ext));
+    }
+
+    open::that(p).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]

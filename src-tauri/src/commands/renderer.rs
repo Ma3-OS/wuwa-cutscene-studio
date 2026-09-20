@@ -11,7 +11,7 @@ use crate::config::ConfigState;
 
 fn hex_to_ass_color(hex: &str) -> String {
     let clean = hex.trim_start_matches('#');
-    if clean.len() == 6 {
+    if clean.len() == 6 && clean.chars().all(|c| c.is_ascii_hexdigit()) {
         let r = &clean[0..2];
         let g = &clean[2..4];
         let b = &clean[4..6];
@@ -19,6 +19,29 @@ fn hex_to_ass_color(hex: &str) -> String {
     } else {
         "&H00FFFFFF".to_string()
     }
+}
+
+fn sanitize_ffmpeg_path(path_str: &str) -> String {
+    path_str
+        .replace('\\', "/")
+        .replace(':', "\\:")
+        .replace('\'', "'\\''")
+        .replace('[', "\\[")
+        .replace(']', "\\]")
+        .replace(';', "\\;")
+        .replace(',', "\\,")
+}
+
+fn sanitize_font_name(font: &str) -> String {
+    font.chars()
+        .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-' || *c == '_')
+        .collect()
+}
+
+fn get_system_fonts_dir_escaped() -> String {
+    let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string());
+    let fonts_path = format!("{}/Fonts", windir.replace('\\', "/"));
+    sanitize_ffmpeg_path(&fonts_path)
 }
 
 #[tauri::command]
@@ -115,12 +138,14 @@ pub async fn render_video(
         }
 
         if is_hardsub {
+            let fontsdir = get_system_fonts_dir_escaped();
             if let Some(ass_file) = &video_info.ass_path {
-                let escaped_ass = ass_file.replace('\\', "/").replace(":", "\\:");
-                v_filter_chain.push(format!("subtitles='{}':fontsdir='C\\:/Windows/Fonts'", escaped_ass));
+                let escaped_ass = sanitize_ffmpeg_path(ass_file);
+                v_filter_chain.push(format!("subtitles='{}':fontsdir='{}'", escaped_ass, fontsdir));
             } else {
-                let escaped_srt = srt_path.replace('\\', "/").replace(":", "\\:");
-                let font_name = if config.sub_font.is_empty() { "Kanit Medium" } else { &config.sub_font };
+                let escaped_srt = sanitize_ffmpeg_path(&srt_path);
+                let raw_font = if config.sub_font.is_empty() { "Kanit Medium" } else { &config.sub_font };
+                let font_name = sanitize_font_name(raw_font);
                 let font_size = if config.sub_size == 0 { 38 } else { config.sub_size };
                 let outline = if config.sub_outline < 0.0 { 0.0 } else { config.sub_outline };
                 let shadow = if config.sub_shadow < 0.0 { 0.0 } else { config.sub_shadow };
@@ -131,7 +156,7 @@ pub async fn render_video(
                     "Fontname={},Fontsize={},PrimaryColour={},OutlineColour=&H00000000,BackColour=&H80000000,Outline={:.2},Shadow={:.2},Alignment=2,MarginV={}",
                     font_name, font_size, primary_color, outline, shadow, margin_v
                 );
-                v_filter_chain.push(format!("subtitles='{}':force_style='{}':fontsdir='C\\:/Windows/Fonts'", escaped_srt, style));
+                v_filter_chain.push(format!("subtitles='{}':force_style='{}':fontsdir='{}'", escaped_srt, style, fontsdir));
             }
         }
 
