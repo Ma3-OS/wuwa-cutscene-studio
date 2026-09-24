@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { invoke } from "@tauri-apps/api/core";
+import { SettingsAPI } from "../core/ipc";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -22,25 +22,7 @@ import {
 } from "lucide-react";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { Button } from "../components/ui/Button";
-import { useApp } from "../context/AppContext";
-
-interface AppConfig {
-  ffmpeg_path: string;
-  vgmstream_path: string;
-  export_dir: string;
-  output_dir: string;
-  render_resolution: string;
-  char_selection: string;
-  locale_selection: string;
-  subtitle_lang: string;
-  subtitle_mode: string;
-  sub_font: string;
-  sub_size: number;
-  sub_outline: number;
-  sub_shadow: number;
-  sub_color: string;
-  sub_margin_v: number;
-}
+import { useApp, AppConfig } from "../context/AppContext";
 
 const FONT_PRESETS = [
   { label: "Kanit Medium (Game Thai Standard)", value: "Kanit Medium" },
@@ -69,23 +51,15 @@ const BG_THEMES = [
 ];
 
 export function SubtitleView() {
-  const { t, playSound } = useApp();
+  const { config: globalConfig, t, playSound } = useApp();
   const [config, setConfig] = useState<AppConfig>({
-    ffmpeg_path: "",
-    vgmstream_path: "",
-    export_dir: "",
-    output_dir: "",
-    render_resolution: "original",
-    char_selection: "Girl",
-    locale_selection: "ja",
-    subtitle_lang: "th",
-    subtitle_mode: "Hard-sub",
-    sub_font: "Kanit Medium",
-    sub_size: 42,
-    sub_outline: 2.2,
-    sub_shadow: 1.5,
-    sub_color: "#FFFFFF",
-    sub_margin_v: 50,
+    ...globalConfig,
+    sub_font: globalConfig.sub_font || "Kanit Medium",
+    sub_size: globalConfig.sub_size || 42,
+    sub_outline: globalConfig.sub_outline ?? 2.2,
+    sub_shadow: globalConfig.sub_shadow ?? 1.5,
+    sub_color: globalConfig.sub_color || "#FFFFFF",
+    sub_margin_v: globalConfig.sub_margin_v || 50,
   });
 
   const [saving, setSaving] = useState(false);
@@ -136,7 +110,7 @@ export function SubtitleView() {
   }, [isFullscreenPreview, previewAspect, previewZoomMode]);
 
   const loadConfigFromDisk = () => {
-    invoke<AppConfig>("get_config")
+    SettingsAPI.getConfig()
       .then((cfg) => {
         setConfig({
           ...cfg,
@@ -176,7 +150,7 @@ export function SubtitleView() {
   const updateConfig = async (newConfig: AppConfig) => {
     setConfig(newConfig);
     try {
-      await invoke("update_config", { newConfig });
+      await SettingsAPI.updateConfig(newConfig);
       setLastSavedTime(new Date().toLocaleTimeString());
     } catch (e) {
       console.error(e);
@@ -249,7 +223,7 @@ export function SubtitleView() {
     playSound("click");
     setSaving(true);
     try {
-      await invoke("update_config", { newConfig: config });
+      await SettingsAPI.updateConfig(config);
       setLastSavedTime(new Date().toLocaleTimeString());
       toast.success("Subtitle settings saved & synced!");
     } catch (e) {

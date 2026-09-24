@@ -199,7 +199,7 @@ pub async fn generate_single_video_info(
         banks_to_extract.sort();
         banks_to_extract.dedup();
         emit_log(&app, &format!("Extracting {} missing sound & music bank(s)...", banks_to_extract.len()));
-        let _ = crate::commands::wwiser::run_wwiser_for_banks(&app, &export_dir, &banks_to_extract);
+        let _ = crate::commands::wwiser::run_wwiser_for_banks(&app, &export_dir, &banks_to_extract).await;
         txtp_cache = index_directory(&txtp_dir, "txtp");
     }
 
@@ -543,14 +543,33 @@ fn generate_captions(
     let out_dir = get_data_dir(app).join("captions");
     let _ = fs::create_dir_all(&out_dir);
     
-    let srt_path = out_dir.join(format!("{}.srt", cg_name));
+    let safe_name = sanitize_cutscene_filename(cg_name);
+    let srt_path = out_dir.join(format!("{}.srt", safe_name));
     fs::write(&srt_path, srt_content).map_err(|e| e.to_string())?;
 
-    let ass_path = out_dir.join(format!("{}.ass", cg_name));
+    let ass_path = out_dir.join(format!("{}.ass", safe_name));
     fs::write(&ass_path, ass_content).map_err(|e| e.to_string())?;
 
-    emit_log(app, &format!("Generated {} subtitle caption(s) for {}", index - 1, cg_name));
+    emit_log(app, &format!("Generated {} subtitle caption(s) for {}", index - 1, safe_name));
     Ok((Some(srt_path.to_string_lossy().to_string()), Some(ass_path.to_string_lossy().to_string())))
+}
+
+pub fn sanitize_cutscene_filename(name: &str) -> String {
+    let clean: String = name.chars()
+        .map(|c| match c {
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
+            other => other,
+        })
+        .collect();
+    
+    // Prevent directory traversal by stripping ".."
+    let no_traversal = clean.replace("..", "");
+    let trimmed = no_traversal.trim().trim_matches(|c| c == '.' || c == ' ');
+    if trimmed.is_empty() || trimmed.chars().all(|c| c == '_') {
+        "cutscene_caption".to_string()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 fn format_srt_time(ms: i64) -> String {
@@ -650,4 +669,28 @@ fn extract_state_ids_from_small_bnk(bnk_path: &Path) -> Vec<u32> {
         }
     }
     ids
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sanitize_cutscene_filename_traversal() {
+        assert_eq!(sanitize_cutscene_filename("../../evil_path"), "__evil_path");
+        assert_eq!(sanitize_cutscene_filename("..\\..\\windows\\system32"), "__windows_system32");
+    }
+
+    #[test]
+    fn test_sanitize_cutscene_filename_illegal_chars() {
+        assert_eq!(sanitize_cutscene_filename("SP01_Boss:Fight*Final?"), "SP01_Boss_Fight_Final_");
+        assert_eq!(sanitize_cutscene_filename("<Aki_Cutscene_01>"), "_Aki_Cutscene_01_");
+    }
+
+    #[test]
+    fn test_sanitize_cutscene_filename_empty_fallback() {
+        assert_eq!(sanitize_cutscene_filename("   "), "cutscene_caption");
+        assert_eq!(sanitize_cutscene_filename("..."), "cutscene_caption");
+        assert_eq!(sanitize_cutscene_filename("___"), "cutscene_caption");
+    }
 }

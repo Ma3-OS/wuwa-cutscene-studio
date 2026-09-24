@@ -19,7 +19,7 @@ fn emit_progress(app: &AppHandle, task: &str, progress: f32) {
     let _ = app.emit("downloader-progress", ProgressPayload { task: task.to_string(), progress });
 }
 
-fn get_base_dir(app: &AppHandle) -> PathBuf {
+pub fn get_base_dir(app: &AppHandle) -> PathBuf {
     app.path().app_data_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 
@@ -104,6 +104,9 @@ fn extract_zip(zip_path: &Path, dest_dir: &Path, app: &AppHandle, task_name: &st
     Ok(())
 }
 
+use crate::config::tools_manifest::{FFMPEG_TOOL, VGMSTREAM_TOOL, WWISER_TOOL, DATABASE_BRANCH};
+use crate::core::checksum::verify_sha256;
+
 #[tauri::command]
 pub async fn download_tools(app: AppHandle) -> Result<(), String> {
     let tools_dir = get_tools_dir(&app);
@@ -114,8 +117,12 @@ pub async fn download_tools(app: AppHandle) -> Result<(), String> {
     if !ffmpeg_exe.exists() {
         emit_log(&app, "Downloading FFmpeg...");
         let zip_path = tools_dir.join("ffmpeg.zip");
-        download_file("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip", &zip_path, &app, "FFmpeg").await?;
-        extract_zip(&zip_path, &tools_dir, &app, "FFmpeg")?;
+        download_file(FFMPEG_TOOL.url, &zip_path, &app, FFMPEG_TOOL.name).await?;
+        if let Some(expected) = FFMPEG_TOOL.expected_sha256 {
+            verify_sha256(&zip_path, expected).map_err(|e| e.to_string())?;
+            emit_log(&app, "FFmpeg SHA-256 integrity verified.");
+        }
+        extract_zip(&zip_path, &tools_dir, &app, FFMPEG_TOOL.name)?;
         let _ = fs::remove_file(zip_path);
     } else {
         emit_log(&app, "FFmpeg already exists.");
@@ -126,10 +133,12 @@ pub async fn download_tools(app: AppHandle) -> Result<(), String> {
     if !vgmstream_exe.exists() {
         emit_log(&app, "Downloading vgmstream...");
         let zip_path = tools_dir.join("vgmstream.zip");
-        // Fallback URL
-        let url = "https://github.com/vgmstream/vgmstream/releases/download/r2117/vgmstream-win64.zip";
-        download_file(url, &zip_path, &app, "vgmstream").await?;
-        extract_zip(&zip_path, &tools_dir, &app, "vgmstream")?;
+        download_file(VGMSTREAM_TOOL.url, &zip_path, &app, VGMSTREAM_TOOL.name).await?;
+        if let Some(expected) = VGMSTREAM_TOOL.expected_sha256 {
+            verify_sha256(&zip_path, expected).map_err(|e| e.to_string())?;
+            emit_log(&app, "vgmstream SHA-256 integrity verified.");
+        }
+        extract_zip(&zip_path, &tools_dir, &app, VGMSTREAM_TOOL.name)?;
         let _ = fs::remove_file(zip_path);
     } else {
         emit_log(&app, "vgmstream already exists.");
@@ -140,9 +149,12 @@ pub async fn download_tools(app: AppHandle) -> Result<(), String> {
     if !wwiser_py.exists() {
         emit_log(&app, "Downloading wwiser...");
         let zip_path = tools_dir.join("wwiser.zip");
-        let url = "https://github.com/bnnm/wwiser/archive/refs/heads/master.zip";
-        download_file(url, &zip_path, &app, "wwiser").await?;
-        extract_zip(&zip_path, &tools_dir, &app, "wwiser")?;
+        download_file(WWISER_TOOL.url, &zip_path, &app, WWISER_TOOL.name).await?;
+        if let Some(expected) = WWISER_TOOL.expected_sha256 {
+            verify_sha256(&zip_path, expected).map_err(|e| e.to_string())?;
+            emit_log(&app, "wwiser SHA-256 integrity verified.");
+        }
+        extract_zip(&zip_path, &tools_dir, &app, WWISER_TOOL.name)?;
         let _ = fs::remove_file(zip_path);
     } else {
         emit_log(&app, "wwiser already exists.");
@@ -158,21 +170,27 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
     let json_dir = get_data_dir(&app);
     fs::create_dir_all(&json_dir).map_err(|e| e.to_string())?;
     
-    // Instead of resolving branch dynamically to save time, we use a fixed branch for this rewrite or default to 3.5.
-    let branch = "3.5";
+    let branch = DATABASE_BRANCH;
     emit_log(&app, &format!("Using database branch: {} (Language: {})", branch, lang));
     
     let common_json_urls = vec![
         ("videodata.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videodata.json", branch)),
         ("videosound.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videosound.json", branch)),
         ("videocaption.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videocaption.json", branch)),
+        ("keys.json", "https://raw.githubusercontent.com/yarik0chka/wuwa-keys/main/keys.json".to_string()),
     ];
     
     for (name, url) in common_json_urls {
         let file_path = json_dir.join(name);
         if !file_path.exists() {
-            emit_log(&app, &format!("Downloading {}...", name));
-            download_file(&url, &file_path, &app, name).await?;
+            let local_candidate = Path::new("src-tauri").join(name);
+            if local_candidate.exists() {
+                let _ = fs::copy(&local_candidate, &file_path);
+            }
+            if !file_path.exists() {
+                emit_log(&app, &format!("Downloading {}...", name));
+                download_file(&url, &file_path, &app, name).await?;
+            }
         }
     }
 

@@ -7,6 +7,8 @@ fn greet(name: &str) -> String {
 
 mod config;
 pub mod commands;
+pub mod errors;
+pub mod core;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -39,6 +41,8 @@ pub fn run() {
             commands::scanner::scan_audio_banks,
             commands::scanner::get_video_thumbnail,
             commands::scanner::get_video_meta,
+            commands::scanner::is_game_running,
+            commands::scanner::detect_game_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

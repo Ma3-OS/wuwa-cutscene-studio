@@ -6,32 +6,10 @@ echo   Cleaning Build Artifacts & Temporary Files
 echo ===================================================
 echo.
 
-echo [1/4] Removing node_modules...
-if exist "node_modules" rmdir /s /q "node_modules"
-
-echo [2/4] Removing Rust target cache (src-tauri\target)...
-if exist "src-tauri\target" rmdir /s /q "src-tauri\target"
-
-echo [3/4] Removing Frontend dist folder...
-if exist "dist" rmdir /s /q "dist"
-
-echo [4/4] Removing temporary files, caches & logs...
-if exist "txtp" rmdir /s /q "txtp"
-if exist "txtp_test" rmdir /s /q "txtp_test"
-if exist "captions" rmdir /s /q "captions"
-if exist "renders" rmdir /s /q "renders"
-if exist "output" rmdir /s /q "output"
-if exist "temp" rmdir /s /q "temp"
-if exist "cache" rmdir /s /q "cache"
-if exist ".cache" rmdir /s /q ".cache"
-if exist "scratch" rmdir /s /q "scratch"
-if exist "debug_wwiser.log" del /f /q "debug_wwiser.log"
-if exist "wwconfig*.txt" del /f /q "wwconfig*.txt"
-if exist "*.log" del /f /q "*.log"
+call npm run tauri:clean
 
 echo.
 echo ===================================================
 echo  Clean complete! Project is lightweight for Git.
-echo  Run 'run_app.bat' or 'npm install' to restart dev.
 echo ===================================================
 pause

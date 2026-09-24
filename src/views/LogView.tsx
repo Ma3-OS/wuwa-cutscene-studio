@@ -1,72 +1,37 @@
-import { useState, useEffect, useRef } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ScrollText, Trash2, Copy, Check, Filter } from "lucide-react";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { useApp } from "../context/AppContext";
-
-interface LogEntry {
-  text: string;
-  time: string;
-  type: "info" | "warn" | "error" | "success";
-}
-
-function classifyLog(text: string): LogEntry["type"] {
-  const lower = text.toLowerCase();
-  if (lower.startsWith("success") || lower.startsWith("finished") || lower.includes("successfully") || lower.includes("completed")) return "success";
-  if (lower.includes("error:") || lower.startsWith("error") || lower.includes("failed")) return "error";
-  if (lower.includes("warning") || lower.startsWith("⚠")) return "warn";
-  return "info";
-}
+import { useTaskStore, LogEntry } from "../features/task-monitor/stores/useTaskStore";
 
 type FilterType = "all" | "info" | "warn" | "error" | "success";
 
 export function LogView() {
   const { t, playSound } = useApp();
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const { logs, clearLogs } = useTaskStore();
   const [copied, setCopied] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let unlisten: () => void;
-    const setup = async () => {
-      unlisten = await listen<string>("backend-log", (event) => {
-        const text = typeof event.payload === "string" ? event.payload : JSON.stringify(event.payload);
-        setLogs((prev) => [
-          ...prev,
-          {
-            text,
-            time: new Date().toLocaleTimeString(),
-            type: classifyLog(text),
-          },
-        ]);
-      });
-    };
-    setup();
-    return () => {
-      if (unlisten) unlisten();
-    };
-  }, []);
-
-  useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
-  const clearLogs = () => {
+  const handleClearLogs = () => {
     playSound("click");
-    setLogs([]);
+    clearLogs();
   };
 
-  const copyLogs = () => {
+  const handleCopyLogs = () => {
     playSound("click");
-    const text = logs.map((l) => `[${l.time}] ${l.text}`).join("\n");
+    const text = logs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const filteredLogs = filter === "all" ? logs : logs.filter((l) => l.type === filter);
+  const filteredLogs = filter === "all" ? logs : logs.filter((l) => l.level === filter);
 
   const FILTERS: { key: FilterType; label: string }[] = [
     { key: "all", label: t("filterAll") },
@@ -76,15 +41,15 @@ export function LogView() {
     { key: "info", label: t("filterInfo") },
   ];
 
-  const logTypeColors: Record<LogEntry["type"], string> = {
+  const logTypeColors: Record<LogEntry["level"], string> = {
     error: "text-red-400",
     warn: "text-amber-400",
     success: "text-emerald-400",
     info: "text-fg-muted",
   };
 
-  const errorCount = logs.filter((l) => l.type === "error").length;
-  const warnCount = logs.filter((l) => l.type === "warn").length;
+  const errorCount = logs.filter((l) => l.level === "error").length;
+  const warnCount = logs.filter((l) => l.level === "warn").length;
 
   return (
     <motion.div
@@ -109,7 +74,7 @@ export function LogView() {
           {logs.length > 0 && (
             <>
               <button
-                onClick={copyLogs}
+                onClick={handleCopyLogs}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-fg-muted hover:text-white transition-colors border border-white/[0.06]"
                 title={t("btnCopyLogs")}
               >
@@ -117,7 +82,7 @@ export function LogView() {
                 <span>{copied ? t("copiedSuccess") : t("btnCopyLogs")}</span>
               </button>
               <button
-                onClick={clearLogs}
+                onClick={handleClearLogs}
                 className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-fg-muted hover:text-red-400 transition-colors border border-white/[0.06]"
                 title={t("btnClearLogs")}
               >
@@ -148,7 +113,7 @@ export function LogView() {
             {f.label}
             {f.key !== "all" && (
               <span className="ml-1 opacity-60">
-                ({logs.filter((l) => l.type === f.key).length})
+                ({logs.filter((l) => l.level === f.key).length})
               </span>
             )}
           </button>
@@ -179,13 +144,13 @@ export function LogView() {
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              {filteredLogs.map((log, i) => (
+              {filteredLogs.map((log) => (
                 <div
-                  key={i}
-                  className={`flex items-start gap-2.5 break-all ${logTypeColors[log.type]}`}
+                  key={log.id}
+                  className={`flex items-start gap-2.5 break-all ${logTypeColors[log.level]}`}
                 >
-                  <span className="opacity-40 shrink-0 text-[10px] select-none">[{log.time}]</span>
-                  <span>{log.text}</span>
+                  <span className="opacity-40 shrink-0 text-[10px] select-none">[{log.timestamp}]</span>
+                  <span>{log.message}</span>
                 </div>
               ))}
               <div ref={logEndRef} />

@@ -131,7 +131,7 @@ pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, S
     }
 
     let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("video");
-    let cache_dir = crate::commands::downloader::get_tools_dir(&app).parent().unwrap().join("thumbnails");
+    let cache_dir = crate::commands::downloader::get_base_dir(&app).join("thumbnails");
     let _ = fs::create_dir_all(&cache_dir);
     let thumb_file = cache_dir.join(format!("{}.jpg", stem));
     let meta_file = cache_dir.join(format!("{}.meta.json", stem));
@@ -283,4 +283,65 @@ pub fn get_video_thumbnail(app: AppHandle, video_path: String) -> Result<String,
     } else {
         Err("Could not generate thumbnail".into())
     }
+}
+
+#[tauri::command]
+pub fn is_game_running() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let output = std::process::Command::new("tasklist")
+            .args(["/FI", "IMAGENAME eq Client-Win64-Shipping.exe", "/FO", "CSV", "/NH"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+
+        if let Ok(out) = output {
+            let text = String::from_utf8_lossy(&out.stdout);
+            return text.to_lowercase().contains("client-win64-shipping.exe");
+        }
+    }
+    false
+}
+
+#[tauri::command]
+pub fn detect_game_path() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        let reg_paths = [
+            r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Wuthering Waves",
+            r"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Wuthering Waves",
+            r"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Wuthering Waves",
+            r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WutheringWaves",
+            r"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WutheringWaves",
+        ];
+
+        for reg in reg_paths {
+            let output = std::process::Command::new("reg")
+                .args(["query", reg, "/v", "InstallLocation"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output();
+
+            if let Ok(out) = output {
+                if out.status.success() {
+                    let text = String::from_utf8_lossy(&out.stdout);
+                    for line in text.lines() {
+                        if line.contains("InstallLocation") {
+                            let parts: Vec<&str> = line.split("REG_SZ").collect();
+                            if parts.len() > 1 {
+                                let loc = parts[1].trim();
+                                if !loc.is_empty() && Path::new(loc).exists() {
+                                    return Some(loc.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
 }

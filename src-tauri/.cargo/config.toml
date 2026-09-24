@@ -1,0 +1,12 @@
+# Rust compilation and binary hardening config for Windows x86_64
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    # Strip developer machine username and absolute file paths from panic/error strings
+    "--remap-path-prefix", "$CARGO_HOME=cargo",
+    # Enable Address Space Layout Randomization (ASLR)
+    "-C", "link-arg=/DYNAMICBASE",
+    # Enable 64-bit High Entropy ASLR
+    "-C", "link-arg=/HIGHENTROPYVA",
+    # Enable Data Execution Prevention (DEP)
+    "-C", "link-arg=/NXCOMPAT",
+]

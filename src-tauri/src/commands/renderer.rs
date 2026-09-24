@@ -1,6 +1,6 @@
 use std::fs;
-use std::path::{PathBuf};
-use std::process::Command;
+use std::path::{Path, PathBuf};
+use tokio::process::Command;
 use tauri::AppHandle;
 
 use crate::commands::downloader::get_tools_dir;
@@ -39,7 +39,9 @@ fn sanitize_font_name(font: &str) -> String {
 }
 
 fn get_system_fonts_dir_escaped() -> String {
-    let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string());
+    let windir = std::env::var("WINDIR")
+        .or_else(|_| std::env::var("SystemRoot"))
+        .unwrap_or_else(|_| "C:\\Windows".to_string());
     let fonts_path = format!("{}/Fonts", windir.replace('\\', "/"));
     sanitize_ffmpeg_path(&fonts_path)
 }
@@ -53,11 +55,26 @@ pub async fn render_video(
 ) -> Result<String, String> {
     let config = state.0.lock().unwrap().clone();
     let tools_dir = get_tools_dir(&app);
-    let vgmstream_exe = tools_dir.join("vgmstream-cli.exe");
-    let ffmpeg_exe = tools_dir.join("ffmpeg.exe");
+    
+    // Priority 1: User-configured custom path -> Priority 2: AppData tools dir
+    let vgmstream_exe = if !config.vgmstream_path.is_empty() && Path::new(&config.vgmstream_path).exists() {
+        PathBuf::from(&config.vgmstream_path)
+    } else {
+        tools_dir.join("vgmstream-cli.exe")
+    };
 
-    if !vgmstream_exe.exists() { return Err("vgmstream-cli.exe not found".into()); }
-    if !ffmpeg_exe.exists() { return Err("ffmpeg.exe not found".into()); }
+    let ffmpeg_exe = if !config.ffmpeg_path.is_empty() && Path::new(&config.ffmpeg_path).exists() {
+        PathBuf::from(&config.ffmpeg_path)
+    } else {
+        tools_dir.join("ffmpeg.exe")
+    };
+
+    if !vgmstream_exe.exists() { 
+        return Err(format!("vgmstream-cli.exe not found. Please download tools or specify path in Settings. (Checked: {})", vgmstream_exe.display())); 
+    }
+    if !ffmpeg_exe.exists() { 
+        return Err(format!("ffmpeg.exe not found. Please download tools or specify path in Settings. (Checked: {})", ffmpeg_exe.display())); 
+    }
 
     let output_dir = if !config.output_dir.is_empty() {
         PathBuf::from(&config.output_dir)
@@ -75,18 +92,32 @@ pub async fn render_video(
         
         if !wav_path.exists() {
             emit_log(&app, &format!("Converting {} to wav...", sound_path.file_name().unwrap().to_string_lossy()));
-            let output = Command::new(&vgmstream_exe)
-                .args(["-o", &wav_path.to_string_lossy(), &sound_path.to_string_lossy()])
-                .stdin(std::process::Stdio::null())
-                .stdout(std::process::Stdio::piped())
-                .stderr(std::process::Stdio::piped())
-                .output()
-                .map_err(|e| e.to_string())?;
+            let mut vgm_cmd = Command::new(&vgmstream_exe);
+            vgm_cmd.args(["-o", &wav_path.to_string_lossy(), &sound_path.to_string_lossy()]);
+            vgm_cmd.kill_on_drop(true);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                vgm_cmd.creation_flags(0x08000000);
+            }
+            let output = vgm_cmd.output().await.map_err(|e| e.to_string())?;
                 
             if !output.status.success() {
                 let err = String::from_utf8_lossy(&output.stderr);
                 emit_log(&app, &format!("vgmstream error: {}", err));
                 return Err(format!("Audio conversion failed for {}", sound_path.display()));
+            }
+
+            // Anti-virus / Windows Defender file lock resilience:
+            // Ensure newly written .wav is fully unlocked before FFmpeg attempts to read it
+            let mut retries = 0;
+            while retries < 5 {
+                if let Ok(file) = fs::OpenOptions::new().read(true).open(&wav_path) {
+                    drop(file);
+                    break;
+                }
+                tokio::time::sleep(tokio::time::Duration::from_millis(80)).await;
+                retries += 1;
             }
         }
         wav_paths.push(wav_path);
@@ -99,12 +130,25 @@ pub async fn render_video(
     let is_softsub = subtitle_mode == "Soft-sub" && has_sub;
     let is_rescaling = config.render_resolution != "original" && !config.render_resolution.is_empty();
 
-    let out_name = format!("{}_{}_{}.mp4", video_info.cg_name, config.char_selection, config.locale_selection);
+    let safe_cg_name: String = video_info.cg_name.chars().filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-').collect();
+    let safe_char: String = config.char_selection.chars().filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-').collect();
+    let safe_locale: String = config.locale_selection.chars().filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-').collect();
+    let out_name = format!("{}_{}_{}.mp4", 
+        if safe_cg_name.is_empty() { "cutscene" } else { &safe_cg_name },
+        if safe_char.is_empty() { "Rover" } else { &safe_char },
+        if safe_locale.is_empty() { "ja" } else { &safe_locale }
+    );
     let out_path = output_dir.join(&out_name).to_string_lossy().to_string();
 
     let srt_path = video_info.srt_path.unwrap_or_default();
 
     let mut cmd = Command::new(&ffmpeg_exe);
+    cmd.kill_on_drop(true);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
     cmd.arg("-y");
     cmd.args(["-i", &video_info.cg_file]);
 
@@ -170,7 +214,7 @@ pub async fn render_video(
     let mut audio_codec = vec!["-c:a", "aac", "-b:a", "320k"];
 
     if audio_count == 1 {
-        filter_parts.push("[1:a]aformat=channel_layouts=stereo|5.1|7.1,pan=stereo|c0=c0+0.707*c2+0.707*c4+0.5*c3|c1=c1+0.707*c2+0.707*c5+0.5*c3,aresample=async=1,aformat=channel_layouts=stereo[aout]".to_string());
+        filter_parts.push("[1:a]aformat=channel_layouts=stereo|5.1|7.1,pan=stereo|c0=c0+0.707*c2+0.707*c4+0.5*c3|c1=c1+0.707*c2+0.707*c5+0.5*c3,aresample=async=1000:min_hard_comp=0.100000:first_pts=0,aformat=channel_layouts=stereo[aout]".to_string());
         audio_map = Some("-map [aout]".to_string());
     } else if audio_count > 1 {
         let mut pre_mix_labels = Vec::new();
@@ -178,7 +222,7 @@ pub async fn render_video(
             let in_idx = j + 1;
             let label = format!("a{}", in_idx);
             filter_parts.push(format!(
-                "[{}:a]aformat=channel_layouts=stereo|5.1|7.1,pan=stereo|c0=c0+0.707*c2+0.707*c4+0.5*c3|c1=c1+0.707*c2+0.707*c5+0.5*c3,aresample=async=1[{}]",
+                "[{}:a]aformat=channel_layouts=stereo|5.1|7.1,pan=stereo|c0=c0+0.707*c2+0.707*c4+0.5*c3|c1=c1+0.707*c2+0.707*c5+0.5*c3,aresample=async=1000:min_hard_comp=0.100000:first_pts=0[{}]",
                 in_idx, label
             ));
             pre_mix_labels.push(format!("[{}]", label));
@@ -221,7 +265,7 @@ pub async fn render_video(
 
     emit_log(&app, &format!("Rendering final video ({}) with FFmpeg...", out_name));
 
-    let output = cmd.output().map_err(|e| e.to_string())?;
+    let output = cmd.output().await.map_err(|e| e.to_string())?;
     
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use tokio::process::Command;
 use tauri::AppHandle;
 
 use crate::config::ConfigState;
@@ -95,7 +95,7 @@ pub fn fix_all_txtp_wem_paths(txtp_dir: &Path, export_dir: &Path) -> Result<usiz
 }
 
 /// Execute Wwiser on a specific set of .bnk files
-pub fn run_wwiser_for_banks(
+pub async fn run_wwiser_for_banks(
     app: &AppHandle,
     export_dir: &Path,
     bnk_files: &[PathBuf],
@@ -123,12 +123,20 @@ pub fn run_wwiser_for_banks(
     }
     fs::write(&config_path, config_content).map_err(|e| e.to_string())?;
 
-    let status = Command::new("python")
-        .arg(&wwiser_py)
+    let mut cmd = Command::new("python");
+    cmd.arg(&wwiser_py)
         .arg(format!("--config={}", config_path.display()))
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
-        .status()
+        .kill_on_drop(true);
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    let status = cmd.status().await
         .map_err(|e| format!("Failed to spawn python worker: {}", e))?;
 
     let _ = fs::remove_file(&config_path);
@@ -173,7 +181,7 @@ pub async fn run_wwiser(app: AppHandle, state: tauri::State<'_, ConfigState>, ta
     if let Some(files) = target_files {
         let bnk_paths: Vec<PathBuf> = files.into_iter().map(PathBuf::from).collect();
         emit_log(&app, &format!("Extracting {} targeted bank(s)...", bnk_paths.len()));
-        run_wwiser_for_banks(&app, &export_dir, &bnk_paths)?;
+        run_wwiser_for_banks(&app, &export_dir, &bnk_paths).await?;
         emit_log(&app, "Targeted bank extraction complete.");
         return Ok(());
     }
@@ -259,12 +267,20 @@ pub async fn run_wwiser(app: AppHandle, state: tauri::State<'_, ConfigState>, ta
 
     let mut children = Vec::new();
     for config_path in &config_paths {
-        let child = Command::new("python")
-            .arg(&wwiser_py)
+        let mut cmd = Command::new("python");
+        cmd.arg(&wwiser_py)
             .arg(format!("--config={}", config_path.display()))
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
-            .spawn()
+            .kill_on_drop(true);
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+        }
+
+        let child = cmd.spawn()
             .map_err(|e| {
                 running.store(false, Ordering::Relaxed);
                 format!("Failed to spawn python worker: {}", e)
@@ -274,7 +290,7 @@ pub async fn run_wwiser(app: AppHandle, state: tauri::State<'_, ConfigState>, ta
 
     let mut success = true;
     for mut child in children {
-        if let Ok(status) = child.wait() {
+        if let Ok(status) = child.wait().await {
             if !status.success() {
                 success = false;
             }

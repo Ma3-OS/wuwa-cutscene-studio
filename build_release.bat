@@ -16,8 +16,9 @@ if not exist "node_modules" (
     )
 )
 
-echo [2/2] Building Standalone Release (.exe)...
-call npm run tauri build
+echo [2/2] Hardening compiler & building standalone release (.exe)...
+set RUSTFLAGS=--remap-path-prefix %CD%=. --remap-path-prefix %USERPROFILE%=~
+call npm run tauri:build
 
 if errorlevel 1 (
     echo.

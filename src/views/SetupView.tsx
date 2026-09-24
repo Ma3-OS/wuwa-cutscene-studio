@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { motion } from "framer-motion";
@@ -20,7 +19,11 @@ import {
   Trash2,
   Bell,
   ExternalLink,
-  Check
+  Check,
+  Key,
+  ShieldAlert,
+  Wand2,
+  RefreshCw
 } from "lucide-react";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { Button } from "../components/ui/Button";
@@ -32,12 +35,7 @@ interface ProgressPayload {
   progress: number;
 }
 
-interface DependencyStatus {
-  ffmpeg: boolean;
-  wwiser: boolean;
-  vgmstream: boolean;
-  json_data: boolean;
-}
+import { ToolsAPI, ScannerAPI, DependencyStatusDto } from "../core/ipc";
 
 export function SetupView() {
   const { config, t, updateConfig, playSound } = useApp();
@@ -45,13 +43,15 @@ export function SetupView() {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTask, setCurrentTask] = useState("");
-  const [deps, setDeps] = useState<DependencyStatus | null>(null);
+  const [deps, setDeps] = useState<DependencyStatusDto | null>(null);
   const [cacheSize, setCacheSize] = useState<number>(0);
   const [clearingCache, setClearingCache] = useState(false);
+  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [syncingKeys, setSyncingKeys] = useState(false);
 
   const checkDeps = async () => {
     try {
-      const status = await invoke<DependencyStatus>("check_dependencies");
+      const status = await ToolsAPI.checkDependencies();
       setDeps(status);
     } catch (e) {
       console.error(e);
@@ -60,16 +60,61 @@ export function SetupView() {
 
   const fetchCacheSize = async () => {
     try {
-      const size = await invoke<number>("get_cache_size");
+      const size = await ToolsAPI.getCacheSize();
       setCacheSize(size);
     } catch (e) {
       console.error(e);
     }
   };
 
+  const checkGameRunning = async () => {
+    try {
+      const running = await ScannerAPI.isGameRunning();
+      setIsGameRunning(running);
+    } catch (e) {
+      console.warn("Could not check game process status", e);
+    }
+  };
+
+  const handleAutoDetect = async () => {
+    playSound("click");
+    try {
+      const detected = await ScannerAPI.detectGamePath();
+      if (detected) {
+        await updateConfig({ export_dir: detected });
+        playSound("success");
+        toast.success("Detected Wuthering Waves install location!");
+      } else {
+        playSound("error");
+        toast.error("Game path not found in Windows Registry. Please browse manually.");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(String(e));
+    }
+  };
+
+  const handleSyncKeys = async () => {
+    playSound("click");
+    setSyncingKeys(true);
+    try {
+      await ToolsAPI.downloadData(config.subtitle_lang || "th");
+      await checkDeps();
+      playSound("success");
+      toast.success("AES Keys synchronized from yarik0chka/wuwa-keys!");
+    } catch (e) {
+      console.error(e);
+      playSound("error");
+      toast.error(String(e));
+    } finally {
+      setSyncingKeys(false);
+    }
+  };
+
   useEffect(() => {
     checkDeps();
     fetchCacheSize();
+    checkGameRunning();
 
     const unlistenProgress = listen<ProgressPayload>("downloader-progress", (event) => {
       setCurrentTask(event.payload.task);
@@ -102,7 +147,7 @@ export function SetupView() {
   const handleOpenOutput = async () => {
     playSound("click");
     try {
-      await invoke("open_output_dir");
+      await ToolsAPI.openOutputDir();
     } catch (e) {
       console.error(e);
     }
@@ -112,7 +157,7 @@ export function SetupView() {
     playSound("click");
     setClearingCache(true);
     try {
-      const freed = await invoke<number>("clear_app_cache");
+      const freed = await ToolsAPI.clearAppCache();
       await fetchCacheSize();
       playSound("success");
       toast.success(`${t("clearCacheSuccess")} (${(freed / (1024 * 1024)).toFixed(1)} MB)`);
@@ -129,8 +174,8 @@ export function SetupView() {
     setDownloading(true);
     setProgress(0);
     try {
-      await invoke("download_tools");
-      await invoke("download_data", { textmapLang: config.subtitle_lang || "th" });
+      await ToolsAPI.downloadTools();
+      await ToolsAPI.downloadData(config.subtitle_lang || "th");
       await checkDeps();
       playSound("success");
       toast.success("Synchronized successfully!");
@@ -500,11 +545,33 @@ export function SetupView() {
             <HardDrive className="w-4 h-4 text-accent" />
             {t("secPaths")}
           </h2>
+
+          {/* Anti-Cheat Awareness Warning Banner */}
+          {isGameRunning && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-center gap-3">
+              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="leading-relaxed">
+                <span className="font-bold text-amber-300">Wuthering Waves client is currently running.</span>
+                <span className="opacity-80 ml-1">For safety against Anti-Cheat Expert (ACE) detection flags, avoid inspecting or extracting active game assets until the client is closed.</span>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-5">
             {/* FModel Export Dir */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-fg-muted">{t("fmodelExportDirLabel")}</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-medium text-fg-muted">{t("fmodelExportDirLabel")}</label>
+                <button
+                  type="button"
+                  onClick={handleAutoDetect}
+                  className="text-[11px] text-accent hover:text-accent-bright font-medium flex items-center gap-1 transition-colors"
+                  title="Auto-detect Wuthering Waves install location from Windows Registry"
+                >
+                  <Wand2 className="w-3 h-3 text-accent" />
+                  Auto-Detect Registry
+                </button>
+              </div>
               <div className="flex gap-2">
                 <input 
                   type="text" 
@@ -594,7 +661,7 @@ export function SetupView() {
                     { label: "FFmpeg", ok: deps.ffmpeg },
                     { label: "vgmstream", ok: deps.vgmstream },
                     { label: "wwiser", ok: deps.wwiser },
-                    { label: "Game Textmap", ok: deps.json_data },
+                    { label: "Game Data & Keys", ok: deps.json_data },
                   ].map((d) => (
                     <div 
                       key={d.label}
@@ -608,6 +675,28 @@ export function SetupView() {
                   ))}
                 </div>
               )}
+
+              {/* Dedicated AES Keys Community Sync Card */}
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Key className="w-4 h-4 text-accent shrink-0" />
+                  <div className="min-w-0">
+                    <span className="font-semibold text-fg block">Wuthering Waves AES Decryption Keys</span>
+                    <span className="text-[10px] text-fg-subtle truncate block">
+                      Community Upstream: <span className="text-accent font-mono">yarik0chka/wuwa-keys</span>
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={handleSyncKeys}
+                  disabled={syncingKeys}
+                  className="px-3 py-1.5 text-[11px] shrink-0 hover:border-accent/40 hover:text-accent-bright"
+                >
+                  <RefreshCw className={`w-3 h-3 mr-1.5 ${syncingKeys ? "animate-spin" : "text-accent"}`} />
+                  Sync Keys
+                </Button>
+              </div>
 
               {/* Progress bar */}
               {downloading && (

@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { ScannerAPI, RendererAPI, ToolsAPI } from "../core/ipc";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { 
@@ -24,20 +25,14 @@ import {
   Clock, 
   Download, 
   HelpCircle,
-  HardDrive
+  HardDrive,
+  ShieldAlert
 } from "lucide-react";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { Button } from "../components/ui/Button";
 import { useApp } from "../context/AppContext";
 
 type ProcessStatus = "idle" | "extracting" | "generating" | "rendering" | "done" | "error";
-
-interface DependencyStatus {
-  ffmpeg: boolean;
-  wwiser: boolean;
-  vgmstream: boolean;
-  json_data: boolean;
-}
 
 interface VideoMetaInfo {
   thumbnail: string;
@@ -82,34 +77,27 @@ export function GalleryView() {
   const [renderedVideoPath, setRenderedVideoPath] = useState<string | null>(null);
   const [showMissingToolsModal, setShowMissingToolsModal] = useState(false);
   const [syncingTools, setSyncingTools] = useState(false);
+  const [isGameRunning, setIsGameRunning] = useState(false);
 
   const handleGenderChange = (newGender: "Girl" | "Boy") => {
     setGender(newGender);
-    setRoverFilter(newGender); // Automatically filter gallery list to match selected Rover
-    invoke("get_config").then((cfg: any) => {
-      invoke("update_config", { newConfig: { ...cfg, char_selection: newGender } }).catch(console.error);
-    }).catch(console.error);
+    setRoverFilter(newGender);
+    updateConfig({ char_selection: newGender }).catch(console.error);
   };
 
   const handleSubtitleModeChange = (newMode: "None" | "Soft-sub" | "Hard-sub") => {
     setSubtitleMode(newMode);
-    invoke("get_config").then((cfg: any) => {
-      invoke("update_config", { newConfig: { ...cfg, subtitle_mode: newMode } }).catch(console.error);
-    }).catch(console.error);
+    updateConfig({ subtitle_mode: newMode }).catch(console.error);
   };
 
   const handleLocaleChange = (newLocale: string) => {
     setLocale(newLocale);
-    invoke("get_config").then((cfg: any) => {
-      invoke("update_config", { newConfig: { ...cfg, locale_selection: newLocale } }).catch(console.error);
-    }).catch(console.error);
+    updateConfig({ locale_selection: newLocale }).catch(console.error);
   };
 
   const handleResolutionChange = (newRes: string) => {
     setRenderResolution(newRes);
-    invoke("get_config").then((cfg: any) => {
-      invoke("update_config", { newConfig: { ...cfg, render_resolution: newRes } }).catch(console.error);
-    }).catch(console.error);
+    updateConfig({ render_resolution: newRes }).catch(console.error);
   };
 
   const handleQuickSelectExportDir = async () => {
@@ -133,8 +121,8 @@ export function GalleryView() {
     playSound("click");
     setSyncingTools(true);
     try {
-      await invoke("download_tools");
-      await invoke("download_data", { textmapLang: globalConfig.subtitle_lang || "th" });
+      await ToolsAPI.downloadTools();
+      await ToolsAPI.downloadData(globalConfig.subtitle_lang || "th");
       playSound("success");
       toast.success("Synchronized successfully!");
       setShowMissingToolsModal(false);
@@ -148,7 +136,7 @@ export function GalleryView() {
 
   useEffect(() => {
     if (selectedFile) {
-      invoke<string[]>("get_video_audio_event", { videoName: selectedFile })
+      RendererAPI.getVideoAudioEvent(selectedFile)
         .then(setAudioEvents)
         .catch(console.error);
     } else {
@@ -159,7 +147,7 @@ export function GalleryView() {
   const handleOpenRawVideo = async () => {
     if (!selectedFile) return;
     try {
-      await invoke("open_file", { path: selectedFile });
+      await ToolsAPI.openFile(selectedFile);
     } catch (e) {
       toast.error("Could not open raw video file");
     }
@@ -168,7 +156,7 @@ export function GalleryView() {
   const handleOpenRenderedVideo = async () => {
     if (!renderedVideoPath) return;
     try {
-      await invoke("open_file", { path: renderedVideoPath });
+      await ToolsAPI.openFile(renderedVideoPath);
     } catch (e) {
       toast.error("Could not open rendered video file");
     }
@@ -177,21 +165,20 @@ export function GalleryView() {
   const fetchFiles = async () => {
     setLoading(true);
     try {
-      const config: any = await invoke("get_config");
-      if (!config.export_dir) {
+      if (!globalConfig.export_dir) {
         toast.error("Please set the FModel Export Directory in Paths & System first.");
         setLoading(false);
         return;
       }
-      if (config.char_selection) {
-        setGender(config.char_selection);
-        setRoverFilter(config.char_selection);
+      if (globalConfig.char_selection) {
+        setGender(globalConfig.char_selection as "Girl" | "Boy");
+        setRoverFilter(globalConfig.char_selection as "All" | "Girl" | "Boy");
       }
-      if (config.locale_selection) setLocale(config.locale_selection);
-      if (config.subtitle_mode) setSubtitleMode(config.subtitle_mode);
-      if (config.render_resolution) setRenderResolution(config.render_resolution);
+      if (globalConfig.locale_selection) setLocale(globalConfig.locale_selection);
+      if (globalConfig.subtitle_mode) setSubtitleMode(globalConfig.subtitle_mode as any);
+      if (globalConfig.render_resolution) setRenderResolution(globalConfig.render_resolution);
 
-      const result = await invoke<string[]>("get_exported_videos", { exportDir: config.export_dir });
+      const result = await ScannerAPI.getExportedVideos(globalConfig.export_dir);
       setFiles(result);
     } catch (e) {
       console.error(e);
@@ -204,6 +191,12 @@ export function GalleryView() {
   useEffect(() => {
     fetchFiles();
     
+    // Check if Wuthering Waves client is running for Anti-Cheat safety
+    ScannerAPI.isGameRunning().then(setIsGameRunning).catch(console.error);
+    const gameTimer = setInterval(() => {
+      ScannerAPI.isGameRunning().then(setIsGameRunning).catch(console.error);
+    }, 10000);
+
     let isMounted = true;
     let unlistenFn: (() => void) | null = null;
 
@@ -221,6 +214,7 @@ export function GalleryView() {
     
     return () => {
       isMounted = false;
+      clearInterval(gameTimer);
       if (unlistenFn) unlistenFn();
     };
   }, []);
@@ -317,7 +311,7 @@ export function GalleryView() {
         const results = await Promise.all(
           batch.map(async (path) => {
             try {
-              const meta = await invoke<VideoMetaInfo>("get_video_meta", { videoPath: path });
+              const meta = await ScannerAPI.getVideoMeta(path);
               return { path, meta };
             } catch {
               return { path, meta: null };
@@ -355,7 +349,7 @@ export function GalleryView() {
 
     // Check if tools exist before starting to prevent dead ends
     try {
-      const deps = await invoke<DependencyStatus>("check_dependencies");
+      const deps = await ToolsAPI.checkDependencies();
       if (!deps.ffmpeg || !deps.wwiser || !deps.vgmstream || !deps.json_data) {
         setShowMissingToolsModal(true);
         playSound("error");
@@ -371,24 +365,24 @@ export function GalleryView() {
 
     try {
       setStatus("generating");
-      const videoInfo: any = await invoke("generate_single_video_info", {
-        mp4Path: selectedFile,
-        girlOrBoy: gender,
+      const videoInfo = await RendererAPI.generateSingleVideoInfo(
+        selectedFile,
         locale,
-      });
+        gender
+      );
 
       setStatus("rendering");
-      const outPath: string = await invoke("render_video", {
+      const outPath: string = await RendererAPI.renderVideo(
         videoInfo,
-        subtitleMode,
-      });
+        subtitleMode
+      );
       setRenderedVideoPath(outPath);
 
       setStatus("done");
       playSound("success");
       toast.success(t("toastRenderSuccessTitle"));
       if (globalConfig.auto_open_output) {
-        invoke("open_output_dir").catch(console.error);
+        ToolsAPI.openOutputDir().catch(console.error);
       }
     } catch (e) {
       console.error(e);
@@ -401,10 +395,183 @@ export function GalleryView() {
   const handleOpenOutput = async () => {
     playSound("click");
     try {
-      await invoke("open_output_dir");
+      await ToolsAPI.openOutputDir();
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const gridRows = useMemo(() => {
+    const rows: ProcessedVideoItem[][] = [];
+    for (let i = 0; i < filteredVideos.length; i += 2) {
+      rows.push(filteredVideos.slice(i, i + 2));
+    }
+    return rows;
+  }, [filteredVideos]);
+
+  const gridVirtualizer = useVirtualizer({
+    count: gridRows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 280,
+    overscan: 3,
+  });
+
+  const listVirtualizer = useVirtualizer({
+    count: filteredVideos.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 64,
+    overscan: 6,
+  });
+
+  const renderVideoCard = (video: ProcessedVideoItem) => {
+    const isSelected = selectedFile === video.fullPath;
+    const thumb = thumbnails[video.fullPath];
+    return (
+      <motion.div
+        key={video.fullPath}
+        whileHover={{ scale: 1.015 }}
+        whileTap={{ scale: 0.985 }}
+        onClick={() => {
+          playSound("click");
+          setSelectedFile(video.fullPath);
+        }}
+        className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between gap-3 overflow-hidden ${
+          isSelected
+            ? "bg-accent/15 border-accent shadow-lg shadow-accent/15 ring-1 ring-accent/40"
+            : "bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/15"
+        }`}
+      >
+        {/* Video Thumbnail Preview Header */}
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black/50 border border-white/10 group">
+          {thumb ? (
+            <img 
+              src={thumb} 
+              alt={video.fileName}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-white/[0.02] text-fg-subtle">
+              <Film className="w-6 h-6 opacity-30 animate-pulse" />
+            </div>
+          )}
+          
+          {/* Overlaid Badges */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+          <div className="absolute top-2 left-2 flex items-center gap-1.5">
+            <span className="text-[10px] bg-black/70 backdrop-blur-md text-white font-medium px-2 py-0.5 rounded border border-white/10 flex items-center gap-1">
+              <Folder className="w-2.5 h-2.5 text-accent" />
+              {video.folderName}
+            </span>
+          </div>
+          {video.roverType !== "Neutral" && (
+            <div className="absolute top-2 right-2">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border backdrop-blur-md ${
+                video.roverType === "Girl" 
+                  ? "bg-pink-950/80 text-pink-300 border-pink-500/30" 
+                  : "bg-blue-950/80 text-blue-300 border-blue-500/30"
+              }`}>
+                {video.roverType === "Girl" ? t("roverGirl") : t("roverBoy")}
+              </span>
+            </div>
+          )}
+
+          {/* Duration Badge Bottom Right */}
+          <div className="absolute bottom-2 right-2 flex items-center gap-1">
+            {videoMetas[video.fullPath]?.duration_formatted && (
+              <span className="text-[10px] bg-black/85 backdrop-blur-md text-white font-mono font-bold px-1.5 py-0.5 rounded border border-white/15 flex items-center gap-1 shadow-md">
+                <Clock className="w-2.5 h-2.5 text-accent" />
+                {videoMetas[video.fullPath].duration_formatted}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Video Info Details */}
+        <div className="flex items-start gap-2.5 px-0.5">
+          <div className="flex-1 min-w-0">
+            <h4 className="text-xs font-bold text-fg truncate" title={video.fileName}>
+              {video.fileName.replace(/\.mp4$/i, '')}
+            </h4>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-white/[0.04] text-[10px] text-fg-subtle px-0.5">
+          <span className="font-mono">
+            {videoMetas[video.fullPath]?.resolution || "1080P"}
+            {videoMetas[video.fullPath]?.duration_secs ? ` • ${Math.round(videoMetas[video.fullPath].duration_secs)}s` : ""}
+          </span>
+          {isSelected ? (
+            <span className="text-accent-bright font-bold flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" /> {t("selected")}
+            </span>
+          ) : (
+            <span className="text-fg-subtle/60">{t("clickToSelect")}</span>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
+  const renderVideoListItem = (video: ProcessedVideoItem) => {
+    const isSelected = selectedFile === video.fullPath;
+    const thumb = thumbnails[video.fullPath];
+    const meta = videoMetas[video.fullPath];
+    return (
+      <div
+        key={video.fullPath}
+        onClick={() => setSelectedFile(video.fullPath)}
+        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3.5 ${
+          isSelected
+            ? "bg-accent/15 border-accent text-white"
+            : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
+        }`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-16 h-10 aspect-video rounded-lg overflow-hidden bg-black/50 shrink-0 border border-white/10 relative">
+            {thumb ? (
+              <img src={thumb} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-white/5">
+                <Film className="w-4 h-4 opacity-40" />
+              </div>
+            )}
+            {meta?.duration_formatted && (
+              <div className="absolute bottom-0.5 right-0.5 bg-black/85 text-[8px] font-mono px-1 rounded text-white/90">
+                {meta.duration_formatted}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0">
+            <span className="text-xs font-medium truncate block">{video.fileName}</span>
+            <div className="flex items-center gap-1.5 text-[10px] text-fg-subtle">
+              <span>{video.folderName}</span>
+              {meta?.duration_formatted && (
+                <>
+                  <span>•</span>
+                  <span className="font-mono text-fg-muted flex items-center gap-0.5">
+                    <Clock className="w-2.5 h-2.5 text-accent" />
+                    {meta.duration_formatted} ({Math.round(meta.duration_secs)}s)
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 text-[10px]">
+          {video.roverType !== "Neutral" && (
+            <span className={`px-1.5 py-0.5 rounded border ${
+              video.roverType === "Girl" ? "bg-pink-500/10 text-pink-400 border-pink-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+            }`}>
+              {video.roverType === "Girl" ? t("roverGirl") : t("roverBoy")}
+            </span>
+          )}
+          {isSelected && <span className="text-accent-bright font-bold">{t("selected")}</span>}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -422,6 +589,15 @@ export function GalleryView() {
               <span className="text-xs font-medium text-fg-muted bg-white/5 px-2.5 py-0.5 rounded-full border border-white/5 font-mono">
                 {parsedVideos.length} {t("videoClipsCount")}
               </span>
+              {isGameRunning && (
+                <span 
+                  className="text-[11px] font-medium text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1.5 shadow-sm"
+                  title="Wuthering Waves client is currently running. Please close the game before bulk extraction to avoid Anti-Cheat conflicts."
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  Game Active (ACE Guard)
+                </span>
+              )}
             </h1>
             <p className="text-xs text-fg-muted mt-0.5">{t("galleryDesc")}</p>
           </div>
@@ -580,7 +756,7 @@ export function GalleryView() {
           </div>
 
           {/* Video List / Grid Display */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+          <div ref={parentRef} className="flex-1 overflow-y-auto custom-scrollbar pr-1">
             {loading ? (
               <div className="h-full flex flex-col items-center justify-center text-fg-muted gap-3">
                 <Loader2 className="w-6 h-6 animate-spin text-accent" />
@@ -642,155 +818,57 @@ export function GalleryView() {
                 </button>
               </div>
             ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {filteredVideos.map((video) => {
-                  const isSelected = selectedFile === video.fullPath;
-                  const thumb = thumbnails[video.fullPath];
+              <div
+                style={{
+                  height: `${gridVirtualizer.getTotalSize()}px`,
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {gridVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const rowVideos = gridRows[virtualRow.index];
+                  if (!rowVideos) return null;
                   return (
-                    <motion.div
-                      key={video.fullPath}
-                      whileHover={{ scale: 1.015 }}
-                      whileTap={{ scale: 0.985 }}
-                      onClick={() => {
-                        playSound("click");
-                        setSelectedFile(video.fullPath);
+                    <div
+                      key={virtualRow.index}
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-3.5"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        transform: `translateY(${virtualRow.start}px)`,
                       }}
-                      className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between gap-3 overflow-hidden ${
-                        isSelected
-                          ? "bg-accent/15 border-accent shadow-lg shadow-accent/15 ring-1 ring-accent/40"
-                          : "bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/15"
-                      }`}
                     >
-                      {/* Video Thumbnail Preview Header */}
-                      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black/50 border border-white/10 group">
-                        {thumb ? (
-                          <img 
-                            src={thumb} 
-                            alt={video.fileName}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center bg-white/[0.02] text-fg-subtle">
-                            <Film className="w-6 h-6 opacity-30 animate-pulse" />
-                          </div>
-                        )}
-                        
-                        {/* Overlaid Badges */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-                        <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                          <span className="text-[10px] bg-black/70 backdrop-blur-md text-white font-medium px-2 py-0.5 rounded border border-white/10 flex items-center gap-1">
-                            <Folder className="w-2.5 h-2.5 text-accent" />
-                            {video.folderName}
-                          </span>
-                        </div>
-                        {video.roverType !== "Neutral" && (
-                          <div className="absolute top-2 right-2">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border backdrop-blur-md ${
-                              video.roverType === "Girl" 
-                                ? "bg-pink-950/80 text-pink-300 border-pink-500/30" 
-                                : "bg-blue-950/80 text-blue-300 border-blue-500/30"
-                            }`}>
-                              {video.roverType === "Girl" ? t("roverGirl") : t("roverBoy")}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Duration Badge Bottom Right */}
-                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                          {videoMetas[video.fullPath]?.duration_formatted && (
-                            <span className="text-[10px] bg-black/85 backdrop-blur-md text-white font-mono font-bold px-1.5 py-0.5 rounded border border-white/15 flex items-center gap-1 shadow-md">
-                              <Clock className="w-2.5 h-2.5 text-accent" />
-                              {videoMetas[video.fullPath].duration_formatted}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Video Info Details */}
-                      <div className="flex items-start gap-2.5 px-0.5">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-bold text-fg truncate" title={video.fileName}>
-                            {video.fileName.replace(/\.mp4$/i, '')}
-                          </h4>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-white/[0.04] text-[10px] text-fg-subtle px-0.5">
-                        <span className="font-mono">
-                          {videoMetas[video.fullPath]?.resolution || "1080P"}
-                          {videoMetas[video.fullPath]?.duration_secs ? ` • ${Math.round(videoMetas[video.fullPath].duration_secs)}s` : ""}
-                        </span>
-                        {isSelected ? (
-                          <span className="text-accent-bright font-bold flex items-center gap-1">
-                            <Check className="w-3.5 h-3.5" /> {t("selected")}
-                          </span>
-                        ) : (
-                          <span className="text-fg-subtle/60">{t("clickToSelect")}</span>
-                        )}
-                      </div>
-                    </motion.div>
+                      {rowVideos.map((video) => renderVideoCard(video))}
+                    </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="space-y-2">
-                {filteredVideos.map((video) => {
-                  const isSelected = selectedFile === video.fullPath;
-                  const thumb = thumbnails[video.fullPath];
-                  const meta = videoMetas[video.fullPath];
+              <div
+                style={{
+                  height: `${listVirtualizer.getTotalSize()}px`,
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {listVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const video = filteredVideos[virtualRow.index];
+                  if (!video) return null;
                   return (
                     <div
                       key={video.fullPath}
-                      onClick={() => setSelectedFile(video.fullPath)}
-                      className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3.5 ${
-                        isSelected
-                          ? "bg-accent/15 border-accent text-white"
-                          : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
-                      }`}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Mini Thumbnail */}
-                        <div className="w-16 h-10 aspect-video rounded-lg overflow-hidden bg-black/50 shrink-0 border border-white/10 relative">
-                          {thumb ? (
-                            <img src={thumb} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-white/5">
-                              <Film className="w-4 h-4 opacity-40" />
-                            </div>
-                          )}
-                          {meta?.duration_formatted && (
-                            <div className="absolute bottom-0.5 right-0.5 bg-black/85 text-[8px] font-mono px-1 rounded text-white/90">
-                              {meta.duration_formatted}
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs font-medium truncate block">{video.fileName}</span>
-                          <div className="flex items-center gap-1.5 text-[10px] text-fg-subtle">
-                            <span>{video.folderName}</span>
-                            {meta?.duration_formatted && (
-                              <>
-                                <span>•</span>
-                                <span className="font-mono text-fg-muted flex items-center gap-0.5">
-                                  <Clock className="w-2.5 h-2.5 text-accent" />
-                                  {meta.duration_formatted} ({Math.round(meta.duration_secs)}s)
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 text-[10px]">
-                        {video.roverType !== "Neutral" && (
-                          <span className={`px-1.5 py-0.5 rounded border ${
-                            video.roverType === "Girl" ? "bg-pink-500/10 text-pink-400 border-pink-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                          }`}>
-                            {video.roverType === "Girl" ? t("roverGirl") : t("roverBoy")}
-                          </span>
-                        )}
-                        {isSelected && <span className="text-accent-bright font-bold">{t("selected")}</span>}
-                      </div>
+                      {renderVideoListItem(video)}
                     </div>
                   );
                 })}
@@ -832,7 +910,7 @@ export function GalleryView() {
                       <span className="text-white/20">•</span>
                       <button
                         type="button"
-                        onClick={() => invoke("open_folder", { path: selectedFile })}
+                        onClick={() => ToolsAPI.openFolder(selectedFile)}
                         className="text-[11px] text-fg-muted hover:text-white font-medium flex items-center gap-1 transition-colors"
                         title="Open folder containing this raw video in Windows Explorer"
                       >

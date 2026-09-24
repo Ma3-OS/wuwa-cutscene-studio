@@ -1,0 +1,4 @@
+{
+  "description": "Template for Pak AES keys. Do NOT commit real AES keys to git.",
+  "keys": []
+}

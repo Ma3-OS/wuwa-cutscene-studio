@@ -11,7 +11,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen
 } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { ToolsAPI } from "../../core/ipc";
 import { useApp } from "../../context/AppContext";
 
 export type TabId = "cutscenes" | "subtitles" | "audio" | "setup" | "logs";
@@ -37,7 +37,7 @@ export function Sidebar({ activeTab, onTabChange, isCollapsed, onToggleCollapse 
   const handleOpenOutput = async () => {
     playSound("click");
     try {
-      await invoke("open_output_dir");
+      await ToolsAPI.openOutputDir();
     } catch (e) {
       console.error(e);
     }

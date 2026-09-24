@@ -19,9 +19,10 @@ target/
 *.so
 *.dylib
 
-# Application Config & Runtime Caches
+# Application Config, Secrets & Runtime Caches
 app_config.json
 config.json
+*.key
 cache/
 .cache/
 *.cache

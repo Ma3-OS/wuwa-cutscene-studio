@@ -8,10 +8,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "npm run build && tauri build",
+    "tauri:clean": "node -e \"const fs = require('fs'); ['dist', 'src-tauri/target', 'txtp', 'txtp_test', 'captions', 'renders', 'output', 'temp', 'cache', '.cache'].forEach(p => fs.rmSync(p, { recursive: true, force: true })); console.log('Build artifacts cleaned.');\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-virtual": "^3.14.13",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "@tauri-apps/plugin-fs": "^2.5.1",
@@ -23,7 +27,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.6.0",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

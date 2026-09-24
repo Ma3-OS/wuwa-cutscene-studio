@@ -1,13 +1,13 @@
 @echo off
 setlocal
-title WuWa Cutscene Studio - Developer Mode
+title WuWa Cutscene Studio - Launcher
 echo ===================================================
-echo   WuWa Cutscene Studio - Launching App...
+echo   Starting WuWa Cutscene Studio (Dev Mode)
 echo ===================================================
 echo.
 
 if not exist "node_modules" (
-    echo Installing node dependencies (first-time run)...
+    echo [1/2] Installing dependencies first...
     call npm install
     if errorlevel 1 (
         echo Error: npm install failed.
@@ -16,11 +16,11 @@ if not exist "node_modules" (
     )
 )
 
-echo Starting Tauri Dev Server...
-call npm run tauri dev
+echo [2/2] Launching Tauri Desktop App...
+call npm run tauri:dev
 
 if errorlevel 1 (
     echo.
-    echo App exited with an error.
+    echo Application exited with an error.
     pause
 )

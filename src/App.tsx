@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { Sidebar, TabId } from "./components/layout/Sidebar";
 import { BlobBackground } from "./components/ui/BlobBackground";
+import { setupGlobalEventListeners } from "./core/events/listener";
 
 import { GalleryView } from "./views/GalleryView";
 import { SubtitleView } from "./views/SubtitleView";
@@ -9,6 +10,7 @@ import { AudioView } from "./views/AudioView";
 import { SetupView } from "./views/SetupView";
 import { LogView } from "./views/LogView";
 import { AppProvider, useApp } from "./context/AppContext";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import "./index.css";
 
 function getFontClass(font: string) {
@@ -29,6 +31,39 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>("cutscenes");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { config } = useApp();
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    setupGlobalEventListeners().then((fn) => {
+      cleanup = fn;
+    });
+
+    // In production release, protect UI against casual inspection
+    let cleanupProtection: (() => void) | undefined;
+    if (import.meta.env.PROD) {
+      const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (
+          e.key === "F12" ||
+          (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j")) ||
+          (e.ctrlKey && (e.key === "U" || e.key === "u"))
+        ) {
+          e.preventDefault();
+        }
+      };
+      window.addEventListener("contextmenu", handleContextMenu);
+      window.addEventListener("keydown", handleKeyDown);
+      cleanupProtection = () => {
+        window.removeEventListener("contextmenu", handleContextMenu);
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+
+    return () => {
+      if (cleanup) cleanup();
+      if (cleanupProtection) cleanupProtection();
+    };
+  }, []);
 
   const fontClass = getFontClass(config.app_font);
 
@@ -89,12 +124,12 @@ function AppContent() {
   );
 }
 
-function App() {
+export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
-
-export default App;

@@ -126,7 +126,7 @@ fn dir_size_recursive(dir: &Path) -> u64 {
 
 #[tauri::command]
 pub fn get_cache_size(app: AppHandle) -> u64 {
-    let app_dir = crate::commands::downloader::get_tools_dir(&app).parent().unwrap_or(&PathBuf::from(".")).to_path_buf();
+    let app_dir = crate::commands::downloader::get_base_dir(&app);
     let thumbnails_dir = app_dir.join("thumbnails");
     let temp_dir = app_dir.join("temp");
     let logs_dir = app_dir.join("logs");
@@ -136,7 +136,7 @@ pub fn get_cache_size(app: AppHandle) -> u64 {
 
 #[tauri::command]
 pub fn clear_app_cache(app: AppHandle) -> Result<u64, String> {
-    let app_dir = crate::commands::downloader::get_tools_dir(&app).parent().unwrap_or(&PathBuf::from(".")).to_path_buf();
+    let app_dir = crate::commands::downloader::get_base_dir(&app);
     let thumbnails_dir = app_dir.join("thumbnails");
     let temp_dir = app_dir.join("temp");
     let logs_dir = app_dir.join("logs");

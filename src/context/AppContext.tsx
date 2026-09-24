@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { SettingsAPI } from "../core/ipc";
 import { translations, AppLanguage } from "../utils/i18n";
 import { soundManager } from "../utils/sound";
 
@@ -108,7 +108,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshConfig = useCallback(async () => {
     try {
-      const cfg = await invoke<AppConfig>("get_config");
+      const cfg = await SettingsAPI.getConfig();
       setConfig((prev) => ({ ...prev, ...cfg }));
       
       // Update sound manager
@@ -138,7 +138,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     applyStylesToDOM(updated.theme_accent, updated.app_font);
 
     try {
-      await invoke("update_config", { newConfig: updated });
+      await SettingsAPI.updateConfig(updated);
     } catch (e) {
       console.error("Failed to save config:", e);
     }

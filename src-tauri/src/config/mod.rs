@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 
+pub mod tools_manifest;
+
 fn default_girl() -> String { "Girl".to_string() }
 fn default_ja() -> String { "ja".to_string() }
 fn default_th() -> String { "th".to_string() }
@@ -110,7 +112,10 @@ impl Default for AppConfig {
 pub struct ConfigState(pub Mutex<AppConfig>);
 
 fn get_config_path(app: &AppHandle) -> PathBuf {
-    app.path().app_config_dir().unwrap().join("config.json")
+    app.path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("config.json")
 }
 
 pub fn init_config(app: &AppHandle) {
