@@ -1,5 +1,5 @@
 import { useRef, useState, ReactNode } from "react";
-import { cn } from "./Button";
+import { cn } from "../../utils/cn";
 
 interface SpotlightCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: ReactNode;

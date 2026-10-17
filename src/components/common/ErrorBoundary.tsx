@@ -111,7 +111,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="h-4 w-4" /> ดูข้อมูลเชิงเทคนิค (Stack Trace)
+                    <ChevronDown className="h-4 w-4" /> ดูข้อมูลเชิงเทคนิค Stack Trace
                   </>
                 )}
               </button>

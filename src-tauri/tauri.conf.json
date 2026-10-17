@@ -12,19 +12,26 @@
   "app": {
     "windows": [
       {
-        "title": "WuWa Cutscene Studio",
+        "label": "main",
+        "title": "WuWa Studio",
         "width": 1440,
         "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
         "resizable": true,
         "maximizable": true,
-        "decorations": true,
+        "decorations": false,
         "shadow": true,
-        "minWidth": 1024,
-        "minHeight": 680
+        "center": true,
+        "theme": "Dark"
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
     }
   },
   "bundle": {

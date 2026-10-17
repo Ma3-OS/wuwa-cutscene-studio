@@ -5,5 +5,6 @@ pub mod generator;
 pub mod renderer;
 
 pub mod scanner;
+pub mod extractor;
 
 pub mod log;

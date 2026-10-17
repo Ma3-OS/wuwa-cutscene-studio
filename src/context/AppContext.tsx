@@ -20,6 +20,32 @@ export interface AppConfig {
   sub_color: string;
   sub_margin_v: number;
 
+  // Ruby Customization
+  ruby_enabled: boolean;
+  ruby_size: number;
+  ruby_offset_y: number;
+  ruby_color: string;
+
+  // Lyric Customization
+  lyric_size: number;
+  lyric_margin_x: number;
+  lyric_margin_y: number;
+  lyric_bilingual: boolean;
+  lyric_color: string;
+
+  // Audio Engine Preferences
+  voice_volume: number;
+  bgm_volume: number;
+  audio_bitrate: string;
+  normalize_audio: boolean;
+
+  // Batch Queue Preferences
+  batch_parallel_workers: boolean;
+
+  // Game Archives & Extraction Engine
+  game_paks_dir: string;
+  keys_file_path: string;
+
   // Non-video app preferences
   app_language: AppLanguage;
   app_font: string;
@@ -44,17 +70,37 @@ const defaultConfig: AppConfig = {
   vgmstream_path: "",
   export_dir: "",
   output_dir: "",
-  render_resolution: "original",
+  render_resolution: "1920x1080",
   char_selection: "Girl",
   locale_selection: "ja",
   subtitle_lang: "th",
   subtitle_mode: "Hard-sub",
   sub_font: "Kanit Medium",
-  sub_size: 38,
-  sub_outline: 3.0,
-  sub_shadow: 1.5,
+  sub_size: 54,
+  sub_outline: 1.2,
+  sub_shadow: 0.0,
   sub_color: "#FFFFFF",
-  sub_margin_v: 45,
+  sub_margin_v: 54,
+
+  ruby_enabled: true,
+  ruby_size: 0,
+  ruby_offset_y: 0,
+  ruby_color: "#E0E0E0",
+
+  lyric_size: 0,
+  lyric_margin_x: 160,
+  lyric_margin_y: 30,
+  lyric_bilingual: true,
+  lyric_color: "#FFFFFF",
+
+  voice_volume: 100,
+  bgm_volume: 100,
+  audio_bitrate: "320k",
+  normalize_audio: true,
+  batch_parallel_workers: false,
+
+  game_paks_dir: "",
+  keys_file_path: "",
 
   app_language: "th",
   app_font: "Kanit",

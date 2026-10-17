@@ -1,9 +1,17 @@
-import { listen, UnlistenFn } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
 import { useTaskStore } from "../../features/task-monitor/stores/useTaskStore";
+import { useExtractionStore } from "../../features/catalog/stores/useExtractionStore";
 
 interface ProgressPayload {
   task: string;
   progress: number;
+}
+
+interface ExtractionProgressPayload {
+  cg_name: string;
+  stage: number;
+  status_text: string;
+  percent: number;
 }
 
 function classifyLogMessage(text: string): "info" | "warn" | "error" | "success" {
@@ -25,25 +33,45 @@ function classifyLogMessage(text: string): "info" | "warn" | "error" | "success"
   return "info";
 }
 
-let unlistenLog: UnlistenFn | null = null;
-let unlistenProgress: UnlistenFn | null = null;
+let logBatchBuffer: Array<{ message: string; level: "info" | "warn" | "error" | "success" }> = [];
+let batchRafId: number | null = null;
 
-export async function setupGlobalEventListeners(): Promise<() => void> {
-  const appendLog = useTaskStore.getState().appendLog;
-  const updateTaskProgress = useTaskStore.getState().updateTaskProgress;
+function flushLogBatch() {
+  if (logBatchBuffer.length === 0) return;
+  const chunk = logBatchBuffer;
+  logBatchBuffer = [];
+  batchRafId = null;
+  useTaskStore.getState().appendBackendLogsBatch(chunk);
+}
 
-  if (!unlistenLog) {
-    unlistenLog = await listen<string>("backend-log", (event) => {
+function queueBackendLog(entry: { message: string; level: "info" | "warn" | "error" | "success" }) {
+  logBatchBuffer.push(entry);
+  if (batchRafId === null) {
+    batchRafId = requestAnimationFrame(flushLogBatch);
+  }
+}
+
+let setupPromise: Promise<() => void> | null = null;
+let listenerRefCount = 0;
+
+export function setupGlobalEventListeners(): Promise<() => void> {
+  listenerRefCount++;
+  if (setupPromise) {
+    return setupPromise;
+  }
+
+  setupPromise = (async () => {
+    const updateTaskProgress = useTaskStore.getState().updateTaskProgress;
+
+    const unlistenLog = await listen<string>("backend-log", (event) => {
       const message = typeof event.payload === "string" ? event.payload : JSON.stringify(event.payload);
-      appendLog({
+      queueBackendLog({
         message,
         level: classifyLogMessage(message),
       });
     });
-  }
 
-  if (!unlistenProgress) {
-    unlistenProgress = await listen<ProgressPayload>("downloader-progress", (event) => {
+    const unlistenProgress = await listen<ProgressPayload>("downloader-progress", (event) => {
       const payload = event.payload;
       if (payload && payload.task) {
         const isComplete = payload.progress >= 1.0;
@@ -55,16 +83,39 @@ export async function setupGlobalEventListeners(): Promise<() => void> {
         );
       }
     });
-  }
 
-  return () => {
-    if (unlistenLog) {
-      unlistenLog();
-      unlistenLog = null;
-    }
-    if (unlistenProgress) {
-      unlistenProgress();
-      unlistenProgress = null;
-    }
-  };
+    const unlistenExtraction = await listen<ExtractionProgressPayload>("extraction-progress", (event) => {
+      const payload = event.payload;
+      if (payload) {
+        useExtractionStore.getState().updateProgress(
+          payload.stage,
+          payload.status_text,
+          payload.percent
+        );
+        if (payload.status_text) {
+          queueBackendLog({
+            message: payload.status_text,
+            level: "info",
+          });
+        }
+      }
+    });
+
+    return () => {
+      listenerRefCount--;
+      if (listenerRefCount <= 0) {
+        if (batchRafId !== null) {
+          cancelAnimationFrame(batchRafId);
+          flushLogBatch();
+        }
+        unlistenLog();
+        unlistenProgress();
+        unlistenExtraction();
+        setupPromise = null;
+        listenerRefCount = 0;
+      }
+    };
+  })();
+
+  return setupPromise;
 }

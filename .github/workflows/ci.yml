@@ -1,0 +1,56 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    name: Verify & Test (Windows x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: clippy, rustfmt
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Verify Thai punctuation constraints (No parens or brackets)
+        run: python scripts/check_thai_parens.py
+
+      - name: Run repository sanitization audit
+        run: python scripts/pre_publish_audit.py
+
+      - name: Verify Rust compilation
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Run Subtitle & Alignment Unit Tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml subtitles
+
+      - name: Build Frontend Application
+        run: npm run build

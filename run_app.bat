@@ -16,6 +16,8 @@ if not exist "node_modules" (
     )
 )
 
+powershell -NoProfile -NonInteractive -Command "try { $p = Get-NetTCPConnection -LocalPort 1422 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if ($p) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue } } catch {}" >nul 2>&1
+
 echo [2/2] Launching Tauri Desktop App...
 call npm run tauri:dev
 

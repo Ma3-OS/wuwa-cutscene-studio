@@ -1,76 +1,115 @@
 # ==============================================================================
-# WuWa Cutscene Studio - Git Ignore Rules
+# WuWa Cutscene Studio - Production Git Ignore Rules
+# Target: Ma3-OS / WuWa Cutscene Studio
 # ==============================================================================
 
-# Node / Frontend dependencies & builds
+# Node / Frontend dependencies & build artifacts
 node_modules/
 dist/
 dist-ssr/
 .vite/
 *.local
 
-# Tauri & Rust build artifacts
+# Tauri, Rust & C# .NET build artifacts
 src-tauri/target/
 target/
 **/*.rs.bk
+**/bin/
+**/obj/
+**/publish/
+src-tauri/extractor/bin/
+src-tauri/extractor/obj/
+src-tauri/extractor/publish/
 *.exe
 *.pdb
 *.dll
 *.so
 *.dylib
+*.msi
+*.zip
 
-# Application Config, Secrets & Runtime Caches
-app_config.json
-config.json
-*.key
+# Game archives, pak files & proprietary audio banks
+*.pak
+*.sig
+*.utoc
+*.ucas
+*.bnk
+*.wem
+*.pck
+*.bk2
+*.usm
+*.bik
+
+# Workspace output directories & runtime caches
+export/
+output/
+render/
+renders/
 cache/
 .cache/
 *.cache
-
-# Logs & Debugging
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
-lerna-debug.log*
-debug_wwiser.log
-wwconfig*.txt
-
-# Local Downloads, Datamine exports & temporary media
 txtp/
 txtp_test/
 captions/
-data/
-tools/
-renders/
-output/
+test_wem_out/
+process_pipeline_archive/
 temp/
 scratch/
 .system_generated/
+
+# Application configuration, decrypted keys & credentials
+app_config.json
+config.json
+*.key
+keys.json
+data/keys.json
+src-tauri/keys.json
+**/vid.json
+.env
+.env.*
+!.env.example
+
+# Datamined text databases & local game data
+data/*.json
+data/*.db
+data/*.txt
+!data/.gitkeep
+
+# External binaries & tools
+tools/
+src-tauri/tools/
+wwconfig*.txt
+debug_wwiser.log
+
+# Test artifacts, renders & subtitle dumps
+test_*.*
+compare_*.*
+crop_*.*
+inspect_*.*
+*.ass
+*.srt
 *.wav
 *.mp4
 *.mkv
 *.webm
-*.test.*
+in.txt
+out.txt
 *.tmp
 *.bak
+scripts/*.txt
+scripts/*.report
 
-# Operating System & IDE Files
+
+# IDE & Operating System artifacts
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/
 *.suo
-*.ntvs*
-*.njsproj
 *.sln
 *.sw?
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Environment variables
-.env
-.env.*
-!.env.example

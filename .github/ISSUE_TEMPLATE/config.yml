@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Community Discussions & Questions
+    url: https://github.com/Ma3-OS/wuwa-cutscene-studio/discussions
+    about: Ask questions, discuss workflows, or share rendered clips with the community.
+  - name: Technical Documentation
+    url: https://github.com/Ma3-OS/wuwa-cutscene-studio/tree/main/docs
+    about: Read in-depth architectural and subtitle typography specifications.

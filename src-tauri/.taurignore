@@ -1,0 +1,8 @@
+target/
+../export/
+../render/
+../cache/
+../tools/
+../data/
+../fonts/
+../config.json

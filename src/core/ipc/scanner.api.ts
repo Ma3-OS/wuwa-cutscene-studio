@@ -16,6 +16,10 @@ export const ScannerAPI = {
     return await invoke<string[]>("scan_audio_banks", { exportDir });
   },
 
+  getVideoThumbnail: async (videoPath: string): Promise<string> => {
+    return await invoke<string>("get_video_thumbnail", { videoPath });
+  },
+
   getVideoMeta: async (videoPath: string): Promise<VideoMetaDto> => {
     return await invoke<VideoMetaDto>("get_video_meta", { videoPath });
   },

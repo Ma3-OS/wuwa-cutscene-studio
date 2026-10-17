@@ -19,49 +19,102 @@ fn emit_progress(app: &AppHandle, task: &str, progress: f32) {
     let _ = app.emit("downloader-progress", ProgressPayload { task: task.to_string(), progress });
 }
 
-pub fn get_base_dir(app: &AppHandle) -> PathBuf {
-    app.path().app_data_dir().unwrap_or_else(|_| PathBuf::from("."))
+pub fn get_base_dir(_app: &AppHandle) -> PathBuf {
+    let dir = crate::config::get_project_root().join("cache");
+    let _ = fs::create_dir_all(&dir);
+    dir
 }
 
-pub fn get_tools_dir(app: &AppHandle) -> PathBuf {
-    get_base_dir(app).join("tools")
+pub fn get_tools_dir(_app: &AppHandle) -> PathBuf {
+    let dir = crate::config::get_project_root().join("tools");
+    let _ = fs::create_dir_all(&dir);
+    dir
 }
 
-pub fn get_data_dir(app: &AppHandle) -> PathBuf {
-    get_base_dir(app).join("data")
+pub fn get_data_dir(_app: &AppHandle) -> PathBuf {
+    let dir = crate::config::get_project_root().join("data");
+    let _ = fs::create_dir_all(&dir);
+    dir
+}
+
+pub fn get_fonts_dir(_app: &AppHandle) -> PathBuf {
+    let dir = crate::config::get_project_root().join("fonts");
+    let _ = fs::create_dir_all(&dir);
+    dir
 }
 
 async fn download_file(url: &str, dest_path: &Path, app: &AppHandle, task_name: &str) -> Result<(), String> {
     let client = Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) WuWaCutsceneStudio/1.0")
-        .timeout(std::time::Duration::from_secs(300))
+        .timeout(std::time::Duration::from_secs(180))
         .build()
         .map_err(|e| e.to_string())?;
 
-    let res = client.get(url).send().await.map_err(|e| e.to_string())?;
-    if !res.status().is_success() {
-        return Err(format!("Download failed with HTTP status {}: {}", res.status(), url));
-    }
+    let mut last_err = String::new();
+    for attempt in 1..=3 {
+        if attempt > 1 {
+            emit_log(app, &format!("กำลังลองดาวน์โหลดใหม่ {} ครั้งที่ {}", task_name, attempt));
+            tokio::time::sleep(std::time::Duration::from_millis(1500 * attempt as u64)).await;
+        }
 
-    let total_size = res.content_length().unwrap_or(0) as f32;
-    
-    let mut stream = res.bytes_stream();
-    let mut file = File::create(dest_path).map_err(|e| e.to_string())?;
-    
-    let mut downloaded = 0.0;
-    
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| e.to_string())?;
-        file.write_all(&chunk).map_err(|e| e.to_string())?;
-        downloaded += chunk.len() as f32;
-        
-        if total_size > 0.0 {
-            emit_progress(app, task_name, downloaded / total_size);
+        match client.get(url).send().await {
+            Ok(res) => {
+                if !res.status().is_success() {
+                    last_err = format!("ดาวน์โหลดไม่สำเร็จ รหัสสถานะ HTTP {} สำหรับ {}", res.status(), task_name);
+                    continue;
+                }
+
+                let total_size = res.content_length().unwrap_or(0) as f32;
+                let mut stream = res.bytes_stream();
+                let temp_dest = dest_path.with_extension("download_tmp");
+
+                let file_res = File::create(&temp_dest);
+                if let Err(e) = file_res {
+                    last_err = e.to_string();
+                    continue;
+                }
+                let mut file = file_res.unwrap();
+                let mut downloaded = 0.0;
+                let mut stream_failed = false;
+
+                while let Some(chunk_res) = stream.next().await {
+                    match chunk_res {
+                        Ok(chunk) => {
+                            if let Err(e) = file.write_all(&chunk) {
+                                last_err = e.to_string();
+                                stream_failed = true;
+                                break;
+                            }
+                            downloaded += chunk.len() as f32;
+                            if total_size > 0.0 {
+                                emit_progress(app, task_name, downloaded / total_size);
+                            }
+                        }
+                        Err(e) => {
+                            last_err = e.to_string();
+                            stream_failed = true;
+                            break;
+                        }
+                    }
+                }
+
+                if stream_failed {
+                    let _ = fs::remove_file(&temp_dest);
+                    continue;
+                }
+
+                let _ = file.flush();
+                let _ = fs::rename(&temp_dest, dest_path);
+                emit_progress(app, task_name, 1.0);
+                return Ok(());
+            }
+            Err(e) => {
+                last_err = e.to_string();
+            }
         }
     }
-    
-    emit_progress(app, task_name, 1.0);
-    Ok(())
+
+    Err(format!("ดาวน์โหลดล้มเหลวหลังจากลอง 3 ครั้ง {}", last_err))
 }
 
 fn extract_zip(zip_path: &Path, dest_dir: &Path, app: &AppHandle, task_name: &str) -> Result<(), String> {
@@ -171,41 +224,61 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
     fs::create_dir_all(&json_dir).map_err(|e| e.to_string())?;
     
     let branch = DATABASE_BRANCH;
-    emit_log(&app, &format!("Using database branch: {} (Language: {})", branch, lang));
+    let version_file = json_dir.join("version.txt");
+    let current_version = if version_file.exists() {
+        fs::read_to_string(&version_file).unwrap_or_default().trim().to_string()
+    } else {
+        String::new()
+    };
+
+    let needs_force_refresh = current_version != branch;
+    if needs_force_refresh {
+        emit_log(&app, &format!("ตรวจพบฐานข้อมูลรุ่นเก่าหรือยังไม่ได้ซิงค์ กำลังอัปเดตเป็นรุ่น {}", branch));
+    } else {
+        emit_log(&app, &format!("Using database branch: {} (Language: {})", branch, lang));
+    }
     
-    let common_json_urls = vec![
-        ("videodata.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videodata.json", branch)),
-        ("videosound.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videosound.json", branch)),
-        ("videocaption.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videocaption.json", branch)),
-        ("keys.json", "https://raw.githubusercontent.com/yarik0chka/wuwa-keys/main/keys.json".to_string()),
+    let common_json_configs = vec![
+        ("videodata.json", "BinData/cgVedio/videodata.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videodata.json", branch)),
+        ("videosound.json", "BinData/cgVedio/videosound.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videosound.json", branch)),
+        ("videocaption.json", "BinData/cgVedio/videocaption.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/cgVedio/videocaption.json", branch)),
+        ("musicsubtitle.json", "BinData/MusicSubTitle/musicsubtitle.json", format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/BinData/MusicSubTitle/musicsubtitle.json", branch)),
+        ("keys.json", "keys.json", "https://raw.githubusercontent.com/yarik0chka/wuwa-keys/main/keys.json".to_string()),
     ];
     
-    for (name, url) in common_json_urls {
-        let file_path = json_dir.join(name);
-        if !file_path.exists() {
-            let local_candidate = Path::new("src-tauri").join(name);
-            if local_candidate.exists() {
-                let _ = fs::copy(&local_candidate, &file_path);
-            }
-            if !file_path.exists() {
-                emit_log(&app, &format!("Downloading {}...", name));
-                download_file(&url, &file_path, &app, name).await?;
-            }
+    for (root_name, rel_path, url) in common_json_configs {
+        let hierarchical_path = json_dir.join(rel_path);
+        let root_path = json_dir.join(root_name);
+
+        if let Some(parent) = hierarchical_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+
+        if needs_force_refresh || !hierarchical_path.exists() {
+            emit_log(&app, &format!("Downloading {} (branch: {})...", root_name, branch));
+            let _ = download_file(&url, &hierarchical_path, &app, root_name).await;
+        }
+
+        // Maintain root copy for seamless compatibility
+        if hierarchical_path.exists() && (!root_path.exists() || needs_force_refresh) {
+            let _ = fs::copy(&hierarchical_path, &root_path);
         }
     }
 
-    // Language specific MultiText cache (merged with 1sthalf & 2ndhalf unmasked text)
+    // Language specific MultiText cache (merged with 1sthalf & 2ndhalf unmasked text + flows)
     let lang_file_name = format!("MultiText_{}.json", lang);
     let lang_file_path = json_dir.join(&lang_file_name);
     
-    if !lang_file_path.exists() {
-        emit_log(&app, &format!("Downloading and merging textmaps for '{}' (Base, 1stHalf, 2ndHalf, Subtitles)...", lang));
+    if needs_force_refresh || !lang_file_path.exists() {
+        emit_log(&app, &format!("Downloading and merging textmaps for '{}' (Base, 1stHalf, 2ndHalf, Subtitles, Flows)...", lang));
         
         let sub_textmap_sources = vec![
             format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/multi_text/MultiText.json", branch, lang),
             format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/multi_text_1sthalf/MultiText.json", branch, lang),
             format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/multi_text_2ndhalf/MultiText.json", branch, lang),
             format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/subtitle_text/SubtitleText.json", branch, lang),
+            format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/flow_text/FlowText.json", branch, lang),
+            format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/custom_sequence/CustomSequence.json", branch, lang),
         ];
 
         let mut merged_map: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
@@ -235,14 +308,21 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
         }
         emit_progress(&app, "Textmap", 1.0);
 
-        let final_list: Vec<&serde_json::Value> = merged_map.values().collect();
-        let serialized = serde_json::to_string(&final_list).map_err(|e| e.to_string())?;
-        fs::write(&lang_file_path, serialized).map_err(|e| e.to_string())?;
-        emit_log(&app, &format!("Merged {} text entries into {}", final_list.len(), lang_file_name));
+        if !merged_map.is_empty() {
+            let final_list: Vec<&serde_json::Value> = merged_map.values().collect();
+            let serialized = serde_json::to_string(&final_list).map_err(|e| e.to_string())?;
+
+            // 1. Save in Arikatsu Textmaps hierarchy
+            let hierarchical_textmap_dir = json_dir.join("Textmaps").join(&lang).join("multi_text");
+            let _ = fs::create_dir_all(&hierarchical_textmap_dir);
+            let _ = fs::write(hierarchical_textmap_dir.join("MultiText.json"), &serialized);
+
+            // 2. Save root convenience copy
+            fs::write(&lang_file_path, serialized).map_err(|e| e.to_string())?;
+            let _ = fs::write(&version_file, branch);
+            emit_log(&app, &format!("Merged {} text entries into {}", final_list.len(), lang_file_name));
+        }
     }
-    
-    // Keep active MultiText.json copy
-    let _ = fs::copy(&lang_file_path, json_dir.join("MultiText.json"));
     
     emit_log(&app, &format!("JSON Data for language '{}' synchronized successfully.", lang));
     Ok(())

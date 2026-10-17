@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tokio::process::Command;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::config::ConfigState;
 use crate::commands::downloader::get_tools_dir;
@@ -10,17 +10,26 @@ use crate::commands::log::emit_log;
 
 /// Index all .wem files in export_dir recursively into a map of lowercase_filename -> full_path
 pub fn index_wem_files(export_dir: &Path) -> HashMap<String, PathBuf> {
+    index_wem_files_multiple(&[export_dir])
+}
+
+/// Index all .wem files across multiple directories recursively into a map of lowercase_filename -> full_path
+pub fn index_wem_files_multiple(dirs_list: &[&Path]) -> HashMap<String, PathBuf> {
     let mut map = HashMap::new();
-    let mut dirs = vec![export_dir.to_path_buf()];
-    while let Some(dir) = dirs.pop() {
-        if let Ok(entries) = fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    dirs.push(path);
-                } else if path.extension().and_then(|s| s.to_str()).map(|s| s.to_lowercase()) == Some("wem".to_string()) {
-                    if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
-                        map.insert(file_name.to_lowercase(), path);
+    for d in dirs_list {
+        if d.exists() {
+            let mut dirs = vec![d.to_path_buf()];
+            while let Some(dir) = dirs.pop() {
+                if let Ok(entries) = fs::read_dir(dir) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            dirs.push(path);
+                        } else if path.extension().and_then(|s| s.to_str()).map(|s| s.to_lowercase()) == Some("wem".to_string()) {
+                            if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
+                                map.insert(file_name.to_lowercase(), path);
+                            }
+                        }
                     }
                 }
             }
@@ -35,6 +44,11 @@ pub fn resolve_wem_paths_in_txtp(txtp_path: &Path, wem_map: &HashMap<String, Pat
     let mut new_lines = Vec::new();
     let mut changed = false;
 
+    let re = match regex::Regex::new(r#"(?i)([^\s"';#]+\.wem)"#) {
+        Ok(r) => r,
+        Err(e) => return Err(e.to_string()),
+    };
+
     for line in content.lines() {
         let trimmed = line.trim();
         if trimmed.is_empty() || trimmed.starts_with('#') {
@@ -42,26 +56,25 @@ pub fn resolve_wem_paths_in_txtp(txtp_path: &Path, wem_map: &HashMap<String, Pat
             continue;
         }
 
-        // Look for .wem reference in the line
-        if let Some(wem_idx) = line.to_lowercase().find(".wem") {
-            let before_wem = &line[..wem_idx + 4];
-            let after_wem = &line[wem_idx + 4..];
-
-            // Extract the filename (e.g. 554131082.wem)
-            let token = before_wem.split_whitespace().last().unwrap_or("");
-            let file_name = token.replace('\\', "/");
+        let mut line_changed = false;
+        let replaced = re.replace_all(line, |caps: &regex::Captures| {
+            let matched_token = &caps[1];
+            let file_name = matched_token.replace('\\', "/");
             let just_name = file_name.split('/').last().unwrap_or("").to_lowercase();
-
             if let Some(real_path) = wem_map.get(&just_name) {
-                let formatted_path = real_path.display().to_string().replace('\\', "/");
-                let new_line = format!("{}{}", formatted_path, after_wem);
-                new_lines.push(new_line);
-                changed = true;
-                continue;
+                line_changed = true;
+                real_path.display().to_string().replace('\\', "/")
+            } else {
+                matched_token.to_string()
             }
-        }
+        });
 
-        new_lines.push(line.to_string());
+        if line_changed {
+            changed = true;
+            new_lines.push(replaced.to_string());
+        } else {
+            new_lines.push(line.to_string());
+        }
     }
 
     if changed {
@@ -92,6 +105,74 @@ pub fn fix_all_txtp_wem_paths(txtp_dir: &Path, export_dir: &Path) -> Result<usiz
         }
     }
     Ok(fixed_count)
+}
+
+/// Extract all referenced .wem IDs from all .txtp files inside a directory
+pub fn extract_wem_ids_from_txtp_dir(txtp_dir: &Path) -> Vec<String> {
+    let mut ids = Vec::new();
+    let re = match regex::Regex::new(r"(?i)(?:wem[\\/]|(?:\b))([0-9]{5,12})\.wem") {
+        Ok(r) => r,
+        Err(_) => return ids,
+    };
+    if let Ok(entries) = fs::read_dir(txtp_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()).map(|s| s.to_lowercase()) == Some("txtp".to_string()) {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    for cap in re.captures_iter(&content) {
+                        if let Some(m) = cap.get(1) {
+                            let id = m.as_str().to_string();
+                            if !ids.contains(&id) {
+                                ids.push(id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ids
+}
+
+/// Check if a .txtp file is resolvable and playable: all referenced .wem files must exist on disk
+pub fn is_txtp_resolvable(txtp_path: &Path) -> bool {
+    let content = match fs::read_to_string(txtp_path) {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+
+    let re = match regex::Regex::new(r#"(?i)([^\s"';#]+\.wem)"#) {
+        Ok(r) => r,
+        Err(_) => return false,
+    };
+
+    let mut found_wem = false;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        for cap in re.captures_iter(trimmed) {
+            if let Some(matched) = cap.get(1) {
+                found_wem = true;
+                let token = matched.as_str().replace('\\', "/");
+                let p = Path::new(&token);
+                if p.is_absolute() {
+                    if !p.exists() {
+                        return false;
+                    }
+                } else {
+                    let parent = txtp_path.parent().unwrap_or(Path::new(""));
+                    let resolved = parent.join(&token);
+                    if !resolved.exists() {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    found_wem || !content.trim().is_empty()
 }
 
 /// Execute Wwiser on a specific set of .bnk files
@@ -145,6 +226,26 @@ pub async fn run_wwiser_for_banks(
         return Err("Wwiser worker returned non-zero exit code.".to_string());
     }
 
+    // Scan all referenced .wem files from generated .txtp files and auto-extract from PAKs if missing
+    let wem_ids = extract_wem_ids_from_txtp_dir(&txtp_dir);
+    if !wem_ids.is_empty() {
+        emit_log(app, &format!("พบไฟล์สตรีมเสียง .wem ที่ถูกอ้างอิง {} ไฟล์ กำลังตรวจสอบและสกัดจากแพ็กเกจเกม...", wem_ids.len()));
+        let config_state = app.state::<crate::config::ConfigState>();
+        let extractor_state = app.state::<crate::commands::extractor::ExtractorState>();
+        let cfg = config_state.0.lock().unwrap().clone();
+        let locale = if !cfg.locale_selection.is_empty() { cfg.locale_selection } else { "ja".to_string() };
+
+        let wem_target_dir = if export_dir.exists() { export_dir.to_path_buf() } else { txtp_dir.to_path_buf() };
+        let _ = crate::commands::extractor::extract_wem_batch_internal(
+            app,
+            &extractor_state,
+            &config_state,
+            wem_ids,
+            &wem_target_dir,
+            &locale,
+        ).await;
+    }
+
     // Auto-resolve wem paths for the generated txtp
     let _ = fix_all_txtp_wem_paths(&txtp_dir, export_dir);
     Ok(())
@@ -153,7 +254,7 @@ pub async fn run_wwiser_for_banks(
 #[tauri::command]
 pub async fn run_wwiser(app: AppHandle, state: tauri::State<'_, ConfigState>, target_files: Option<Vec<String>>) -> Result<(), String> {
     let config = state.0.lock().unwrap().clone();
-    let export_dir = PathBuf::from(config.export_dir);
+    let export_dir = config.get_effective_export_dir();
     
     if !export_dir.exists() {
         return Err("Export directory does not exist or is not set.".to_string());

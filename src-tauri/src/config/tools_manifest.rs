@@ -22,4 +22,4 @@ pub const WWISER_TOOL: ToolManifest = ToolManifest {
     expected_sha256: None,
 };
 
-pub const DATABASE_BRANCH: &str = "3.5";
+pub const DATABASE_BRANCH: &str = "3.7";

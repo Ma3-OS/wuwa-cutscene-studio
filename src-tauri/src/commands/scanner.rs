@@ -30,10 +30,16 @@ pub fn validate_local_dir(dir_str: &str) -> Result<PathBuf, String> {
         return Err("Remote network UNC paths are forbidden".into());
     }
     let p = PathBuf::from(trimmed);
-    if !p.exists() || !p.is_dir() {
+    let abs_p = if p.is_relative() {
+        crate::config::get_project_root().join(p)
+    } else {
+        p
+    };
+    let _ = std::fs::create_dir_all(&abs_p);
+    if !abs_p.exists() || !abs_p.is_dir() {
         return Err("Export directory does not exist or is not a directory".into());
     }
-    Ok(p)
+    Ok(abs_p)
 }
 
 #[tauri::command]
@@ -77,7 +83,7 @@ pub fn scan_audio_banks(app: AppHandle, export_dir: String) -> Result<Vec<String
     Ok(bank_paths)
 }
 
-fn base64_encode(data: &[u8]) -> String {
+pub fn base64_encode(data: &[u8]) -> String {
     const CHARSET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity((data.len() + 2) / 3 * 4);
     let mut i = 0;
@@ -134,13 +140,35 @@ pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, S
     let cache_dir = crate::commands::downloader::get_base_dir(&app).join("thumbnails");
     let _ = fs::create_dir_all(&cache_dir);
     let thumb_file = cache_dir.join(format!("{}.jpg", stem));
+    let thumb_alt = cache_dir.join(format!("thumb_{}.jpg", stem));
     let meta_file = cache_dir.join(format!("{}.meta.json", stem));
 
+    let is_valid_thumb = |p: &Path| -> bool {
+        p.exists() && fs::metadata(p).map(|m| m.len() >= 3500).unwrap_or(false)
+    };
+
+    let existing_thumb = if is_valid_thumb(&thumb_file) {
+        Some(thumb_file.clone())
+    } else if is_valid_thumb(&thumb_alt) {
+        Some(thumb_alt.clone())
+    } else {
+        None
+    };
+
     // Return cached metadata if already available
-    if thumb_file.exists() && meta_file.exists() {
-        if let Ok(meta_str) = fs::read_to_string(&meta_file) {
-            if let Ok(meta) = serde_json::from_str::<VideoMeta>(&meta_str) {
-                return Ok(meta);
+    if let Some(ref t_path) = existing_thumb {
+        if meta_file.exists() {
+            if let Ok(meta_str) = fs::read_to_string(&meta_file) {
+                if let Ok(mut meta) = serde_json::from_str::<VideoMeta>(&meta_str) {
+                    if meta.thumbnail.is_empty() {
+                        if let Ok(bytes) = fs::read(t_path) {
+                            meta.thumbnail = format!("data:image/jpeg;base64,{}", base64_encode(&bytes));
+                        }
+                    }
+                    if !meta.thumbnail.is_empty() {
+                        return Ok(meta);
+                    }
+                }
             }
         }
     }
@@ -154,58 +182,52 @@ pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, S
     };
 
     use std::process::Command;
-    let mut cmd = Command::new(&ffmpeg_cmd);
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-    }
 
-    cmd.args([
-        "-y",
-        "-ss", "00:00:01",
-        "-i", &video_path,
-        "-vframes", "1",
-        "-q:v", "4",
-        "-vf", "scale=360:-1",
-        &thumb_file.to_string_lossy(),
-    ]);
-
-    let output = cmd.output();
+    // Multi-point fast seek sequence to skip black fade-ins
+    // Try 00:00:03.500 -> 00:00:07.000 -> 00:00:01.000
+    let seek_points = ["00:00:03.500", "00:00:07.000", "00:00:01.000"];
     let mut stderr_str = String::new();
 
-    let success = match output {
-        Ok(o) => {
-            stderr_str = String::from_utf8_lossy(&o.stderr).to_string();
-            o.status.success() && thumb_file.exists()
-        }
-        Err(_) => false,
-    };
-
-    // If 1s failed (e.g. video < 1s), retry at 0.2s
-    if !success {
-        let mut retry_cmd = Command::new(&ffmpeg_cmd);
+    for seek in seek_points {
+        let mut cmd = Command::new(&ffmpeg_cmd);
         #[cfg(target_os = "windows")]
         {
             use std::os::windows::process::CommandExt;
-            retry_cmd.creation_flags(0x08000000);
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
         }
-        retry_cmd.args([
+
+        cmd.args([
             "-y",
-            "-ss", "00:00:00.2",
+            "-ss", seek,
             "-i", &video_path,
+            "-vf", "scale=480:-1",
             "-vframes", "1",
             "-q:v", "4",
-            "-vf", "scale=360:-1",
             &thumb_file.to_string_lossy(),
         ]);
-        if let Ok(ro) = retry_cmd.output() {
-            stderr_str = String::from_utf8_lossy(&ro.stderr).to_string();
+
+        if let Ok(output) = cmd.output() {
+            stderr_str = String::from_utf8_lossy(&output.stderr).to_string();
+            if is_valid_thumb(&thumb_file) {
+                break;
+            }
         }
     }
 
-    let thumbnail = if thumb_file.exists() {
+    if is_valid_thumb(&thumb_file) {
+        let _ = fs::copy(&thumb_file, &thumb_alt);
+    } else if is_valid_thumb(&thumb_alt) {
+        let _ = fs::copy(&thumb_alt, &thumb_file);
+    }
+
+    let mut thumbnail = if is_valid_thumb(&thumb_file) {
         if let Ok(bytes) = fs::read(&thumb_file) {
+            format!("data:image/jpeg;base64,{}", base64_encode(&bytes))
+        } else {
+            "".to_string()
+        }
+    } else if is_valid_thumb(&thumb_alt) {
+        if let Ok(bytes) = fs::read(&thumb_alt) {
             format!("data:image/jpeg;base64,{}", base64_encode(&bytes))
         } else {
             "".to_string()
@@ -213,6 +235,24 @@ pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, S
     } else {
         "".to_string()
     };
+
+    if thumbnail.is_empty() {
+        let clean_stem = stem.split('_').next().unwrap_or(stem);
+        let cg_candidates = [
+            cache_dir.join(format!("thumb_{}.jpg", clean_stem)),
+            cache_dir.join(format!("{}.jpg", clean_stem)),
+        ];
+        for cand in cg_candidates {
+            if cand.exists() && fs::metadata(&cand).map(|m| m.len() > 1000).unwrap_or(false) {
+                if let Ok(bytes) = fs::read(&cand) {
+                    thumbnail = format!("data:image/jpeg;base64,{}", base64_encode(&bytes));
+                    let _ = fs::copy(&cand, &thumb_file);
+                    let _ = fs::copy(&cand, &thumb_alt);
+                    break;
+                }
+            }
+        }
+    }
 
     // Parse Duration and Resolution from FFmpeg stderr
     let mut duration_secs = 0.0;
@@ -344,4 +384,41 @@ pub fn detect_game_path() -> Option<String> {
         }
     }
     None
+}
+
+/// ลบภาพปกที่มืดสนิทหรือขนาดเล็กกว่าเกณฑ์ 3.5 KB ออกจากแคชตอนเริ่มระบบ
+pub fn purge_black_thumbnails_on_startup(app: &AppHandle) {
+    let cache_dir = crate::commands::downloader::get_base_dir(app).join("thumbnails");
+    if cache_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&cache_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
+                    if ext.eq_ignore_ascii_case("jpg") || ext.eq_ignore_ascii_case("jpeg") {
+                        if let Ok(m) = fs::metadata(&p) {
+                            if m.len() < 3500 {
+                                let _ = fs::remove_file(&p);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let export_cutscenes = crate::config::get_project_root().join("export").join("cutscenes");
+    if export_cutscenes.exists() {
+        if let Ok(entries) = fs::read_dir(&export_cutscenes) {
+            for entry in entries.flatten() {
+                let preview_file = entry.path().join("preview").join("thumbnail.jpg");
+                if preview_file.exists() {
+                    if let Ok(m) = fs::metadata(&preview_file) {
+                        if m.len() < 3500 {
+                            let _ = fs::remove_file(&preview_file);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

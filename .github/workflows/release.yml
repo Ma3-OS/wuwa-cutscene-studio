@@ -11,13 +11,14 @@ permissions:
 
 jobs:
   build-windows:
+    name: Build Windows x64 Release
     runs-on: windows-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,7 +34,7 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
 
       - name: Build frontend
@@ -47,11 +48,14 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'WuWa Cutscene Studio ${{ github.ref_name }}'
           releaseBody: |
-            ## WuWa Cutscene Studio Release
+            ## WuWa Cutscene Studio Release (${{ github.ref_name }})
             High-performance Wuthering Waves cinematic cutscene extractor, subtitle studio & video renderer.
 
+            ### Platform
+            - Windows 10 / 11 64-bit (`x86_64-pc-windows-msvc`)
+
             ### Integrity Verification (SHA-256)
-            Please see attached `SHA256SUMS.txt` for verification.
+            Please see attached `SHA256SUMS.txt` for file checksums.
           releaseDraft: false
           prerelease: false
 

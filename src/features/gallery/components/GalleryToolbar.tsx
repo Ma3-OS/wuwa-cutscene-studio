@@ -1,0 +1,337 @@
+import React from "react";
+import {
+  Film,
+  Clapperboard,
+  Layers,
+  User,
+  Search,
+  MessageSquare,
+  X,
+  RefreshCw,
+  LayoutGrid,
+  List,
+  PanelRight,
+} from "lucide-react";
+
+interface GalleryToolbarProps {
+  toolbarMode: "full" | "compact" | "icon";
+  isSearchOverlayOpen: boolean;
+  setIsSearchOverlayOpen: (val: boolean) => void;
+  assetKindFilter: "all" | "video" | "sequence";
+  onAssetKindChange: (kind: "all" | "video" | "sequence") => void;
+  videoCount: number;
+  sequenceCount: number;
+  totalKindCount: number;
+  roverFilter: string;
+  charSelection: string;
+  onRoverFilterChange: (gender: "Girl" | "Boy") => void;
+  searchQuery: string;
+  onSearchQueryChange: (q: string) => void;
+  searchMode: "name" | "dialogue";
+  onToggleSearchMode: () => void;
+  loading: boolean;
+  onRefresh: () => void;
+  viewMode: "grid" | "list";
+  onViewModeChange: (mode: "grid" | "list") => void;
+  isInspectorOpen?: boolean;
+  onToggleInspector?: () => void;
+}
+
+export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
+  toolbarMode,
+  isSearchOverlayOpen,
+  setIsSearchOverlayOpen,
+  assetKindFilter,
+  onAssetKindChange,
+  videoCount,
+  sequenceCount,
+  totalKindCount,
+  roverFilter,
+  charSelection,
+  onRoverFilterChange,
+  searchQuery,
+  onSearchQueryChange,
+  searchMode,
+  onToggleSearchMode,
+  loading,
+  onRefresh,
+  viewMode,
+  onViewModeChange,
+  isInspectorOpen = true,
+  onToggleInspector,
+}) => {
+  if (isSearchOverlayOpen && toolbarMode === "icon") {
+    return (
+      <div className="h-10 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 bg-[#131316] w-full">
+        <button
+          type="button"
+          onClick={onToggleSearchMode}
+          className="px-2 py-1 rounded text-xs font-medium bg-white/[0.04] text-[#8E8E93] hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+          title="สลับโหมดค้นหา: ชื่อคัตซีน หรือ บทพูดภาษาไทย"
+        >
+          {searchMode === "name" ? (
+            <>
+              <Film className="w-3 h-3 text-neutral-400 shrink-0" />
+              <span className="text-xs">ชื่อคลิป</span>
+            </>
+          ) : (
+            <>
+              <MessageSquare className="w-3 h-3 text-neutral-300 shrink-0" />
+              <span className="text-xs">บทพูด</span>
+            </>
+          )}
+        </button>
+        <div className="relative flex-1 flex items-center min-w-0">
+          <Search className="w-3.5 h-3.5 absolute left-2 text-neutral-500 pointer-events-none shrink-0" />
+          <input
+            type="text"
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
+            placeholder={searchMode === "name" ? "ค้นหาชื่อหรือโฟลเดอร์..." : "ค้นหาคำพูดภาษาไทย..."}
+            className="w-full h-7 pl-7 pr-7 bg-white/[0.04] border border-white/[0.08] focus:border-white/20 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none transition-colors"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchQueryChange("")}
+              className="absolute right-2 w-4 h-4 rounded flex items-center justify-center text-neutral-500 hover:text-white cursor-pointer"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsSearchOverlayOpen(false)}
+          className="w-7 h-7 rounded-md bg-white/[0.04] text-[#8E8E93] hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          title="ปิดการค้นหา"
+          aria-label="ปิดการค้นหา"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-10 px-3.5 border-b border-white/[0.04] flex items-center justify-between gap-2 shrink-0 bg-[#131316]">
+      {/* Left Side: Segmented Filter Pills & Rover Gender Pills */}
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink">
+        <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => onAssetKindChange("video")}
+            className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
+              assetKindFilter === "video"
+                ? "bg-white/[0.12] text-white font-medium shadow-sm"
+                : "text-[#8E8E93] hover:text-white"
+            }`}
+            title="วิดีโอภาพยนตร์"
+          >
+            {toolbarMode === "full" ? (
+              <span>วิดีโอภาพยนตร์</span>
+            ) : toolbarMode === "compact" ? (
+              <span>วิดีโอ</span>
+            ) : (
+              <Film className="w-3.5 h-3.5" />
+            )}
+            <span className="text-[10px] font-mono text-[#71717A]">{videoCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onAssetKindChange("sequence")}
+            className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
+              assetKindFilter === "sequence"
+                ? "bg-white/[0.12] text-white font-medium shadow-sm"
+                : "text-[#8E8E93] hover:text-white"
+            }`}
+            title="ซีน 3D และเสียง"
+          >
+            {toolbarMode === "full" ? (
+              <span>ซีน 3D</span>
+            ) : toolbarMode === "compact" ? (
+              <span>3D</span>
+            ) : (
+              <Clapperboard className="w-3.5 h-3.5" />
+            )}
+            <span className="text-[10px] font-mono text-[#71717A]">{sequenceCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onAssetKindChange("all")}
+            className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
+              assetKindFilter === "all"
+                ? "bg-white/[0.12] text-white font-medium shadow-sm"
+                : "text-[#8E8E93] hover:text-white"
+            }`}
+            title="ทั้งหมด"
+          >
+            {toolbarMode === "icon" ? (
+              <Layers className="w-3.5 h-3.5" />
+            ) : (
+              <span>ทั้งหมด</span>
+            )}
+            <span className="text-[10px] font-mono text-[#71717A]">{totalKindCount}</span>
+          </button>
+        </div>
+
+        <div className="h-3.5 w-px bg-white/[0.06] shrink-0" />
+
+        {/* Rover Gender Segmented Control */}
+        <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => onRoverFilterChange("Girl")}
+            className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
+              (roverFilter || charSelection) === "Girl"
+                ? "bg-white/[0.12] text-white font-medium shadow-sm"
+                : "text-[#8E8E93] hover:text-white"
+            }`}
+            title="โรเวอร์หญิง"
+          >
+            <User className={`w-3 h-3 ${toolbarMode === "icon" ? "text-pink-400" : "text-neutral-400"}`} />
+            {toolbarMode === "full" && <span>โรเวอร์หญิง</span>}
+            {toolbarMode === "compact" && <span>หญิง</span>}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onRoverFilterChange("Boy")}
+            className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
+              (roverFilter || charSelection) === "Boy"
+                ? "bg-white/[0.12] text-white font-medium shadow-sm"
+                : "text-[#8E8E93] hover:text-white"
+            }`}
+            title="โรเวอร์ชาย"
+          >
+            <User className={`w-3 h-3 ${toolbarMode === "icon" ? "text-blue-400" : "text-neutral-400"}`} />
+            {toolbarMode === "full" && <span>โรเวอร์ชาย</span>}
+            {toolbarMode === "compact" && <span>ชาย</span>}
+          </button>
+        </div>
+      </div>
+
+      {/* Middle: Studio Search */}
+      {toolbarMode === "icon" ? (
+        <button
+          type="button"
+          onClick={() => setIsSearchOverlayOpen(true)}
+          className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors cursor-pointer outline-none shrink-0 ${
+            searchQuery
+              ? "bg-white/[0.12] text-white"
+              : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
+          }`}
+          title="ค้นหา"
+          aria-label="ค้นหา"
+        >
+          <Search className="w-3.5 h-3.5" />
+        </button>
+      ) : (
+        <div className="flex-1 min-w-[120px] max-w-[260px] flex items-center gap-1 bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06] focus-within:border-white/20 transition-colors">
+          <button
+            type="button"
+            onClick={onToggleSearchMode}
+            className="px-1.5 py-0.5 rounded text-[10px] font-medium text-[#8E8E93] hover:text-white flex items-center gap-1 transition-colors cursor-pointer outline-none shrink-0"
+            title="สลับโหมดค้นหา: ชื่อคัตซีน หรือ บทพูดภาษาไทย"
+          >
+            {searchMode === "name" ? (
+              <>
+                <Film className="w-3 h-3 text-neutral-400 shrink-0" />
+                {toolbarMode === "full" && <span>ชื่อคลิป</span>}
+              </>
+            ) : (
+              <>
+                <MessageSquare className="w-3 h-3 text-neutral-300 shrink-0" />
+                {toolbarMode === "full" && <span>บทพูด</span>}
+              </>
+            )}
+          </button>
+          <div className="h-3 w-px bg-white/[0.08] shrink-0" />
+          <div className="relative flex-1 flex items-center min-w-0">
+            <Search className="w-3.5 h-3.5 absolute left-1.5 text-neutral-500 pointer-events-none shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
+              placeholder={searchMode === "name" ? "ค้นหาชื่อหรือโฟลเดอร์..." : "ค้นหาคำพูดภาษาไทย..."}
+              className="w-full h-6 pl-6 pr-5 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchQueryChange("")}
+                className="absolute right-1 w-4 h-4 rounded flex items-center justify-center text-neutral-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-2.5 h-2.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Right Side: View Mode, Refresh & Inspector Toggle */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={loading}
+          className="w-7 h-7 rounded-md bg-white/[0.03] text-[#8E8E93] hover:text-white flex items-center justify-center transition-colors cursor-pointer outline-none disabled:opacity-40"
+          title="รีเฟรชรายการ"
+          aria-label="รีเฟรชรายการ"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${loading ? "animate-spin text-white" : ""}`}
+          />
+        </button>
+
+        <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5">
+          <button
+            type="button"
+            onClick={() => onViewModeChange("grid")}
+            className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors cursor-pointer outline-none ${
+              viewMode === "grid"
+                ? "bg-white/[0.12] text-white shadow-sm"
+                : "text-[#71717A] hover:text-white"
+            }`}
+            title="Grid View"
+            aria-label="Grid View"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onViewModeChange("list")}
+            className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors cursor-pointer outline-none ${
+              viewMode === "list"
+                ? "bg-white/[0.12] text-white shadow-sm"
+                : "text-[#71717A] hover:text-white"
+            }`}
+            title="List View"
+            aria-label="List View"
+          >
+            <List className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {onToggleInspector && (
+          <button
+            type="button"
+            onClick={onToggleInspector}
+            className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors cursor-pointer outline-none ${
+              isInspectorOpen
+                ? "bg-white/[0.12] text-white"
+                : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
+            }`}
+            title={isInspectorOpen ? "ซ่อนแถบควบคุมขวา" : "แสดงแถบควบคุมขวา"}
+            aria-label="Toggle Inspector"
+          >
+            <PanelRight className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
