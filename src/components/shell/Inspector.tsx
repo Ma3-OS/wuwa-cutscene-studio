@@ -27,6 +27,9 @@ import { StudioSegmentedControl } from "../ui/StudioSegmentedControl";
 import { StudioSelect } from "../ui/StudioSelect";
 import { useApp } from "../../context/AppContext";
 import { RendererAPI, type CutsceneSubtitleLineDto } from "../../core/ipc";
+import { resolveThumbnailSrc } from "../../utils/thumbnailResolver";
+
+const dialogueCache = new Map<string, CutsceneSubtitleLineDto[]>();
 
 export interface VideoMetaInfo {
   thumbnail: string;
@@ -121,11 +124,20 @@ export const Inspector: React.FC<InspectorProps> = ({
       return;
     }
     const clean = (fileName || "").replace(/\.[^/.]+$/, "");
-    if (clean) {
-      RendererAPI.getCutsceneDialogue(clean)
-        .then((lines) => setDialogueLines(lines || []))
-        .catch(() => setDialogueLines([]));
+    if (!clean) return;
+
+    if (dialogueCache.has(clean)) {
+      setDialogueLines(dialogueCache.get(clean) || []);
+      return;
     }
+
+    RendererAPI.getCutsceneDialogue(clean)
+      .then((lines) => {
+        const resolved = lines || [];
+        dialogueCache.set(clean, resolved);
+        setDialogueLines(resolved);
+      })
+      .catch(() => setDialogueLines([]));
   }, [selectedFile, fileName]);
 
   const handleCopyText = (text: string, type: string, successMsg: string) => {
@@ -209,7 +221,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                 >
                   {thumbnailUrl || meta?.thumbnail ? (
                     <img
-                      src={thumbnailUrl || meta?.thumbnail}
+                      src={resolveThumbnailSrc(thumbnailUrl || meta?.thumbnail)}
                       alt={fileName}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-103"
                     />

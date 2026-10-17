@@ -13,12 +13,11 @@ interface CutsceneGridProps {
   videoMetas: Record<string, VideoMetaInfo>;
   thumbnails: Record<string, string>;
   extractingItems: Record<string, boolean>;
-  hoverScrub: Record<string, number>;
-  setHoverScrub: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   dialogueMatches: Map<string, string>;
   onSelect: (video: ProcessedVideoItem, e: React.MouseEvent) => void;
   onDoubleClick: (video: ProcessedVideoItem) => void;
   onQuickAddToQueue: (e: React.MouseEvent, video: ProcessedVideoItem) => void;
+  cardRefCallback?: (node: HTMLDivElement | null, video: ProcessedVideoItem) => void;
   viewMode: "grid" | "list";
   noMatchingVideosLabel: string;
 }
@@ -32,12 +31,11 @@ export const CutsceneGrid: React.FC<CutsceneGridProps> = ({
   videoMetas,
   thumbnails,
   extractingItems,
-  hoverScrub,
-  setHoverScrub,
   dialogueMatches,
   onSelect,
   onDoubleClick,
   onQuickAddToQueue,
+  cardRefCallback,
   viewMode,
   noMatchingVideosLabel,
 }) => {
@@ -101,23 +99,11 @@ export const CutsceneGrid: React.FC<CutsceneGridProps> = ({
               meta={meta}
               thumb={thumb}
               isExtracting={isExtracting}
-              hoverScrubPct={hoverScrub[uniqueKey]}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const pct = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
-                setHoverScrub((prev) => ({ ...prev, [uniqueKey]: pct }));
-              }}
-              onMouseLeave={() => {
-                setHoverScrub((prev) => {
-                  const next = { ...prev };
-                  delete next[uniqueKey];
-                  return next;
-                });
-              }}
-              onSelect={(e) => onSelect(video, e)}
-              onDoubleClick={() => onDoubleClick(video)}
-              onQuickAddToQueue={(e) => onQuickAddToQueue(e, video)}
+              onSelect={onSelect}
+              onDoubleClick={onDoubleClick}
+              onQuickAddToQueue={onQuickAddToQueue}
               dialogueMatch={dialogueMatch}
+              cardRefCallback={cardRefCallback}
             />
           );
         })}
@@ -157,8 +143,9 @@ export const CutsceneGrid: React.FC<CutsceneGridProps> = ({
             meta={meta}
             thumb={thumb}
             isExtracting={isExtracting}
-            onSelect={(e) => onSelect(video, e)}
-            onDoubleClick={() => onDoubleClick(video)}
+            onSelect={onSelect}
+            onDoubleClick={onDoubleClick}
+            cardRefCallback={cardRefCallback}
           />
         );
       })}

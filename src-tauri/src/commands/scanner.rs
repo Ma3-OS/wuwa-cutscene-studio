@@ -161,9 +161,7 @@ pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, S
             if let Ok(meta_str) = fs::read_to_string(&meta_file) {
                 if let Ok(mut meta) = serde_json::from_str::<VideoMeta>(&meta_str) {
                     if meta.thumbnail.is_empty() {
-                        if let Ok(bytes) = fs::read(t_path) {
-                            meta.thumbnail = format!("data:image/jpeg;base64,{}", base64_encode(&bytes));
-                        }
+                        meta.thumbnail = crate::commands::extractor::canonical_path_string(t_path);
                     }
                     if !meta.thumbnail.is_empty() {
                         return Ok(meta);
@@ -221,17 +219,9 @@ pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, S
     }
 
     let mut thumbnail = if is_valid_thumb(&thumb_file) {
-        if let Ok(bytes) = fs::read(&thumb_file) {
-            format!("data:image/jpeg;base64,{}", base64_encode(&bytes))
-        } else {
-            "".to_string()
-        }
+        crate::commands::extractor::canonical_path_string(&thumb_file)
     } else if is_valid_thumb(&thumb_alt) {
-        if let Ok(bytes) = fs::read(&thumb_alt) {
-            format!("data:image/jpeg;base64,{}", base64_encode(&bytes))
-        } else {
-            "".to_string()
-        }
+        crate::commands::extractor::canonical_path_string(&thumb_alt)
     } else {
         "".to_string()
     };
@@ -244,12 +234,10 @@ pub fn get_video_meta(app: AppHandle, video_path: String) -> Result<VideoMeta, S
         ];
         for cand in cg_candidates {
             if cand.exists() && fs::metadata(&cand).map(|m| m.len() > 1000).unwrap_or(false) {
-                if let Ok(bytes) = fs::read(&cand) {
-                    thumbnail = format!("data:image/jpeg;base64,{}", base64_encode(&bytes));
-                    let _ = fs::copy(&cand, &thumb_file);
-                    let _ = fs::copy(&cand, &thumb_alt);
-                    break;
-                }
+                let _ = fs::copy(&cand, &thumb_file);
+                let _ = fs::copy(&cand, &thumb_alt);
+                thumbnail = crate::commands::extractor::canonical_path_string(&cand);
+                break;
             }
         }
     }

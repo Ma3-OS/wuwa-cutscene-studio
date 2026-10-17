@@ -41,6 +41,9 @@ interface CatalogState {
   assetKindFilter: "video" | "sequence" | "all";
   viewMode: "grid" | "list";
 
+  thumbnails: Record<string, string>;
+  videoMetas: Record<string, VideoMetaInfo>;
+
   setItems: (items: ProcessedVideoItem[]) => void;
   setLoading: (loading: boolean) => void;
   setSelectedFolder: (folder: string) => void;
@@ -49,6 +52,8 @@ interface CatalogState {
   setAssetKindFilter: (filter: "video" | "sequence" | "all") => void;
   setViewMode: (mode: "grid" | "list") => void;
   updateItem: (key: string, patch: Partial<ProcessedVideoItem>) => void;
+  setThumbnailsBatch: (batch: Record<string, string>) => void;
+  setVideoMetasBatch: (batch: Record<string, VideoMetaInfo>) => void;
   fetchCatalog: (exportDir?: string) => Promise<void>;
 }
 
@@ -60,6 +65,8 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
   roverFilter: "all",
   assetKindFilter: "all",
   viewMode: "grid",
+  thumbnails: {},
+  videoMetas: {},
 
   setItems: (items) => set({ items }),
   setLoading: (loading) => set({ loading }),
@@ -68,6 +75,10 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
   setRoverFilter: (roverFilter) => set({ roverFilter }),
   setAssetKindFilter: (assetKindFilter) => set({ assetKindFilter }),
   setViewMode: (viewMode) => set({ viewMode }),
+  setThumbnailsBatch: (batch) =>
+    set((state) => ({ thumbnails: { ...state.thumbnails, ...batch } })),
+  setVideoMetasBatch: (batch) =>
+    set((state) => ({ videoMetas: { ...state.videoMetas, ...batch } })),
 
   updateItem: (key, patch) => {
     set((state) => {

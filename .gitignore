@@ -72,9 +72,7 @@ src-tauri/keys.json
 !.env.example
 
 # Datamined text databases & local game data
-data/*.json
-data/*.db
-data/*.txt
+data/
 !data/.gitkeep
 
 # External binaries & tools

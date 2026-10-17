@@ -678,9 +678,8 @@ function AppContent() {
 
         {/* Dynamic Workspace Container */}
         <main className="flex-1 min-w-0 h-full flex overflow-hidden relative">
-          {activeWorkspace === "studio" && (
-            <>
-              {/* Center Virtualized Cutscene Gallery */}
+          <div className={`flex-1 min-w-0 h-full flex overflow-hidden ${activeWorkspace === "studio" ? "relative" : "hidden"}`}>
+            {/* Center Virtualized Cutscene Gallery */}
               <GalleryView
                 selectedFile={selectedFile}
                 selectedFiles={selectedFiles}
@@ -796,8 +795,7 @@ function AppContent() {
                   }
                 }}
               />
-            </>
-          )}
+          </div>
 
           {activeWorkspace === "subtitles" && <SubtitleLabView />}
           {activeWorkspace === "audio" && <AudioEngineView />}

@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="Logo.png" alt="WuWa Cutscene Studio Logo" width="128" />
+
 <p align="center">
   <a href="https://github.com/Ma3-OS/wuwa-cutscene-studio/releases">
     <img src="https://img.shields.io/github/v/release/Ma3-OS/wuwa-cutscene-studio?style=for-the-badge&color=18181b&labelColor=09090b" alt="Latest Release" />
@@ -68,6 +70,17 @@ In **Wuthering Waves**, raw cinematic video files extracted from game archives d
 - **21:9 UltraWide (2560x1080):** Preserves native widescreen cinematics with cinematic top and bottom borders.
 - **Native Resolution:** Retains original source dimensions without scaling.
 - **4K UHD (3840x2160):** High-bitrate upscaling for archive-grade presentations.
+
+### 5. Multi-Item Batch Queue & Task Automation
+- **Multi-Item Queue:** Enqueue dozens of cutscenes with distinct gender, language, subtitle mode, and resolution settings.
+- **Background Worker & Concurrency:** Multi-threaded encoding pipeline keeping the UI responsive at 120 FPS during heavy video rendering.
+- **Automated Post-Render Power Actions:** Configure system actions upon queue completion (Chime alert, open output directory, system sleep, or automatic shutdown).
+
+### 6. Zero-Lag Performance Architecture
+- **Chromium Native Virtualization:** Utilizes `content-visibility: auto` to skip offscreen DOM layout, style, and paint calculations for 595+ cutscene cards.
+- **Viewport Dwell Timer & LIFO Worker Queue:** 100ms dwell delay prevents thumbnail extraction stampedes during rapid scrolling; prioritizing active viewport cards first.
+- **In-Memory Pre-Scanning:** Single-pass disk pre-indexing turns over 4,500 catalog filesystem queries into instant O(1) in-memory checks (<15ms catalog load).
+- **Persistent DOM State:** Zero reflow and 0ms latency when switching between Studio, Subtitle Lab, Audio Engine, and Queue workspaces.
 
 ---
 

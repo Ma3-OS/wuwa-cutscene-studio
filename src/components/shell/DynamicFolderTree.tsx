@@ -172,37 +172,40 @@ export function buildFolderTree(
 interface TreeItemProps {
   node: TreeNode;
   depth: number;
+  isSelected: boolean;
+  isExpanded: boolean;
   selectedPath: string;
   expandedPaths: Set<string>;
   onToggleExpand: (path: string) => void;
   onSelectPath: (path: string) => void;
 }
 
-const TreeItem: React.FC<TreeItemProps> = ({
-  node,
-  depth,
-  selectedPath,
-  expandedPaths,
-  onToggleExpand,
-  onSelectPath,
-}) => {
-  const isSelected = selectedPath === node.fullPath;
-  const isExpanded = expandedPaths.has(node.fullPath);
-  const hasChildren = node.children.length > 0;
+const TreeItem = React.memo<TreeItemProps>(
+  ({
+    node,
+    depth,
+    isSelected,
+    isExpanded,
+    selectedPath,
+    expandedPaths,
+    onToggleExpand,
+    onSelectPath,
+  }) => {
+    const hasChildren = node.children.length > 0;
 
-  const handleRowClick = () => {
-    onSelectPath(node.fullPath);
-    if (hasChildren && !isExpanded) {
-      onToggleExpand(node.fullPath);
-    }
-  };
+    const handleRowClick = () => {
+      onSelectPath(node.fullPath);
+      if (hasChildren && !isExpanded) {
+        onToggleExpand(node.fullPath);
+      }
+    };
 
-  const handleChevronClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (hasChildren) {
-      onToggleExpand(node.fullPath);
-    }
-  };
+    const handleChevronClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (hasChildren) {
+        onToggleExpand(node.fullPath);
+      }
+    };
 
   return (
     <div className="flex flex-col select-none">
@@ -274,6 +277,8 @@ const TreeItem: React.FC<TreeItemProps> = ({
               key={child.fullPath}
               node={child}
               depth={depth + 1}
+              isSelected={selectedPath === child.fullPath}
+              isExpanded={expandedPaths.has(child.fullPath)}
               selectedPath={selectedPath}
               expandedPaths={expandedPaths}
               onToggleExpand={onToggleExpand}
@@ -284,7 +289,17 @@ const TreeItem: React.FC<TreeItemProps> = ({
       )}
     </div>
   );
-};
+},
+(prev, next) => {
+  return (
+    prev.isSelected === next.isSelected &&
+    prev.isExpanded === next.isExpanded &&
+    prev.depth === next.depth &&
+    prev.node === next.node &&
+    prev.onToggleExpand === next.onToggleExpand &&
+    prev.onSelectPath === next.onSelectPath
+  );
+});
 
 export const DynamicFolderTree: React.FC<DynamicFolderTreeProps> = ({
   items,
@@ -405,6 +420,8 @@ export const DynamicFolderTree: React.FC<DynamicFolderTreeProps> = ({
             key={node.fullPath}
             node={node}
             depth={0}
+            isSelected={selectedPath === node.fullPath}
+            isExpanded={expandedPaths.has(node.fullPath)}
             selectedPath={selectedPath}
             expandedPaths={expandedPaths}
             onToggleExpand={handleToggleExpand}

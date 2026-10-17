@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { SettingsAPI } from "../core/ipc";
 import { translations, AppLanguage } from "../utils/i18n";
 import { soundManager } from "../utils/sound";
@@ -171,8 +171,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refreshConfig();
   }, [refreshConfig]);
 
-  const updateConfig = async (partial: Partial<AppConfig>) => {
-    const updated = { ...config, ...partial };
+  const configRef = useRef(config);
+  configRef.current = config;
+
+  const updateConfig = useCallback(async (partial: Partial<AppConfig>) => {
+    const updated = { ...configRef.current, ...partial };
     setConfig(updated);
     
     // Sync sound settings
@@ -188,7 +191,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("Failed to save config:", e);
     }
-  };
+  }, []);
 
   const lang: AppLanguage = config.app_language || "th";
 

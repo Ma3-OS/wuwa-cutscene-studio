@@ -71,9 +71,11 @@ export function TitleBar() {
         onMouseDown={handleMouseDownDrag}
         className="flex items-center gap-2 select-none h-full py-1 pr-3 cursor-default"
       >
-        <div className="w-4 h-4 rounded-md bg-white/[0.08] flex items-center justify-center border border-white/[0.08]">
-          <span className="text-[10px] font-bold text-white tracking-tighter">W</span>
-        </div>
+        <img
+          src="/Logo.png"
+          alt="WuWa Cutscene Studio"
+          className="w-4.5 h-4.5 rounded-md object-contain"
+        />
         <span className="text-xs font-semibold text-white tracking-wide font-sans">
           WuWa Studio
         </span>

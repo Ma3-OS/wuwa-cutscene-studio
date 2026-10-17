@@ -1,42 +1,69 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Film, Clock, Loader2, Play, Layers, DownloadCloud, Plus } from "lucide-react";
 import { ProcessedVideoItem, VideoMetaInfo } from "@/features/catalog/stores/useCatalogStore";
+import { resolveThumbnailSrc } from "@/utils/thumbnailResolver";
 
-interface CutsceneCardProps {
+export interface CutsceneCardProps {
   video: ProcessedVideoItem;
   isSelected: boolean;
   isCurrent: boolean;
   meta?: VideoMetaInfo | null;
   thumb?: string;
   isExtracting: boolean;
-  hoverScrubPct?: number;
-  onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void;
-  onMouseLeave: () => void;
-  onSelect: (e: React.MouseEvent) => void;
-  onDoubleClick: () => void;
-  onQuickAddToQueue: (e: React.MouseEvent) => void;
+  onSelect: (video: ProcessedVideoItem, e: React.MouseEvent) => void;
+  onDoubleClick: (video: ProcessedVideoItem) => void;
+  onQuickAddToQueue: (e: React.MouseEvent, video: ProcessedVideoItem) => void;
   dialogueMatch?: string;
+  cardRefCallback?: (node: HTMLDivElement | null, video: ProcessedVideoItem) => void;
 }
 
-export const CutsceneCard: React.FC<CutsceneCardProps> = ({
+const CutsceneCardComponent: React.FC<CutsceneCardProps> = ({
   video,
   isSelected,
   isCurrent,
   meta,
   thumb,
   isExtracting,
-  hoverScrubPct,
-  onMouseMove,
-  onMouseLeave,
   onSelect,
   onDoubleClick,
   onQuickAddToQueue,
   dialogueMatch,
+  cardRefCallback,
 }) => {
+  const scrubBarRef = useRef<HTMLDivElement>(null);
+  const resolvedThumb = resolveThumbnailSrc(thumb);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+    if (scrubBarRef.current) {
+      scrubBarRef.current.style.width = `${pct}%`;
+      scrubBarRef.current.style.opacity = "1";
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (scrubBarRef.current) {
+      scrubBarRef.current.style.opacity = "0";
+    }
+  };
+
+  const handleRef = (node: HTMLDivElement | null) => {
+    if (cardRefCallback) {
+      cardRefCallback(node, video);
+    }
+  };
+
   return (
     <div
-      onClick={onSelect}
-      onDoubleClick={onDoubleClick}
+      ref={handleRef}
+      data-cutscene-id={video.uniqueId}
+      onClick={(e) => onSelect(video, e)}
+      onDoubleClick={() => onDoubleClick(video)}
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 220px",
+      }}
       className={`group rounded-xl overflow-hidden flex flex-col justify-between transition-all cursor-pointer select-none relative border border-white/[0.04] ${
         isSelected || isCurrent
           ? "bg-[#1E1E24] ring-1 ring-white/20 shadow-lg"
@@ -45,13 +72,13 @@ export const CutsceneCard: React.FC<CutsceneCardProps> = ({
     >
       {/* Aspect Ratio 16:9 Edge-to-Edge Canvas */}
       <div
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
         className="relative aspect-video w-full overflow-hidden bg-[#0A0A0C]"
       >
-        {thumb ? (
+        {resolvedThumb ? (
           <img
-            src={thumb}
+            src={resolvedThumb}
             alt={video.fileName}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-103"
             loading="lazy"
@@ -67,15 +94,14 @@ export const CutsceneCard: React.FC<CutsceneCardProps> = ({
         {/* Gradient Overlay for bottom text legibility */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-        {/* Scrubbing indicator line */}
-        {hoverScrubPct !== undefined && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 pointer-events-none z-20">
-            <div
-              className="h-full bg-white transition-all duration-75"
-              style={{ width: `${hoverScrubPct}%` }}
-            />
-          </div>
-        )}
+        {/* Zero-State Scrubbing indicator line */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 pointer-events-none z-20">
+          <div
+            ref={scrubBarRef}
+            className="h-full bg-white opacity-0 transition-opacity duration-150"
+            style={{ width: "0%" }}
+          />
+        </div>
 
         {/* Top-Right: Loading status or cached indicator */}
         <div className="absolute top-2 right-2 pointer-events-none flex items-center gap-1 z-10">
@@ -130,7 +156,7 @@ export const CutsceneCard: React.FC<CutsceneCardProps> = ({
           </div>
           <button
             type="button"
-            onClick={onQuickAddToQueue}
+            onClick={(e) => onQuickAddToQueue(e, video)}
             className="w-7 h-7 rounded-full bg-black/85 backdrop-blur-md text-white/80 hover:text-white flex items-center justify-center shadow-xl hover:bg-white/[0.2] transition-colors cursor-pointer outline-none"
             title="เพิ่มเข้าคิวเรนเดอร์ทันที"
           >
@@ -161,3 +187,19 @@ export const CutsceneCard: React.FC<CutsceneCardProps> = ({
     </div>
   );
 };
+
+export const CutsceneCard = React.memo(CutsceneCardComponent, (prev, next) => {
+  return (
+    prev.video.uniqueId === next.video.uniqueId &&
+    prev.isSelected === next.isSelected &&
+    prev.isCurrent === next.isCurrent &&
+    prev.thumb === next.thumb &&
+    prev.isExtracting === next.isExtracting &&
+    prev.dialogueMatch === next.dialogueMatch &&
+    prev.meta?.duration_formatted === next.meta?.duration_formatted &&
+    prev.onSelect === next.onSelect &&
+    prev.onDoubleClick === next.onDoubleClick &&
+    prev.onQuickAddToQueue === next.onQuickAddToQueue &&
+    prev.cardRefCallback === next.cardRefCallback
+  );
+});

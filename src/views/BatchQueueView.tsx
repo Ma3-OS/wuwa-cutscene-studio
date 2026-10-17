@@ -28,6 +28,7 @@ export const BatchQueueView: React.FC = () => {
   const updateAllPendingPresets = useQueueStore((state) => state.updateAllPendingPresets);
 
   const catalogItems = useCatalogStore((state) => state.items);
+  const thumbnails = useCatalogStore((state) => state.thumbnails);
 
   // Modal State for adding cutscenes
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -229,10 +230,16 @@ export const BatchQueueView: React.FC = () => {
           </div>
         ) : (
           items.map((item) => {
+            const thumb =
+              thumbnails[item.fileName] ||
+              thumbnails[item.cutscenePath] ||
+              thumbnails[item.id] ||
+              (item.fileName ? thumbnails[item.fileName.toLowerCase()] : undefined);
             return (
               <QueueItemRow
                 key={item.id}
                 item={item}
+                thumbnail={thumb}
                 onRetry={(id) => {
                   playSound("click");
                   retryItem(id);

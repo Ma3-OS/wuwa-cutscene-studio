@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { useApp } from "../../context/AppContext";
 import { ToolsAPI, RendererAPI } from "../../core/ipc";
+import { resolveThumbnailSrc } from "../../utils/thumbnailResolver";
 import type { ProcessedVideoItem, VideoMetaInfo } from "../../features/catalog/stores/useCatalogStore";
 
 interface QuickLookModalProps {
@@ -51,7 +52,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
   const [isCapturing, setIsCapturing] = useState(false);
 
   const isLevelSequence = video?.isLevelSequence && !video?.hasVideo;
-  const effectiveThumb = meta?.thumbnail;
+  const effectiveThumb = resolveThumbnailSrc(meta?.thumbnail);
 
   useEffect(() => {
     setHasPlaybackError(false);

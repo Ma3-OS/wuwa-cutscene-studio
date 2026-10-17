@@ -2,6 +2,7 @@ import React from "react";
 import { Loader2, CheckCircle2, AlertTriangle, Clock, RotateCcw, ExternalLink, FolderOpen, Trash2, Film } from "lucide-react";
 import { StudioButton } from "@/components/ui/StudioButton";
 import { QueueItem } from "@/features/queue/stores/useQueueStore";
+import { resolveThumbnailSrc } from "@/utils/thumbnailResolver";
 
 interface QueueItemRowProps {
   item: QueueItem;
@@ -37,7 +38,7 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
         {/* 64x36 16:9 Mini Thumbnail with Status Indicator */}
         <div className="w-16 h-9 rounded-md bg-[#0A0A0C] border border-white/[0.06] overflow-hidden shrink-0 relative flex items-center justify-center">
           {thumbnail ? (
-            <img src={thumbnail} alt={item.fileName} className="w-full h-full object-cover" />
+            <img src={resolveThumbnailSrc(thumbnail)} alt={item.fileName} className="w-full h-full object-cover" />
           ) : (
             <Film className="w-4 h-4 text-white/30" />
           )}

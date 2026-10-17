@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::process::{Child, ChildStdin, Command};
@@ -14,6 +14,76 @@ use tauri::{AppHandle, Manager};
 use crate::config::ConfigState;
 use crate::commands::downloader::{get_data_dir, get_tools_dir};
 use crate::commands::log::emit_log;
+
+pub fn clean_path_string(path: &Path) -> String {
+    let s = path.to_string_lossy().to_string();
+    if let Some(stripped) = s.strip_prefix(r"\\?\") {
+        stripped.to_string()
+    } else {
+        s
+    }
+}
+
+pub fn canonical_path_string(path: &Path) -> String {
+    if let Ok(canon) = std::fs::canonicalize(path) {
+        clean_path_string(&canon)
+    } else {
+        clean_path_string(path)
+    }
+}
+
+static VIDEO_INDEX_CACHE: OnceLock<RwLock<Option<HashMap<String, PathBuf>>>> = OnceLock::new();
+static NEGATIVE_THUMB_CACHE: OnceLock<RwLock<HashSet<String>>> = OnceLock::new();
+
+fn get_video_index_cache() -> &'static RwLock<Option<HashMap<String, PathBuf>>> {
+    VIDEO_INDEX_CACHE.get_or_init(|| RwLock::new(None))
+}
+
+fn get_negative_thumb_cache() -> &'static RwLock<HashSet<String>> {
+    NEGATIVE_THUMB_CACHE.get_or_init(|| RwLock::new(HashSet::new()))
+}
+
+pub fn get_or_build_video_index(app: &AppHandle, config: &crate::config::AppConfig) -> HashMap<String, PathBuf> {
+    let cache_lock = get_video_index_cache();
+    {
+        if let Ok(reader) = cache_lock.read() {
+            if let Some(ref map) = *reader {
+                return map.clone();
+            }
+        }
+    }
+    let mut map = HashMap::new();
+    let cache_cutscenes = get_cache_cutscenes_dir(app);
+    if cache_cutscenes.exists() {
+        index_directory_videos(&cache_cutscenes, &mut map);
+    }
+    let export_path = config.get_effective_export_dir();
+    if export_path.exists() {
+        index_directory_videos(&export_path, &mut map);
+    }
+    let fmodel_export = PathBuf::from(r"D:\Datamine\Datamine\FModel\Output\Exports\Client\Content\Aki\Movies");
+    if fmodel_export.exists() {
+        index_directory_videos(&fmodel_export, &mut map);
+    }
+    let out_path = config.get_effective_render_dir();
+    if out_path.exists() {
+        index_directory_videos(&out_path, &mut map);
+    }
+    if let Ok(mut writer) = cache_lock.write() {
+        *writer = Some(map.clone());
+    }
+    map
+}
+
+#[tauri::command]
+pub fn clear_video_index_cache() {
+    if let Ok(mut writer) = get_video_index_cache().write() {
+        *writer = None;
+    }
+    if let Ok(mut writer) = get_negative_thumb_cache().write() {
+        writer.clear();
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GameEnvironmentDto {
@@ -1375,6 +1445,7 @@ pub async fn cancel_extraction(
     Ok(())
 }
 
+#[allow(dead_code)]
 fn is_audio_ready_on_disk(
     base_cg: &str,
     full_cg: &str,
@@ -1447,15 +1518,93 @@ pub async fn get_full_catalog_with_status(
         }
     }
 
-    // 1. Recursively index user's export_dir if configured
-    let mut export_files_map = HashMap::new();
-    if export_dir.exists() {
-        index_directory_videos(&export_dir, &mut export_files_map);
+    // 1. Index videos using high-performance cached index
+    let export_files_map = get_or_build_video_index(&app, &config);
+
+    // Pre-scan local extracted cutscenes cache once (0ms subsequent checks)
+    let mut cached_videos_map: HashMap<String, PathBuf> = HashMap::new();
+    if cache_dir.exists() && cache_dir.is_dir() {
+        if let Ok(entries) = fs::read_dir(&cache_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    let folder_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+                    if let Ok(sub_entries) = fs::read_dir(&p) {
+                        for sub in sub_entries.flatten() {
+                            let sub_p = sub.path();
+                            if let Some(ext) = sub_p.extension().and_then(|e| e.to_str()) {
+                                if (ext.eq_ignore_ascii_case("mp4") || ext.eq_ignore_ascii_case("bk2") || ext.eq_ignore_ascii_case("mkv") || ext.eq_ignore_ascii_case("webm") || ext.eq_ignore_ascii_case("usm"))
+                                    && sub_p.metadata().map(|m| m.len() > 50_000).unwrap_or(false)
+                                {
+                                    cached_videos_map.insert(folder_name.clone(), sub_p);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    let fmodel_export = PathBuf::from(r"D:\Datamine\Datamine\FModel\Output\Exports\Client\Content\Aki\Movies");
-    if fmodel_export.exists() {
-        index_directory_videos(&fmodel_export, &mut export_files_map);
+
+    // Pre-scan audio on disk once to eliminate thousands of file checks in the loop
+    let mut audio_ready_stems: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let cutscenes_dir = export_dir.join("cutscenes");
+    for base in [&cutscenes_dir, &cache_dir] {
+        if base.exists() && base.is_dir() {
+            if let Ok(subdirs) = fs::read_dir(base) {
+                for sub in subdirs.flatten() {
+                    let p = sub.path();
+                    if p.is_dir() {
+                        let folder_stem = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+                        let mut has_audio = false;
+                        for dir_to_check in [&p, &p.join("audio"), &p.join("wem")] {
+                            if dir_to_check.exists() && dir_to_check.is_dir() {
+                                if let Ok(files) = fs::read_dir(dir_to_check) {
+                                    for f in files.flatten() {
+                                        let fp = f.path();
+                                        if let Some(ext) = fp.extension().and_then(|e| e.to_str()) {
+                                            if ext.eq_ignore_ascii_case("bnk") || ext.eq_ignore_ascii_case("txtp") || ext.eq_ignore_ascii_case("wav") || ext.eq_ignore_ascii_case("wem") {
+                                                has_audio = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if has_audio { break; }
+                        }
+                        if has_audio {
+                            audio_ready_stems.insert(folder_stem);
+                        }
+                    }
+                }
+            }
+        }
     }
+
+    let txtp_dir = export_dir.join("txtp");
+    if txtp_dir.exists() && txtp_dir.is_dir() {
+        if let Ok(entries) = fs::read_dir(&txtp_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
+                    if ext.eq_ignore_ascii_case("txtp") || ext.eq_ignore_ascii_case("wav") {
+                        let file_stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                        audio_ready_stems.insert(file_stem);
+                    }
+                }
+            }
+        }
+    }
+
+    let check_audio_ready = |base_cg: &str, cg_name: &str| -> bool {
+        let b_low = base_cg.to_lowercase();
+        let c_low = cg_name.to_lowercase();
+        audio_ready_stems.contains(&c_low)
+            || audio_ready_stems.contains(&b_low)
+            || audio_ready_stems.iter().any(|s| s.contains(&b_low) || (!b_low.is_empty() && s.contains(&c_low)))
+    };
 
     // 2. Query mounted videos from CUE4Parse Worker daemon (FModel style: ALL 97 videos in PAKs)
     let mut mounted_videos_map: HashMap<String, Value> = HashMap::new();
@@ -1534,27 +1683,6 @@ pub async fn get_full_catalog_with_status(
                     let can_skip = item.get("CanSkip").and_then(|v| v.as_bool()).unwrap_or(false);
                     let aspect = item.get("Aspect").and_then(|v| v.as_f64()).unwrap_or(1.777);
 
-                    // Check local cache
-                    let mut found_local: Option<PathBuf> = None;
-                    let cg_cache_folder = cache_dir.join(&cg_name);
-
-                    if cg_cache_folder.exists() && cg_cache_folder.is_dir() {
-                        if let Ok(entries) = fs::read_dir(&cg_cache_folder) {
-                            for entry in entries.flatten() {
-                                let p = entry.path();
-                                if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
-                                    if (ext.eq_ignore_ascii_case("mp4") || ext.eq_ignore_ascii_case("bk2") || ext.eq_ignore_ascii_case("mkv"))
-                                        && p.metadata().map(|m| m.len() > 100_000).unwrap_or(false)
-                                    {
-                                        found_local = Some(p);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Check export_dir
                     let cg_lower = cg_name.to_lowercase();
                     let fn_lower = filename.to_lowercase();
                     let stem_lower = file_stem.to_lowercase();
@@ -1562,6 +1690,11 @@ pub async fn get_full_catalog_with_status(
                     let clean_seq_base = extract_base_cg_name(&clean_seq_stem).to_lowercase();
                     let base_cg = extract_base_cg_name(&cg_name);
                     let base_lower = base_cg.to_lowercase();
+
+                    // Check local cache from in-memory pre-scanned index
+                    let mut found_local: Option<PathBuf> = cached_videos_map.get(&cg_lower).cloned();
+
+                    // Check export_dir
 
                     if found_local.is_none() && !export_files_map.is_empty() {
                         if let Some(p) = export_files_map.get(&cg_lower)
@@ -1638,7 +1771,7 @@ pub async fn get_full_catalog_with_status(
 
                     let base_cg = extract_base_cg_name(&cg_name);
                     let requires_audio = cg_requiring_audio.contains(&cg_lower) || cg_requiring_audio.contains(&base_cg.to_lowercase());
-                    let audio_on_disk = is_audio_ready_on_disk(&base_cg, &cg_name, &export_dir, &cache_dir);
+                    let audio_on_disk = check_audio_ready(&base_cg, &cg_name);
                     let audio_ready = if requires_audio {
                         audio_on_disk
                     } else {
@@ -1694,24 +1827,8 @@ pub async fn get_full_catalog_with_status(
         if !seen_keys.contains(&comp_key) {
             seen_keys.insert(comp_key);
 
-            // Check cache
-            let cg_cache_folder = cache_dir.join(&v_stem);
-            let mut found_local: Option<PathBuf> = None;
-            if cg_cache_folder.exists() && cg_cache_folder.is_dir() {
-                if let Ok(entries) = fs::read_dir(&cg_cache_folder) {
-                    for entry in entries.flatten() {
-                        let p = entry.path();
-                        if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
-                            if (ext.eq_ignore_ascii_case("mp4") || ext.eq_ignore_ascii_case("bk2") || ext.eq_ignore_ascii_case("webm") || ext.eq_ignore_ascii_case("usm"))
-                                && p.metadata().map(|m| m.len() > 50_000).unwrap_or(false)
-                            {
-                                found_local = Some(p);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+            // Check cache from in-memory pre-scanned index
+            let mut found_local: Option<PathBuf> = cached_videos_map.get(&stem_lower).cloned();
             if found_local.is_none() {
                 if let Some(p) = export_files_map.get(&stem_lower).or_else(|| export_files_map.get(&v_fn.to_lowercase())) {
                     found_local = Some(p.clone());
@@ -1722,7 +1839,7 @@ pub async fn get_full_catalog_with_status(
             let local_path = found_local.map(|p| p.to_string_lossy().to_string());
             let base_cg = extract_base_cg_name(&v_stem);
             let requires_audio = cg_requiring_audio.contains(&stem_lower) || cg_requiring_audio.contains(&base_cg.to_lowercase());
-            let audio_on_disk = is_audio_ready_on_disk(&base_cg, &v_stem, &export_dir, &cache_dir);
+            let audio_on_disk = check_audio_ready(&base_cg, &v_stem);
             let audio_ready = if requires_audio {
                 audio_on_disk
             } else {
@@ -1769,7 +1886,7 @@ pub async fn get_full_catalog_with_status(
             let fname = path.file_stem().and_then(|f| f.to_str()).unwrap_or(stem_lower).to_string();
             let base_cg = extract_base_cg_name(&fname);
             let requires_audio = cg_requiring_audio.contains(stem_lower) || cg_requiring_audio.contains(&base_cg.to_lowercase());
-            let audio_on_disk = is_audio_ready_on_disk(&base_cg, &fname, &export_dir, &cache_dir);
+            let audio_on_disk = check_audio_ready(&base_cg, &fname);
             let audio_ready = if requires_audio {
                 audio_on_disk
             } else {
@@ -1816,6 +1933,13 @@ pub async fn get_cutscene_thumbnail(
         return Err("cg_name is empty".into());
     }
 
+    // 0. Check Negative Cache: instant 0ms return for cutscenes already known to lack thumbnails
+    if let Ok(neg_cache) = get_negative_thumb_cache().read() {
+        if neg_cache.contains(clean_cg_name) {
+            return Err("Thumbnail not found in negative cache".into());
+        }
+    }
+
     let cache_dir = crate::commands::downloader::get_base_dir(&app).join("thumbnails");
     let _ = fs::create_dir_all(&cache_dir);
 
@@ -1845,13 +1969,11 @@ pub async fn get_cutscene_thumbnail(
         candidate_names.push(format!("thumb_{}.jpg", clean_seq_stem.to_lowercase()));
     }
 
-    // 1. Check local thumbnail cache on disk with prefix prioritization
+    // 1. Check local thumbnail cache on disk with prefix prioritization - return absolute canonical path
     for c_name in &candidate_names {
         let t_path = cache_dir.join(c_name);
         if t_path.exists() && fs::metadata(&t_path).map(|m| m.len() >= 3500).unwrap_or(false) {
-            if let Ok(bytes) = fs::read(&t_path) {
-                return Ok(format!("data:image/jpeg;base64,{}", crate::commands::scanner::base64_encode(&bytes)));
-            }
+            return Ok(canonical_path_string(&t_path));
         }
     }
 
@@ -1865,9 +1987,7 @@ pub async fn get_cutscene_thumbnail(
                 let f_lower = fname.to_lowercase();
                 if f_lower.ends_with(".jpg") && (f_lower.contains(&clean_lower) || (!stem_lower.is_empty() && f_lower.contains(&stem_lower))) {
                     if fs::metadata(&p).map(|m| m.len() >= 3500).unwrap_or(false) {
-                        if let Ok(bytes) = fs::read(&p) {
-                            return Ok(format!("data:image/jpeg;base64,{}", crate::commands::scanner::base64_encode(&bytes)));
-                        }
+                        return Ok(canonical_path_string(&p));
                     }
                 }
             }
@@ -1896,24 +2016,7 @@ pub async fn get_cutscene_thumbnail(
     }
 
     if local_video.is_none() {
-        let mut map = HashMap::new();
-        let cache_cutscenes = get_cache_cutscenes_dir(&app);
-        if cache_cutscenes.exists() {
-            index_directory_videos(&cache_cutscenes, &mut map);
-        }
-        let export_path = config.get_effective_export_dir();
-        if export_path.exists() {
-            index_directory_videos(&export_path, &mut map);
-        }
-        let fmodel_export = PathBuf::from(r"D:\Datamine\Datamine\FModel\Output\Exports\Client\Content\Aki\Movies");
-        if fmodel_export.exists() {
-            index_directory_videos(&fmodel_export, &mut map);
-        }
-        let out_path = config.get_effective_render_dir();
-        if out_path.exists() {
-            index_directory_videos(&out_path, &mut map);
-        }
-
+        let map = get_or_build_video_index(&app, &config);
         let target_stem = clean_cg_name.to_lowercase();
         let file_stem = Path::new(&cg_file).file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
 
@@ -1963,14 +2066,12 @@ pub async fn get_cutscene_thumbnail(
                 if !default_thumb_file.exists() {
                     let _ = fs::copy(&thumb_file, &default_thumb_file);
                 }
-                if let Ok(bytes) = fs::read(&thumb_file) {
-                    return Ok(format!("data:image/jpeg;base64,{}", crate::commands::scanner::base64_encode(&bytes)));
-                }
+                return Ok(canonical_path_string(&thumb_file));
             }
         }
     }
 
-    // 3. Ask CUE4Parse Worker daemon (uses instant $O(1)$ texture dictionary)
+    // 3. Ask CUE4Parse Worker daemon (uses instant O(1) texture dictionary)
     ensure_daemon_alive(&app, &extractor_state, &state).await?;
 
     let req_id = format!("thumb_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0));
@@ -2003,12 +2104,26 @@ pub async fn get_cutscene_thumbnail(
 
     if let Some(status) = response.get("status").and_then(|s| s.as_str()) {
         if status == "ok" {
+            if let Some(path_str) = response.get("path").and_then(|p| p.as_str()) {
+                let p = PathBuf::from(path_str);
+                if p.exists() && fs::metadata(&p).map(|m| m.len() >= 3500).unwrap_or(false) {
+                    return Ok(canonical_path_string(&p));
+                }
+            }
             if let Some(base64) = response.get("base64").and_then(|b| b.as_str()) {
                 return Ok(base64.to_string());
             }
+        } else if status == "not_found" {
+            if let Ok(mut neg_cache) = get_negative_thumb_cache().write() {
+                neg_cache.insert(clean_cg_name.to_string());
+            }
+            return Err("Thumbnail not found".into());
         }
     }
 
+    if let Ok(mut neg_cache) = get_negative_thumb_cache().write() {
+        neg_cache.insert(clean_cg_name.to_string());
+    }
     Err("Thumbnail not found".into())
 }
 

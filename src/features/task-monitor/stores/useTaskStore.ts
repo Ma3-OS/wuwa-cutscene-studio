@@ -35,6 +35,26 @@ function safeUUID(): string {
 let lastLogMessage = "";
 let lastLogTime = 0;
 
+let diskLogQueue: { level: string; component: string; message: string }[] = [];
+let diskFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function queueDiskLog(level: string, component: string, message: string) {
+  if (message.startsWith("เลือกวิดีโอ ") || message.startsWith("เลือกโฟลเดอร์ ")) {
+    return;
+  }
+  diskLogQueue.push({ level, component, message });
+  if (!diskFlushTimer) {
+    diskFlushTimer = setTimeout(() => {
+      diskFlushTimer = null;
+      const batch = diskLogQueue;
+      diskLogQueue = [];
+      for (const item of batch) {
+        ToolsAPI.logClientEvent(item.level, item.component, item.message).catch(() => {});
+      }
+    }, 1000);
+  }
+}
+
 export const useTaskStore = create<TaskState>((set) => ({
   tasks: {},
   logs: [],
@@ -45,9 +65,9 @@ export const useTaskStore = create<TaskState>((set) => ({
         [id]: { id, name, progress, status },
       },
     })),
-  // UI-originating events: record to disk and append to UI
+  // UI-originating events: record to disk with buffer and append to UI
   appendLog: (entry) => {
-    ToolsAPI.logClientEvent(entry.level, "UI", entry.message).catch(() => {});
+    queueDiskLog(entry.level, "UI", entry.message);
 
     set((state) => {
       const now = Date.now();

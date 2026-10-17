@@ -58,7 +58,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
   const [searchMode, setSearchMode] = useState<"name" | "dialogue">("name");
   const [dialogueMatches, setDialogueMatches] = useState<Map<string, string>>(new Map());
-  const [hoverScrub, setHoverScrub] = useState<Record<string, number>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -88,11 +87,35 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
-  const [videoMetas, setVideoMetas] = useState<Record<string, VideoMetaInfo>>({});
+  const thumbnails = useCatalogStore((state) => state.thumbnails);
+  const videoMetas = useCatalogStore((state) => state.videoMetas);
+  const setThumbnailsBatch = useCatalogStore((state) => state.setThumbnailsBatch);
+  const setVideoMetasBatch = useCatalogStore((state) => state.setVideoMetasBatch);
+
+  const thumbnailsRef = useRef<Record<string, string>>(thumbnails);
+  const videoMetasRef = useRef<Record<string, VideoMetaInfo>>(videoMetas);
+
+  useEffect(() => {
+    thumbnailsRef.current = thumbnails;
+  }, [thumbnails]);
+
+  useEffect(() => {
+    videoMetasRef.current = videoMetas;
+  }, [videoMetas]);
+
   const [extractingItems, setExtractingItems] = useState<Record<string, boolean>>({});
   const activeRequestIdRef = useRef<string | null>(null);
   const attemptedKeysRef = useRef<Set<string>>(new Set());
+
+  // Viewport Lazy Fetching and Dwell Queue state refs
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const observedElementsMap = useRef<Map<Element, ProcessedVideoItem>>(new Map());
+  const dwellTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const queueRef = useRef<ProcessedVideoItem[]>([]);
+  const activeWorkersRef = useRef<number>(0);
+  const pendingBatchThumbsRef = useRef<Record<string, string>>({});
+  const pendingBatchMetasRef = useRef<Record<string, VideoMetaInfo>>({});
+  const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Listen to external catalog scan requests
   useEffect(() => {
@@ -303,23 +326,21 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
           let effectiveThumb = result.thumbnail_base64;
           if (effectiveThumb) {
-            setThumbnails((prev) => ({
-              ...prev,
+            setThumbnailsBatch({
               [item.uniqueId]: effectiveThumb!,
               ...(result.video_file ? { [result.video_file]: effectiveThumb! } : {}),
               ...(item.fullPath ? { [item.fullPath]: effectiveThumb! } : {}),
-            }));
+            });
           } else if (result.video_file) {
             try {
               const generatedThumb = await ScannerAPI.getVideoThumbnail(result.video_file);
               if (generatedThumb) {
                 effectiveThumb = generatedThumb;
-                setThumbnails((prev) => ({
-                  ...prev,
+                setThumbnailsBatch({
                   [item.uniqueId]: generatedThumb,
                   [result.video_file]: generatedThumb,
                   ...(item.fullPath ? { [item.fullPath]: generatedThumb } : {}),
-                }));
+                });
               }
             } catch {}
           }
@@ -334,7 +355,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
             };
           }
           if (meta && result.video_file) {
-            setVideoMetas((prev) => ({ ...prev, [result.video_file]: meta! }));
+            setVideoMetasBatch({ [result.video_file]: meta! });
           }
 
           const hasExtractedVid = Boolean(result.video_file);
@@ -386,15 +407,170 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     [playSound, onSelectVideo, videoMetas, appendLog, updateCatalogItem]
   );
 
+  const flushBatch = useCallback(() => {
+    if (batchTimerRef.current) {
+      clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = null;
+    }
+    const thumbsToFlush = { ...pendingBatchThumbsRef.current };
+    const metasToFlush = { ...pendingBatchMetasRef.current };
+    const hasThumbs = Object.keys(thumbsToFlush).length > 0;
+    const hasMetas = Object.keys(metasToFlush).length > 0;
+
+    if (hasThumbs) {
+      pendingBatchThumbsRef.current = {};
+      thumbnailsRef.current = { ...thumbnailsRef.current, ...thumbsToFlush };
+      setThumbnailsBatch(thumbsToFlush);
+    }
+    if (hasMetas) {
+      pendingBatchMetasRef.current = {};
+      videoMetasRef.current = { ...videoMetasRef.current, ...metasToFlush };
+      setVideoMetasBatch(metasToFlush);
+    }
+  }, [setThumbnailsBatch, setVideoMetasBatch]);
+
+  const scheduleBatchFlush = useCallback(() => {
+    if (!batchTimerRef.current) {
+      batchTimerRef.current = setTimeout(() => {
+        flushBatch();
+      }, 120);
+    }
+  }, [flushBatch]);
+
+  const triggerWorker = useCallback(() => {
+    const MAX_CONCURRENT = 4;
+    while (activeWorkersRef.current < MAX_CONCURRENT && queueRef.current.length > 0) {
+      const nextVideo = queueRef.current.shift();
+      if (!nextVideo) break;
+      const key = nextVideo.uniqueId;
+      if (!key || thumbnailsRef.current[key] || attemptedKeysRef.current.has(key)) {
+        continue;
+      }
+      attemptedKeysRef.current.add(key);
+      activeWorkersRef.current++;
+
+      (async () => {
+        try {
+          if (nextVideo.isCached) {
+            const [thumb, meta] = await Promise.all([
+              ScannerAPI.getVideoThumbnail(nextVideo.fullPath).catch(() => null),
+              ScannerAPI.getVideoMeta(nextVideo.fullPath).catch(() => null),
+            ]);
+            if (thumb) {
+              pendingBatchThumbsRef.current[nextVideo.uniqueId] = thumb;
+              if (nextVideo.fullPath) {
+                pendingBatchThumbsRef.current[nextVideo.fullPath] = thumb;
+              }
+            }
+            if (meta) {
+              pendingBatchMetasRef.current[nextVideo.fullPath] = meta;
+            }
+            if (thumb || meta) {
+              scheduleBatchFlush();
+            }
+          } else if (nextVideo.cgName) {
+            const thumb = await ExtractorAPI.getCutsceneThumbnail(
+              nextVideo.cgName,
+              nextVideo.cgFile || "",
+              nextVideo.girlOrBoy ?? -1
+            ).catch(() => null);
+            if (thumb) {
+              pendingBatchThumbsRef.current[nextVideo.uniqueId] = thumb;
+              if (nextVideo.fullPath) {
+                pendingBatchThumbsRef.current[nextVideo.fullPath] = thumb;
+              }
+              scheduleBatchFlush();
+            }
+          }
+        } catch {
+          // Ignore error and prevent hammering
+        } finally {
+          activeWorkersRef.current--;
+          triggerWorker();
+        }
+      })();
+    }
+  }, [scheduleBatchFlush]);
+
+  const handleCardRef = useCallback((node: HTMLDivElement | null, video: ProcessedVideoItem) => {
+    if (!observerRef.current) return;
+    if (node) {
+      observedElementsMap.current.set(node, video);
+      observerRef.current.observe(node);
+    } else {
+      for (const [el, v] of observedElementsMap.current.entries()) {
+        if (v.uniqueId === video.uniqueId) {
+          observedElementsMap.current.delete(el);
+          observerRef.current.unobserve(el);
+          break;
+        }
+      }
+    }
+  }, []);
+
+  // Intersection Observer with 100ms dwell check and LIFO priority queue
+  useEffect(() => {
+    const root = scrollContainerRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = observedElementsMap.current.get(entry.target);
+          if (!video) return;
+          const key = video.uniqueId;
+
+          if (entry.isIntersecting) {
+            if (thumbnailsRef.current[key] || attemptedKeysRef.current.has(key)) {
+              observer.unobserve(entry.target);
+              observedElementsMap.current.delete(entry.target);
+              return;
+            }
+
+            if (!dwellTimersRef.current.has(key)) {
+              const timer = setTimeout(() => {
+                dwellTimersRef.current.delete(key);
+                if (!queueRef.current.some((v) => v.uniqueId === key)) {
+                  queueRef.current.unshift(video);
+                  triggerWorker();
+                }
+              }, 100);
+              dwellTimersRef.current.set(key, timer);
+            }
+          } else {
+            const timer = dwellTimersRef.current.get(key);
+            if (timer) {
+              clearTimeout(timer);
+              dwellTimersRef.current.delete(key);
+            }
+            queueRef.current = queueRef.current.filter((v) => v.uniqueId !== key);
+          }
+        });
+      },
+      {
+        root,
+        rootMargin: "250px",
+        threshold: 0,
+      }
+    );
+
+    observerRef.current = observer;
+    return () => {
+      observer.disconnect();
+      observerRef.current = null;
+      dwellTimersRef.current.forEach((t) => clearTimeout(t));
+      dwellTimersRef.current.clear();
+      queueRef.current = [];
+    };
+  }, [triggerWorker]);
+
   // Single Click: Immediately select cutscene
-  const handleSelect = (video: ProcessedVideoItem, e: React.MouseEvent) => {
+  const handleSelect = useCallback((video: ProcessedVideoItem, e: React.MouseEvent) => {
     playSound("click");
     const isMulti = e.shiftKey || e.metaKey || e.ctrlKey;
     const thumb =
-      thumbnails[video.uniqueId] ||
-      (video.fullPath && thumbnails[video.fullPath]) ||
-      (video.cgFile && thumbnails[video.cgFile]);
-    const existingMeta = videoMetas[video.fullPath];
+      thumbnailsRef.current[video.uniqueId] ||
+      (video.fullPath && thumbnailsRef.current[video.fullPath]) ||
+      (video.cgFile && thumbnailsRef.current[video.cgFile]);
+    const existingMeta = videoMetasRef.current[video.fullPath];
     const effectiveMeta: VideoMetaInfo | null = existingMeta || (thumb ? {
       thumbnail: thumb,
       duration_secs: 0,
@@ -408,20 +584,20 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     });
 
     onSelectVideo(video, effectiveMeta, isMulti);
-  };
+  }, [playSound, appendLog, onSelectVideo]);
 
   // Double Click: Open Quick Look preview
-  const handleDoubleClick = async (video: ProcessedVideoItem) => {
+  const handleDoubleClick = useCallback(async (video: ProcessedVideoItem) => {
     playSound("click");
     appendLog({
       message: `เปิดดูตัวอย่างคัตซีน ${video.fileName || video.cgName}`,
       level: "info",
     });
     const thumb =
-      thumbnails[video.uniqueId] ||
-      (video.fullPath && thumbnails[video.fullPath]) ||
-      (video.cgFile && thumbnails[video.cgFile]);
-    const effectiveMeta = videoMetas[video.fullPath] || (thumb ? {
+      thumbnailsRef.current[video.uniqueId] ||
+      (video.fullPath && thumbnailsRef.current[video.fullPath]) ||
+      (video.cgFile && thumbnailsRef.current[video.cgFile]);
+    const effectiveMeta = videoMetasRef.current[video.fullPath] || (thumb ? {
       thumbnail: thumb,
       duration_secs: 0,
       duration_formatted: "",
@@ -438,7 +614,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       try {
         const ready = await extractCutsceneIfNeeded(video);
         if (ready && ready.isCached) {
-          onOpenQuickLook(ready, videoMetas[ready.fullPath] || effectiveMeta);
+          onOpenQuickLook(ready, videoMetasRef.current[ready.fullPath] || effectiveMeta);
         }
       } catch (err) {
         if (
@@ -453,7 +629,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     } else {
       onOpenQuickLook(video, effectiveMeta);
     }
-  };
+  }, [playSound, appendLog, onOpenQuickLook, extractCutsceneIfNeeded]);
 
   // Spacebar Quick Look key listener
   useEffect(() => {
@@ -482,82 +658,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedFile, items, handleDoubleClick]);
 
-  // Parallel thumbnail & metadata fetcher for visible cutscenes
-  useEffect(() => {
-    let active = true;
-    const targetVideos = filteredVideos.filter((v) => {
-      const key = v.uniqueId;
-      return key && !thumbnails[key] && !attemptedKeysRef.current.has(key);
-    });
-
-    if (targetVideos.length === 0) return;
-
-    const BATCH_SIZE = 6;
-    let idx = 0;
-
-    const loadBatch = async () => {
-      while (active && idx < targetVideos.length) {
-        const batch = targetVideos.slice(idx, idx + BATCH_SIZE);
-        idx += BATCH_SIZE;
-
-        await Promise.all(
-          batch.map(async (v) => {
-            const key = v.uniqueId;
-            if (!key) return;
-            attemptedKeysRef.current.add(key);
-
-            try {
-              let thumbFound = false;
-              if (v.isCached) {
-                const [thumb, meta] = await Promise.all([
-                  ScannerAPI.getVideoThumbnail(v.fullPath).catch(() => null),
-                  ScannerAPI.getVideoMeta(v.fullPath).catch(() => null),
-                ]);
-                if (active) {
-                  if (thumb) {
-                    thumbFound = true;
-                    setThumbnails((prev) => ({
-                      ...prev,
-                      [v.uniqueId]: thumb,
-                      [v.fullPath]: thumb,
-                    }));
-                  }
-                  if (meta) {
-                    setVideoMetas((prev) => ({ ...prev, [v.fullPath]: meta }));
-                  }
-                }
-              } else if (v.cgName) {
-                const thumb = await ExtractorAPI.getCutsceneThumbnail(
-                  v.cgName,
-                  v.cgFile || "",
-                  v.girlOrBoy ?? -1
-                ).catch(() => null);
-                if (active && thumb) {
-                  thumbFound = true;
-                  setThumbnails((prev) => ({
-                    ...prev,
-                    [v.uniqueId]: thumb,
-                    ...(v.fullPath ? { [v.fullPath]: thumb } : {}),
-                  }));
-                }
-              }
-              if (!thumbFound) {
-                attemptedKeysRef.current.delete(key);
-              }
-            } catch {
-              attemptedKeysRef.current.delete(key);
-            }
-          })
-        );
-      }
-    };
-
-    loadBatch();
-    return () => {
-      active = false;
-    };
-  }, [filteredVideos, thumbnails]);
-
   // Sync selected video metadata when its thumbnail arrives
   useEffect(() => {
     if (selectedFile) {
@@ -566,18 +666,17 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
         thumbnails[key] ||
         (key ? thumbnails[key.toLowerCase()] : undefined);
       if (thumb && (!videoMetas[key] || !videoMetas[key].thumbnail)) {
-        setVideoMetas((prev) => ({
-          ...prev,
+        setVideoMetasBatch({
           [key]: {
             thumbnail: thumb,
-            duration_secs: prev[key]?.duration_secs || 0,
-            duration_formatted: prev[key]?.duration_formatted || "",
-            resolution: prev[key]?.resolution || "1080p",
+            duration_secs: videoMetas[key]?.duration_secs || 0,
+            duration_formatted: videoMetas[key]?.duration_formatted || "",
+            resolution: videoMetas[key]?.resolution || "1080p",
           },
-        }));
+        });
       }
     }
-  }, [thumbnails, selectedFile, videoMetas]);
+  }, [thumbnails, selectedFile, videoMetas, setVideoMetasBatch]);
 
   const handleQuickAddToQueue = (e: React.MouseEvent, video: ProcessedVideoItem) => {
     e.stopPropagation();
@@ -644,6 +743,10 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
         loading={loading}
         onRefresh={() => {
           playSound("click");
+          attemptedKeysRef.current.clear();
+          import("@tauri-apps/api/core").then(({ invoke }) => {
+            invoke("clear_video_index_cache").catch(() => {});
+          });
           fetchCatalog(config.export_dir);
         }}
         viewMode={viewMode}
@@ -680,12 +783,11 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
           videoMetas={videoMetas}
           thumbnails={thumbnails}
           extractingItems={extractingItems}
-          hoverScrub={hoverScrub}
-          setHoverScrub={setHoverScrub}
           dialogueMatches={dialogueMatches}
           onSelect={handleSelect}
           onDoubleClick={handleDoubleClick}
           onQuickAddToQueue={handleQuickAddToQueue}
+          cardRefCallback={handleCardRef}
           viewMode={viewMode}
           noMatchingVideosLabel={t("noMatchingVideos")}
         />

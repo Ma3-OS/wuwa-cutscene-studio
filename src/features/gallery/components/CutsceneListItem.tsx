@@ -1,19 +1,21 @@
 import React from "react";
 import { Film, Loader2 } from "lucide-react";
 import { ProcessedVideoItem, VideoMetaInfo } from "@/features/catalog/stores/useCatalogStore";
+import { resolveThumbnailSrc } from "@/utils/thumbnailResolver";
 
-interface CutsceneListItemProps {
+export interface CutsceneListItemProps {
   video: ProcessedVideoItem;
   isSelected: boolean;
   isCurrent: boolean;
   meta?: VideoMetaInfo | null;
   thumb?: string;
   isExtracting: boolean;
-  onSelect: (e: React.MouseEvent) => void;
-  onDoubleClick: () => void;
+  onSelect: (video: ProcessedVideoItem, e: React.MouseEvent) => void;
+  onDoubleClick: (video: ProcessedVideoItem) => void;
+  cardRefCallback?: (node: HTMLDivElement | null, video: ProcessedVideoItem) => void;
 }
 
-export const CutsceneListItem: React.FC<CutsceneListItemProps> = ({
+const CutsceneListItemComponent: React.FC<CutsceneListItemProps> = ({
   video,
   isSelected,
   isCurrent,
@@ -22,11 +24,26 @@ export const CutsceneListItem: React.FC<CutsceneListItemProps> = ({
   isExtracting,
   onSelect,
   onDoubleClick,
+  cardRefCallback,
 }) => {
+  const resolvedThumb = resolveThumbnailSrc(thumb);
+
+  const handleRef = (node: HTMLDivElement | null) => {
+    if (cardRefCallback) {
+      cardRefCallback(node, video);
+    }
+  };
+
   return (
     <div
-      onClick={onSelect}
-      onDoubleClick={onDoubleClick}
+      ref={handleRef}
+      data-cutscene-id={video.uniqueId}
+      onClick={(e) => onSelect(video, e)}
+      onDoubleClick={() => onDoubleClick(video)}
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 44px",
+      }}
       className={`h-11 px-3 rounded-lg flex items-center justify-between transition-colors cursor-pointer select-none ${
         isSelected || isCurrent
           ? "bg-[#26262B] ring-1 ring-white/20"
@@ -35,9 +52,9 @@ export const CutsceneListItem: React.FC<CutsceneListItemProps> = ({
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-12 h-7 rounded overflow-hidden bg-[#0A0A0C] shrink-0 flex items-center justify-center">
-          {thumb ? (
+          {resolvedThumb ? (
             <img
-              src={thumb}
+              src={resolvedThumb}
               alt={video.fileName}
               className="w-full h-full object-cover"
               loading="lazy"
@@ -81,3 +98,17 @@ export const CutsceneListItem: React.FC<CutsceneListItemProps> = ({
     </div>
   );
 };
+
+export const CutsceneListItem = React.memo(CutsceneListItemComponent, (prev, next) => {
+  return (
+    prev.video.uniqueId === next.video.uniqueId &&
+    prev.isSelected === next.isSelected &&
+    prev.isCurrent === next.isCurrent &&
+    prev.thumb === next.thumb &&
+    prev.isExtracting === next.isExtracting &&
+    prev.meta?.duration_formatted === next.meta?.duration_formatted &&
+    prev.onSelect === next.onSelect &&
+    prev.onDoubleClick === next.onDoubleClick &&
+    prev.cardRefCallback === next.cardRefCallback
+  );
+});
