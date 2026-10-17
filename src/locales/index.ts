@@ -3,9 +3,14 @@ import { en } from "./en";
 
 export type AppLanguage = "th" | "en";
 
-export const translations = {
+export type TranslationKey = keyof typeof th;
+
+export const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
   th,
   en,
-} as const;
+};
 
-export type TranslationKey = keyof typeof th;
+export function getTranslation(key: TranslationKey, lang: AppLanguage = "th"): string {
+  const dict = translations[lang] || translations.th;
+  return dict[key] || translations.th[key] || key;
+}

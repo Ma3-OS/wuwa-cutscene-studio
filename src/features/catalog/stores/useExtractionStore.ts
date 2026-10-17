@@ -27,12 +27,19 @@ export interface ExtractionProgressState {
   open: () => void;
 }
 
-export const EXTRACTION_STAGES = [
-  { stage: 1, label: "กำลังค้นหาตำแหน่งไฟล์ในแพ็กเกจเกม" },
-  { stage: 2, label: "กำลังสกัดสตรีมวิดีโอความละเอียดสูง" },
-  { stage: 3, label: "กำลังสกัดธนาคารเสียงและสตรีมเสียง Wwise" },
-  { stage: 4, label: "กำลังประมวลผลโครงสร้างเสียงและดัชนี" },
-  { stage: 5, label: "กำลังสร้างภาพตัวอย่างและเตรียมความพร้อม" },
+import type { TranslationKey } from "../../../locales";
+
+export interface ExtractionStageDef {
+  stage: number;
+  labelKey: TranslationKey;
+}
+
+export const EXTRACTION_STAGES: readonly ExtractionStageDef[] = [
+  { stage: 1, labelKey: "stageLocatingFiles" },
+  { stage: 2, labelKey: "stageExtractingVideo" },
+  { stage: 3, labelKey: "stageExtractingAudio" },
+  { stage: 4, labelKey: "stageProcessingAudio" },
+  { stage: 5, labelKey: "stageGeneratingPreview" },
 ] as const;
 
 function getNowTimeString(): string {
@@ -49,7 +56,7 @@ export const useExtractionStore = create<ExtractionProgressState>((set) => ({
   taskType: "extraction",
   cgName: "",
   stage: 1,
-  statusText: EXTRACTION_STAGES[0].label,
+  statusText: "",
   percent: 0,
   isDone: false,
   isCancelled: false,
@@ -66,14 +73,14 @@ export const useExtractionStore = create<ExtractionProgressState>((set) => ({
       taskType,
       cgName,
       stage: 1,
-      statusText: EXTRACTION_STAGES[0].label,
+      statusText: "",
       percent: 5,
       isDone: false,
       isCancelled: false,
       error: null,
       cancelExtractionId: cancelId || null,
       thumbnailUrl: null,
-      logs: [{ time: getNowTimeString(), text: `เริ่มต้นกระบวนการสกัดสำหรับ ${cgName}` }],
+      logs: [{ time: getNowTimeString(), text: `Starting extraction: ${cgName}` }],
       startTime: Date.now(),
     }),
 
@@ -110,12 +117,12 @@ export const useExtractionStore = create<ExtractionProgressState>((set) => ({
       return {
         stage: 5,
         percent: 100,
-        statusText: "กระบวนการสกัดเสร็จสมบูรณ์เรียบร้อยแล้ว",
+        statusText: "",
         isDone: true,
         isRunning: false,
         logs: [
           ...state.logs,
-          { time: getNowTimeString(), text: "กระบวนการสกัดเสร็จสมบูรณ์เรียบร้อยแล้ว" },
+          { time: getNowTimeString(), text: "Extraction completed successfully." },
         ],
       };
     }),
@@ -123,10 +130,7 @@ export const useExtractionStore = create<ExtractionProgressState>((set) => ({
   setError: (error) =>
     set((state) => {
       if (state.isCancelled) return state;
-      if (
-        error.toLowerCase().includes("cancel") ||
-        error.includes("ยกเลิก")
-      ) {
+      if (error.toLowerCase().includes("cancel")) {
         return state;
       }
       return {
@@ -135,7 +139,7 @@ export const useExtractionStore = create<ExtractionProgressState>((set) => ({
         isRunning: false,
         logs: [
           ...state.logs,
-          { time: getNowTimeString(), text: `เกิดข้อผิดพลาด: ${error}` },
+          { time: getNowTimeString(), text: `Error: ${error}` },
         ],
       };
     }),

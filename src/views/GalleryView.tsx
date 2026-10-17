@@ -154,7 +154,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     let sCount = 0;
     for (const v of items) {
       if (selectedFolder && selectedFolder !== "all") {
-        if (selectedFolder === "cached" || selectedFolder === "คลังในเครื่อง") {
+        if (selectedFolder === "cached") {
           if (!v.isCached) continue;
         } else {
           const itemFolder = (v.categoryFolder || v.folderName || "").replace(/\\/g, "/");
@@ -205,7 +205,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
       // 3. Folder Navigation Filter
       if (selectedFolder && selectedFolder !== "all") {
-        if (selectedFolder === "cached" || selectedFolder === "คลังในเครื่อง") {
+        if (selectedFolder === "cached") {
           if (!v.isCached) return false;
         } else {
           const itemFolder = (v.categoryFolder || v.folderName || "").replace(/\\/g, "/");
@@ -302,7 +302,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
         useExtractionStore.getState().startExtraction(item.fileName || item.cgName || "", reqId, "extraction");
 
         appendLog({
-          message: `เริ่มดึงไฟล์คัตซีน ${item.fileName} จากแพ็กเกจเกม รหัสคำขอ ${reqId}`,
+          message: `Extracting cutscene ${item.fileName} from game packages, request ID ${reqId}`,
           level: "info",
         });
 
@@ -319,8 +319,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
           appendLog({
             message: result.video_file
-              ? `สกัดคัตซีน ${item.fileName} สำเร็จ บันทึกลงแคช ${result.video_file}`
-              : `สกัดข้อมูลและไฟล์เสียงสำหรับ 3D Sequence ${item.fileName} สำเร็จ`,
+              ? `Extracted cutscene ${item.fileName} successfully to cache`
+              : `Extracted audio and data for 3D Sequence ${item.fileName} successfully`,
             level: "success",
           });
 
@@ -364,7 +364,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
             fullPath: result.video_file || item.fullPath,
             isCached: hasExtractedVid,
             audio_ready: true,
-            folderName: hasExtractedVid ? "คลังในเครื่อง" : item.folderName,
+            folderName: hasExtractedVid ? "cached" : item.folderName,
           };
 
           updateCatalogItem(item.uniqueId, updated);
@@ -374,7 +374,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
         } catch (err) {
           if (
             String(err).includes("CANCELLED") ||
-            String(err).includes("ยกเลิก") ||
+            String(err).toLowerCase().includes("cancel") ||
             useExtractionStore.getState().isCancelled
           ) {
             return item;
@@ -382,10 +382,10 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
           useExtractionStore.getState().setError(String(err));
           const errorText = String(err);
           appendLog({
-            message: `การสกัดคัตซีน ${item.fileName} ล้มเหลว: ${errorText}`,
+            message: `Extraction failed for ${item.fileName}: ${errorText}`,
             level: "error",
           });
-          toast.error(`ดึงไฟล์คัตซีนไม่สำเร็จ: ${errorText}`);
+          toast.error(`${t("toastExtractingCutscene")}: ${errorText}`);
           throw err;
         } finally {
           setExtractingItems((prev) => {
@@ -579,7 +579,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     } : null);
 
     appendLog({
-      message: `เลือกคัตซีน ${video.fileName || video.cgName} รหัส ${video.uniqueId || video.cgName}`,
+      message: `Selected cutscene ${video.fileName || video.cgName} (ID: ${video.uniqueId || video.cgName})`,
       level: "info",
     });
 
@@ -590,7 +590,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
   const handleDoubleClick = useCallback(async (video: ProcessedVideoItem) => {
     playSound("click");
     appendLog({
-      message: `เปิดดูตัวอย่างคัตซีน ${video.fileName || video.cgName}`,
+      message: `Opened preview for cutscene ${video.fileName || video.cgName}`,
       level: "info",
     });
     const thumb =
@@ -606,11 +606,11 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
     if (!video.isCached && video.cgName) {
       if (video.isLevelSequence && !video.hasVideo) {
-        toast.info(`คัตซีน ${video.fileName} เป็น LevelSequence เรนเดอร์ 3D ในเอนจินเกม`);
+        toast.info(`${video.fileName} - ${t("inspectorInEngine3D")}`);
         onOpenQuickLook(video, effectiveMeta);
         return;
       }
-      toast.info(`กำลังสกัดไฟล์คัตซีน ${video.fileName} จากคลังเกม`);
+      toast.info(`${t("galleryExtractingProgress")} ${video.fileName}`);
       try {
         const ready = await extractCutsceneIfNeeded(video);
         if (ready && ready.isCached) {
@@ -619,17 +619,17 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       } catch (err) {
         if (
           String(err).includes("CANCELLED") ||
-          String(err).includes("ยกเลิก") ||
+          String(err).toLowerCase().includes("cancel") ||
           useExtractionStore.getState().isCancelled
         ) {
           return;
         }
-        toast.error("ไม่สามารถเปิดวิดีโอตัวอย่างได้");
+        toast.error(t("toastCannotOpenPreview"));
       }
     } else {
       onOpenQuickLook(video, effectiveMeta);
     }
-  }, [playSound, appendLog, onOpenQuickLook, extractCutsceneIfNeeded]);
+  }, [playSound, appendLog, onOpenQuickLook, extractCutsceneIfNeeded, t]);
 
   // Spacebar Quick Look key listener
   useEffect(() => {
@@ -692,14 +692,14 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
         renderResolution: config.render_resolution || "1920x1080",
       },
     ]);
-    toast.success(`เพิ่ม ${video.fileName} เข้าคิวเรนเดอร์เรียบร้อยแล้ว`);
+    toast.success(`${t("toastAddedToQueue")}: ${video.fileName}`);
   };
 
   const handleRoverFilterChange = (gender: "all" | "Girl" | "Boy") => {
     playSound("click");
     setRoverFilter(gender);
     appendLog({
-      message: `เปลี่ยนตัวกรองเพศเป็น ${gender === "all" ? "ทุกเพศ" : gender === "Girl" ? "โรเวอร์หญิง" : "โรเวอร์ชาย"}`,
+      message: `Gender filter changed to ${gender}`,
       level: "info",
     });
   };
@@ -707,14 +707,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
   const handleAssetKindChange = (kind: "all" | "video" | "sequence") => {
     playSound("click");
     setAssetKindFilter(kind);
-    const label =
-      kind === "video"
-        ? "วิดีโอภาพยนตร์"
-        : kind === "sequence"
-        ? "ซีน 3D และเสียง"
-        : "คัตซีนทั้งหมด";
     appendLog({
-      message: `เปลี่ยนตัวกรองเป็น ${label}`,
+      message: `Asset kind filter changed to ${kind}`,
       level: "info",
     });
   };
@@ -765,11 +759,15 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
           <div className="flex items-center gap-1.5 font-mono truncate">
             <FolderOpen className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
             <span className="text-white font-medium truncate">
-              {!selectedFolder || selectedFolder === "all" ? "คลังคัตซีนทั้งหมด" : selectedFolder.replace(/\\/g, " / ")}
+              {!selectedFolder || selectedFolder === "all"
+                ? t("galleryAllLibrary")
+                : selectedFolder === "cached"
+                ? t("folderInternalCache")
+                : selectedFolder.replace(/\\/g, " / ")}
             </span>
             <span className="text-[#52525B]">/</span>
             <span className="text-[11px] text-[#71717A] shrink-0 font-sans">
-              {filteredVideos.length} รายการ
+              {filteredVideos.length} {t("galleryItemsCount")}
             </span>
           </div>
         </div>

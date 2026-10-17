@@ -82,6 +82,11 @@ In **Wuthering Waves**, raw cinematic video files extracted from game archives d
 - **In-Memory Pre-Scanning:** Single-pass disk pre-indexing turns over 4,500 catalog filesystem queries into instant O(1) in-memory checks (<15ms catalog load).
 - **Persistent DOM State:** Zero reflow and 0ms latency when switching between Studio, Subtitle Lab, Audio Engine, and Queue workspaces.
 
+### 7. Dynamic Bilingual Architecture (English & Thai)
+- **Zero-Hardcoded UI:** 100% decoupling of user interface strings via typed translation dictionaries with full parity across 485 keys.
+- **Instant Language Switching:** Switch dynamically between English and Thai on-the-fly without application restart.
+- **Apple Studio Copywriting:** Concise, professional terminology aligned with Apple Human Interface Guidelines and zero parentheses formatting standards in Thai.
+
 ---
 
 ## Wwise Audio Pipeline

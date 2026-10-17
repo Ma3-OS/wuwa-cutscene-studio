@@ -37,7 +37,10 @@ pub struct MusicLyricRaw {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RubyConfig {
     pub enabled: bool,
+    pub font_name: String,
     pub size: u32,
+    pub outline: f32,
+    pub shadow: f32,
     pub offset_y: i32,
     pub color: String,
 }
@@ -46,7 +49,10 @@ impl Default for RubyConfig {
     fn default() -> Self {
         Self {
             enabled: true,
+            font_name: "Kanit Medium".to_string(),
             size: 0,
+            outline: 1.0,
+            shadow: 0.6,
             offset_y: 0,
             color: "#E0E0E0".to_string(),
         }
@@ -55,7 +61,10 @@ impl Default for RubyConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LyricConfig {
+    pub font_name: String,
     pub size: u32,
+    pub outline: f32,
+    pub shadow: f32,
     pub margin_x: u32,
     pub margin_y: u32,
     pub bilingual: bool,
@@ -65,7 +74,10 @@ pub struct LyricConfig {
 impl Default for LyricConfig {
     fn default() -> Self {
         Self {
+            font_name: "Kanit Medium".to_string(),
             size: 0,
+            outline: 1.0,
+            shadow: 0.6,
             margin_x: 160,
             margin_y: 30,
             bilingual: true,
@@ -92,8 +104,8 @@ impl Default for AssStyleConfig {
             font_name: "Kanit Medium".to_string(),
             font_size: 54,
             primary_color: "#FFFFFF".to_string(),
-            outline: 1.2,
-            shadow: 0.0,
+            outline: 1.0,
+            shadow: 0.6,
             margin_v: 54,
             ruby: RubyConfig::default(),
             lyric: LyricConfig::default(),

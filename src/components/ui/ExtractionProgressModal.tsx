@@ -18,6 +18,7 @@ import {
   useExtractionStore,
   EXTRACTION_STAGES,
 } from "../../features/catalog/stores/useExtractionStore";
+import { useApp } from "../../context/AppContext";
 import { ExtractorAPI } from "../../core/ipc/extractor.api";
 import { RendererAPI } from "../../core/ipc/renderer.api";
 import { ToolsAPI } from "../../core/ipc/tools.api";
@@ -32,6 +33,7 @@ const STAGE_ICONS = [
 ];
 
 export const ExtractionProgressModal: React.FC = () => {
+  const { t } = useApp();
   const {
     isOpen,
     cgName,
@@ -73,7 +75,7 @@ export const ExtractionProgressModal: React.FC = () => {
   // Explicit user cancel
   const handleExplicitCancel = () => {
     useTaskStore.getState().appendLog({
-      message: "ผู้ใช้สั่งยกเลิกการทำงานด้วยตนเอง",
+      message: t("extractionCancelConfirm"),
       level: "warn",
     });
     const cancelId = cancelExtractionId;
@@ -124,15 +126,15 @@ export const ExtractionProgressModal: React.FC = () => {
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-medium tracking-wider uppercase text-white/40">
-                    กำลังเตรียมการคัตซีน
+                    {t("extractionPreparing")}
                   </span>
                   <span className="text-[10px] font-mono text-white/30">•</span>
                   <span className="text-[10px] font-mono text-white/50">
-                    ขั้นตอน {stage} จาก 5
+                    {t("extractionStepStage")} {stage} {t("extractionOfTotal")} 5
                   </span>
                 </div>
                 <h3 className="text-base font-medium tracking-tight text-white truncate max-w-[380px]">
-                  {cgName || "กำลังประมวลผล"}
+                  {cgName || t("titlebarProcessing")}
                 </h3>
               </div>
               <div className="flex items-center gap-3">
@@ -143,8 +145,8 @@ export const ExtractionProgressModal: React.FC = () => {
                 <button
                   onClick={close}
                   className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors focus:outline-none cursor-pointer"
-                  title="ย่อหน้าต่างไปทำงานเบื้องหลัง"
-                  aria-label="ย่อหน้าต่าง"
+                  title={t("extractionMinimize")}
+                  aria-label={t("extractionMinimizeShort")}
                 >
                   <X className="w-4 h-4" strokeWidth={1.5} />
                 </button>
@@ -167,14 +169,14 @@ export const ExtractionProgressModal: React.FC = () => {
                   />
                   <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[10px] font-mono text-white/80 flex items-center gap-1.5">
                     <Film className="w-2.5 h-2.5" />
-                    <span>ภาพตัวอย่างความคมชัดสูง</span>
+                    <span>{t("extractionHighResPreview")}</span>
                   </div>
                 </motion.div>
               )}
 
               {/* Stages List */}
               <div className="space-y-2.5 bg-white/[0.02] p-3.5 rounded-xl border border-white/[0.03]">
-                {EXTRACTION_STAGES.map((s: { stage: number; label: string }, idx: number) => {
+                {EXTRACTION_STAGES.map((s, idx) => {
                   const IconComponent = STAGE_ICONS[idx] || FolderSearch;
                   const isCurrent = stage === s.stage && !isDone && !error;
                   const isPassed = stage > s.stage || isDone;
@@ -209,7 +211,7 @@ export const ExtractionProgressModal: React.FC = () => {
                         )}
                       </div>
                       <span className="text-xs font-normal tracking-tight">
-                        {s.label}
+                        {t(s.labelKey)}
                       </span>
                     </div>
                   );
@@ -221,10 +223,10 @@ export const ExtractionProgressModal: React.FC = () => {
                 <div className="flex items-center justify-between text-[11px] text-white/40 px-1">
                   <div className="flex items-center gap-1.5">
                     <Terminal className="w-3 h-3 text-white/40" />
-                    <span>บันทึกการทำงานสด</span>
+                    <span>{t("extractionLiveLogs")}</span>
                   </div>
                   <span className="font-mono text-[10px] text-white/30">
-                    {logs.length} รายการ
+                    {logs.length} {t("extractionLogItems")}
                   </span>
                 </div>
                 <div
@@ -233,7 +235,7 @@ export const ExtractionProgressModal: React.FC = () => {
                 >
                   {logs.length === 0 ? (
                     <div className="text-white/20 text-[10px]">
-                      กำลังเตรียมบันทึกการทำงาน...
+                      {t("extractionPreparingLogs")}
                     </div>
                   ) : (
                     logs.map((item, i) => (
@@ -254,7 +256,9 @@ export const ExtractionProgressModal: React.FC = () => {
             {/* 3. Footer with Progress Track & Bar */}
             <div className="px-6 pb-5 pt-3 border-t border-white/[0.04] space-y-3 shrink-0 bg-[#121214]">
               <div className="flex items-center justify-between text-xs text-white/60">
-                <span className="truncate pr-2 font-normal text-xs">{statusText}</span>
+                <span className="truncate pr-2 font-normal text-xs">
+                  {statusText || (isDone ? t("extractionSuccessSaved") : t("extractionRunningBackground"))}
+                </span>
                 <span className="font-mono tabular-nums text-white/90 font-medium">
                   {Math.round(percent)}%
                 </span>
@@ -280,8 +284,8 @@ export const ExtractionProgressModal: React.FC = () => {
               <div className="pt-1 flex items-center justify-between gap-3">
                 <span className="text-[11px] text-white/40 font-mono truncate whitespace-nowrap">
                   {isDone
-                    ? "ประมวลผลสำเร็จ บันทึกลงโฟลเดอร์เรียบร้อย"
-                    : "กำลังทำงานในเบื้องหลัง"}
+                    ? t("extractionSuccessSaved")
+                    : t("extractionRunningBackground")}
                 </span>
                 <div className="flex items-center gap-2 shrink-0">
                   {!isDone ? (
@@ -289,7 +293,7 @@ export const ExtractionProgressModal: React.FC = () => {
                       onClick={handleExplicitCancel}
                       className="px-3.5 py-1.5 rounded-lg text-xs font-normal text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 transition-colors focus:outline-none cursor-pointer whitespace-nowrap shrink-0"
                     >
-                      ยกเลิกการทำงาน
+                      {t("extractionCancelBtn")}
                     </button>
                   ) : (
                     <>
@@ -306,13 +310,13 @@ export const ExtractionProgressModal: React.FC = () => {
                         className="px-3.5 py-1.5 rounded-lg text-xs font-normal text-neutral-200 bg-white/[0.06] hover:bg-white/[0.12] transition-colors focus:outline-none cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
                       >
                         <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-                        <span>เปิดตำแหน่งไฟล์</span>
+                        <span>{t("btnOpenFileLocation")}</span>
                       </button>
                       <button
                         onClick={close}
                         className="px-4 py-1.5 rounded-lg text-xs font-medium text-black bg-white hover:bg-white/90 transition-colors focus:outline-none cursor-pointer whitespace-nowrap shrink-0"
                       >
-                        เสร็จสิ้น
+                        {t("btnDone")}
                       </button>
                     </>
                   )}

@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { Film, Clock, Loader2, Play, Layers, DownloadCloud, Plus } from "lucide-react";
 import { ProcessedVideoItem, VideoMetaInfo } from "@/features/catalog/stores/useCatalogStore";
 import { resolveThumbnailSrc } from "@/utils/thumbnailResolver";
+import { useApp } from "@/context/AppContext";
 
 export interface CutsceneCardProps {
   video: ProcessedVideoItem;
@@ -30,6 +31,7 @@ const CutsceneCardComponent: React.FC<CutsceneCardProps> = ({
   dialogueMatch,
   cardRefCallback,
 }) => {
+  const { t } = useApp();
   const scrubBarRef = useRef<HTMLDivElement>(null);
   const resolvedThumb = resolveThumbnailSrc(thumb);
 
@@ -108,12 +110,12 @@ const CutsceneCardComponent: React.FC<CutsceneCardProps> = ({
           {isExtracting ? (
             <div className="px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-md flex items-center gap-1 text-[9px] font-mono text-white">
               <Loader2 className="w-2.5 h-2.5 animate-spin text-white" />
-              <span>สกัด...</span>
+              <span>{t("galleryExtracting")}</span>
             </div>
           ) : video.isCached ? (
             <div
               className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-sm"
-              title="พร้อมเปิดทันที"
+              title={t("galleryReady")}
             />
           ) : null}
         </div>
@@ -140,17 +142,17 @@ const CutsceneCardComponent: React.FC<CutsceneCardProps> = ({
             {video.isCached ? (
               <>
                 <Play className="w-3 h-3 fill-white text-white" />
-                <span>เปิดดู</span>
+                <span>{t("queueOpenBtn")}</span>
               </>
             ) : video.isLevelSequence && !video.hasVideo ? (
               <>
                 <Layers className="w-3 h-3 text-white" />
-                <span>3D เรนเดอร์สด</span>
+                <span>{t("gallery3DLiveRender")}</span>
               </>
             ) : (
               <>
                 <DownloadCloud className="w-3 h-3 text-white" />
-                <span>สกัดวิดีโอ</span>
+                <span>{t("galleryExtractVideo")}</span>
               </>
             )}
           </div>
@@ -158,7 +160,7 @@ const CutsceneCardComponent: React.FC<CutsceneCardProps> = ({
             type="button"
             onClick={(e) => onQuickAddToQueue(e, video)}
             className="w-7 h-7 rounded-full bg-black/85 backdrop-blur-md text-white/80 hover:text-white flex items-center justify-center shadow-xl hover:bg-white/[0.2] transition-colors cursor-pointer outline-none"
-            title="เพิ่มเข้าคิวเรนเดอร์ทันที"
+            title={t("galleryQueueInstant")}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>

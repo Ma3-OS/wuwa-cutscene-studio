@@ -88,12 +88,66 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::ffi::OsStrExt;
+        use std::ffi::c_void;
+
+        #[link(name = "shell32")]
+        extern "system" {
+            fn SHParseDisplayName(
+                psz_name: *const u16,
+                pbc: *mut c_void,
+                ppidl: *mut *mut c_void,
+                sfgao_in: u32,
+                psfgao_out: *mut u32,
+            ) -> i32;
+
+            fn SHOpenFolderAndSelectItems(
+                pidl_folder: *const c_void,
+                cidl: u32,
+                apidl: *const *const c_void,
+                dw_flags: u32,
+            ) -> i32;
+
+            fn ILFree(pidl: *mut c_void);
+        }
+
+        #[link(name = "ole32")]
+        extern "system" {
+            fn CoInitializeEx(pv_reserved: *mut c_void, dw_co_init: u32) -> i32;
+            fn CoUninitialize();
+        }
+
+        let target_path = target_file.as_ref().or(target_dir.as_ref());
+        if let Some(path_to_open) = target_path {
+            let mut wide_path: Vec<u16> = path_to_open.as_os_str().encode_wide().collect();
+            wide_path.push(0);
+
+            let opened = unsafe {
+                let _ = CoInitializeEx(std::ptr::null_mut(), 0x2 | 0x4);
+                let mut pidl_target: *mut c_void = std::ptr::null_mut();
+                let hr = SHParseDisplayName(wide_path.as_ptr(), std::ptr::null_mut(), &mut pidl_target, 0, std::ptr::null_mut());
+                if hr == 0 && !pidl_target.is_null() {
+                    let hr_open = SHOpenFolderAndSelectItems(pidl_target, 0, std::ptr::null(), 0);
+                    ILFree(pidl_target);
+                    CoUninitialize();
+                    hr_open == 0
+                } else {
+                    CoUninitialize();
+                    false
+                }
+            };
+
+            if opened {
+                return Ok(());
+            }
+        }
+
+        // กรณีการเรียก Shell API ไม่สำเร็จ จะใช้คำสั่ง explorer.exe เป็นทางเลือกสำรอง
         use std::os::windows::process::CommandExt;
         let mut cmd = std::process::Command::new("explorer.exe");
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        cmd.creation_flags(0x08000000);
 
         if let Some(file) = target_file {
-            // raw_arg prevents Rust from double-quoting the argument
             cmd.raw_arg(format!("/select,\"{}\"", file.display()));
         } else if let Some(dir) = target_dir {
             cmd.raw_arg(format!("\"{}\"", dir.display()));

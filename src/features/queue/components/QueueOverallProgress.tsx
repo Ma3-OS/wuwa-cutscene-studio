@@ -1,4 +1,5 @@
 import React from "react";
+import { useApp } from "@/context/AppContext";
 
 interface QueueOverallProgressProps {
   completedCount: number;
@@ -13,16 +14,18 @@ export const QueueOverallProgress: React.FC<QueueOverallProgressProps> = ({
   failedCount,
   overallProgress,
 }) => {
+  const { t } = useApp();
+
   return (
     <div className="p-4 rounded-2xl bg-[#141417] space-y-2.5">
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
           <span className="font-medium text-white">
-            ความคืบหน้ารวม {completedCount} จากทั้งหมด {totalCount} คลิป
+            {t("queueOverallProgress")} {completedCount} {t("queueItemsOf")} {totalCount} {t("queueClipsUnit")}
           </span>
           {failedCount > 0 && (
             <span className="text-[11px] text-rose-400 font-medium">
-              ล้มเหลว {failedCount} คลิป
+              {t("queueItemsFailed")} {failedCount} {t("queueClipsUnit")}
             </span>
           )}
         </div>

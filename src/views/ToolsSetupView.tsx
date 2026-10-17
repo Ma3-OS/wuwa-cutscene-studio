@@ -137,7 +137,7 @@ export const ToolsSetupView: React.FC = () => {
       });
       if (selected && typeof selected === "string") {
         await updateConfig({ export_dir: selected });
-        toast.success("อัปเดตโฟลเดอร์สกัดไฟล์ดิบแล้ว");
+        toast.success(t("toastRawExportDirUpdated"));
       }
     } catch (err) {
       toast.error(String(err));
@@ -147,7 +147,7 @@ export const ToolsSetupView: React.FC = () => {
   const handleResetExportDir = async () => {
     playSound("click");
     await updateConfig({ export_dir: "" });
-    toast.success("คืนค่าโฟลเดอร์สกัดไฟล์ดิบเป็นค่าเริ่มต้นโครงการแล้ว");
+    toast.success(t("toastRawExportDirReset"));
   };
 
   const handleBrowseOutputDir = async () => {
@@ -160,7 +160,7 @@ export const ToolsSetupView: React.FC = () => {
       });
       if (selected && typeof selected === "string") {
         await updateConfig({ output_dir: selected });
-        toast.success("อัปเดตโฟลเดอร์วิดีโอผลลัพธ์แล้ว");
+        toast.success(t("toastOutputDirUpdated"));
       }
     } catch (err) {
       toast.error(String(err));
@@ -170,7 +170,7 @@ export const ToolsSetupView: React.FC = () => {
   const handleResetOutputDir = async () => {
     playSound("click");
     await updateConfig({ output_dir: "" });
-    toast.success("คืนค่าโฟลเดอร์วิดีโอผลลัพธ์เป็นค่าเริ่มต้นโครงการแล้ว");
+    toast.success(t("toastOutputDirReset"));
   };
 
   const handleSyncAllTools = async () => {
@@ -255,7 +255,7 @@ export const ToolsSetupView: React.FC = () => {
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold text-white">
                 <Folder className="w-4 h-4 text-[#A3A3A3]" />
-                <span>การแยกไดเรกทอรีสกัดและเรนเดอร์</span>
+                <span>{t("toolsSeparateDirs")}</span>
               </div>
             </div>
 
@@ -263,21 +263,21 @@ export const ToolsSetupView: React.FC = () => {
             <div className="p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-medium text-neutral-300 block">
-                  โฟลเดอร์สกัดไฟล์ดิบ
+                  {t("toolsRawExportDir")}
                 </label>
                 <span className="text-[10px] font-mono text-neutral-400">
-                  {config.export_dir ? "กำหนดเอง" : "ค่าเริ่มต้นโครงการ"}
+                  {config.export_dir ? t("toolsCustom") : t("toolsProjectDefault")}
                 </span>
               </div>
               <p className="text-[11px] text-[#71717A] leading-relaxed">
-                ที่เก็บไฟล์วิดีโอ แทร็กเสียง Wwise และบทบรรยายที่สกัดจากเกม จัดเก็บเป็น Bundle แยกต่อคลิป
+                {t("toolsRawExportDirDesc")}
               </p>
               <div className="flex items-center gap-2 pt-0.5">
                 <input
                   type="text"
                   readOnly
                   value={config.export_dir || defaultPaths?.export_dir || ""}
-                  placeholder="ค่าเริ่มต้น: <project_root>/export"
+                  placeholder="<project_root>/export"
                   className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                 />
                 <StudioButton variant="secondary" size="sm" onClick={handleBrowseExportDir}>
@@ -290,7 +290,7 @@ export const ToolsSetupView: React.FC = () => {
                     size="sm"
                     className="w-8 h-8 p-0 flex items-center justify-center shrink-0 text-[#71717A] hover:text-white"
                     onClick={handleResetExportDir}
-                    title="คืนค่าเป็นโฟลเดอร์ในโครงการ"
+                    title={t("toolsResetProjectBtn")}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                   </StudioButton>
@@ -302,21 +302,21 @@ export const ToolsSetupView: React.FC = () => {
             <div className="p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-medium text-neutral-300 block">
-                  โฟลเดอร์วิดีโอผลลัพธ์
+                  {t("toolsOutputDir")}
                 </label>
                 <span className="text-[10px] font-mono text-neutral-400">
-                  {config.output_dir ? "กำหนดเอง" : "ค่าเริ่มต้นโครงการ"}
+                  {config.output_dir ? t("toolsCustom") : t("toolsProjectDefault")}
                 </span>
               </div>
               <p className="text-[11px] text-[#71717A] leading-relaxed">
-                ที่เก็บวิดีโอมาสเตอร์ที่เรนเดอร์ภาพและเสียงพร้อมฝังคำบรรยายเสร็จสมบูรณ์
+                {t("toolsOutputDirDesc")}
               </p>
               <div className="flex items-center gap-2 pt-0.5">
                 <input
                   type="text"
                   readOnly
                   value={config.output_dir || defaultPaths?.render_dir || ""}
-                  placeholder="ค่าเริ่มต้น: <project_root>/output"
+                  placeholder="<project_root>/output"
                   className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                 />
                 <StudioButton variant="secondary" size="sm" onClick={handleBrowseOutputDir}>
@@ -329,7 +329,7 @@ export const ToolsSetupView: React.FC = () => {
                     size="sm"
                     className="w-8 h-8 p-0 flex items-center justify-center shrink-0 text-[#71717A] hover:text-white"
                     onClick={handleResetOutputDir}
-                    title="คืนค่าเป็นโฟลเดอร์ในโครงการ"
+                    title={t("toolsResetProjectBtn")}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                   </StudioButton>
@@ -366,7 +366,7 @@ export const ToolsSetupView: React.FC = () => {
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold text-white">
                   <Archive className="w-4 h-4 text-[#A3A3A3]" />
-                  <span>คลังเกมและการถอดรหัสแพ็กเกจ</span>
+                  <span>{t("toolsGameArchivesTitle")}</span>
                 </div>
                 <StudioButton
                   variant="secondary"
@@ -386,7 +386,7 @@ export const ToolsSetupView: React.FC = () => {
                     {t("gameFolderLabel")}
                   </label>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-neutral-400">
-                    {gameEnv?.game_paks_found ? `${gameEnv.paks_count} ไฟล์แพ็ก` : "ยังไม่พบ"}
+                    {gameEnv?.game_paks_found ? `${gameEnv.paks_count} ${t("toolsPaksFound")}` : t("toolsPaksNotFound")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export const ToolsSetupView: React.FC = () => {
                     type="text"
                     readOnly
                     value={config.game_paks_dir || gameEnv?.paks_dir || ""}
-                    placeholder="เช่น .../Client/Content/Paks"
+                    placeholder=".../Client/Content/Paks"
                     className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                   />
                   <StudioButton variant="secondary" size="sm" onClick={handleBrowseGamePaksDir}>
@@ -411,7 +411,7 @@ export const ToolsSetupView: React.FC = () => {
                     {t("keysPathLabel")}
                   </label>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-neutral-400">
-                    {gameEnv?.keys_found ? `${gameEnv.dynamic_keys_count} คีย์` : "ค่าเริ่มต้น"}
+                    {gameEnv?.keys_found ? `${gameEnv.dynamic_keys_count} ${t("toolsKeysFound")}` : t("toolsKeysDefault")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -419,7 +419,7 @@ export const ToolsSetupView: React.FC = () => {
                     type="text"
                     readOnly
                     value={config.keys_file_path || gameEnv?.keys_path || ""}
-                    placeholder="เช่น .../vid.json หรือ .../keys.json"
+                    placeholder=".../vid.json, .../keys.json"
                     className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                   />
                   <StudioButton variant="secondary" size="sm" onClick={handleBrowseKeysFile}>
@@ -452,27 +452,27 @@ export const ToolsSetupView: React.FC = () => {
                 {[
                   {
                     name: "CUE4Parse Worker Engine",
-                    desc: "ตัวสกัดไฟล์เกมเบื้องหลังความเร็วสูง",
+                    desc: t("toolsToolCue4Parse"),
                     ready: true,
                   },
                   {
                     name: "FFmpeg & ffprobe",
-                    desc: "เครื่องมือประมวลผลและแปลงรหัสวิดีโอ",
+                    desc: t("toolsToolFfmpeg"),
                     ready: deps?.ffmpeg ?? false,
                   },
                   {
                     name: "Wwiser Engine",
-                    desc: "เครื่องมือถอดรหัสและแยกผังเสียง",
+                    desc: t("toolsToolWwiser"),
                     ready: deps?.wwiser ?? false,
                   },
                   {
                     name: "vgmstream-cli",
-                    desc: "ตัวแปลงไฟล์เสียงเกมเป็นสัญญาณเสียงดิบ",
+                    desc: t("toolsToolVgmstream"),
                     ready: deps?.vgmstream ?? false,
                   },
                   {
                     name: "Game Database",
-                    desc: "ฐานข้อมูลคัตซีนและบทสนทนา",
+                    desc: t("toolsToolGameDb"),
                     ready: deps?.json_data ?? false,
                   },
                 ].map((item) => (

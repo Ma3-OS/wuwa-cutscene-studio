@@ -1,25 +1,20 @@
 import React from "react";
-import { ZoomIn, Grid, Maximize2, Play, Pause, Film } from "lucide-react";
+import { Grid, Maximize2, Play, Pause, Film } from "lucide-react";
 import { StudioSegmentedControl } from "@/components/ui/StudioSegmentedControl";
-import { FramingMode } from "./SubtitleCanvas";
+import type { FramingMode } from "./SubtitleCanvas";
 import { SCENE_THEMES } from "../constants";
+import { useApp } from "@/context/AppContext";
 
 interface SubtitleCanvasControlsProps {
   framingMode: FramingMode;
   setFramingMode: (val: FramingMode) => void;
   previewType: "both" | "dialogue" | "lyric";
   setPreviewType: (val: "both" | "dialogue" | "lyric") => void;
-  zoomMode: "fit" | "actual";
-  setZoomMode: (val: "fit" | "actual") => void;
   activeThemeId: string;
   setActiveThemeId: (val: string) => void;
   showGuides: boolean;
   setShowGuides: (val: boolean) => void;
   onOpenFullscreen: () => void;
-  fitLabel: string;
-  actualLabel: string;
-  guidesLabel: string;
-  fullscreenLabel: string;
   hasVideoSource?: boolean;
   isVideoPlaying?: boolean;
   onTogglePlayVideo?: () => void;
@@ -31,61 +26,58 @@ export const SubtitleCanvasControls: React.FC<SubtitleCanvasControlsProps> = ({
   setFramingMode,
   previewType,
   setPreviewType,
-  zoomMode,
-  setZoomMode,
   activeThemeId,
   setActiveThemeId,
   showGuides,
   setShowGuides,
   onOpenFullscreen,
-  fitLabel,
-  actualLabel,
-  guidesLabel,
-  fullscreenLabel,
   hasVideoSource = false,
   isVideoPlaying = true,
   onTogglePlayVideo,
   videoTitle,
 }) => {
+  const { t } = useApp();
+
+  // Primary backdrop themes
+  const availableThemes = SCENE_THEMES.filter((theme) => {
+    if (theme.id === "cutscene_video" && !hasVideoSource) return false;
+    return ["cutscene_video", "cutscene", "dark", "space"].includes(theme.id);
+  });
+
   return (
-    <div className="flex items-center justify-between flex-wrap gap-2.5 bg-[#141417] p-2.5 border-t border-white/[0.06] shrink-0">
-      {/* Group 1: Framing and Aspect Ratio Mode */}
-      <div className="flex items-center flex-wrap gap-2">
-        <StudioSegmentedControl<FramingMode>
-          size="sm"
-          value={framingMode}
-          onChange={setFramingMode}
-          options={[
-            { value: "16/9_letterbox", label: "16:9 มีแถบดำ" },
-            { value: "16/9_zoom", label: "16:9 ซูมเต็มจอ" },
-            { value: "21/9_native", label: "21:9 ต้นฉบับ" },
-          ]}
-        />
+    <div className="flex items-center justify-between flex-wrap gap-2.5 bg-[#141417] px-3.5 py-2.5 border-t border-white/[0.06] shrink-0">
+      {/* Group 1: Scene Backdrop & Playback */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl text-xs border border-white/[0.04]">
+          {availableThemes.map((theme) => {
+            const isSelected = activeThemeId === theme.id;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => setActiveThemeId(theme.id)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer outline-none flex items-center gap-1.5 ${
+                  isSelected ? "bg-white/[0.12] text-white" : "text-[#737373] hover:text-white"
+                }`}
+              >
+                {theme.id === "cutscene_video" && <Film className="w-3 h-3 text-neutral-400" />}
+                <span>{t(theme.labelKey)}</span>
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Group 2: Preview Content Layers */}
-        <StudioSegmentedControl<"both" | "dialogue" | "lyric">
-          size="sm"
-          value={previewType}
-          onChange={setPreviewType}
-          options={[
-            { value: "both", label: "แสดงคู่" },
-            { value: "dialogue", label: "บทสนทนา" },
-            { value: "lyric", label: "เนื้อเพลง" },
-          ]}
-        />
-
-        {/* Group 3: Real Video Playback Controller */}
-        {hasVideoSource && (
+        {/* Video Play/Pause Controller if Video Backdrop is active */}
+        {hasVideoSource && activeThemeId === "cutscene_video" && (
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-            <Film className="w-3.5 h-3.5 text-neutral-400" />
-            <span className="text-[11px] font-mono text-neutral-300 max-w-[120px] truncate">
-              {videoTitle || "คัตซีนจริง"}
+            <span className="text-[11px] font-mono text-neutral-300 max-w-[110px] truncate" title={videoTitle}>
+              {videoTitle || t("subRealCutscene")}
             </span>
             <button
               type="button"
               onClick={onTogglePlayVideo}
-              className="w-5 h-5 rounded-md flex items-center justify-center hover:bg-white/[0.1] text-white transition-colors cursor-pointer outline-none ml-1"
-              title={isVideoPlaying ? "พักการเล่น" : "เล่นต่อ"}
+              className="w-5 h-5 rounded-md flex items-center justify-center hover:bg-white/[0.1] text-white transition-colors cursor-pointer outline-none ml-0.5"
+              title={isVideoPlaying ? t("subPauseVideo") : t("subResumeVideo")}
             >
               {isVideoPlaying ? (
                 <Pause className="w-3 h-3 fill-white" />
@@ -97,70 +89,55 @@ export const SubtitleCanvasControls: React.FC<SubtitleCanvasControlsProps> = ({
         )}
       </div>
 
-      {/* Group 4: Scene Backdrop & Tools */}
-      <div className="flex items-center flex-wrap gap-2">
-        {/* Themes Selector */}
-        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl text-xs">
-          {SCENE_THEMES.slice(0, 3).map((theme) => (
-            <button
-              key={theme.id}
-              type="button"
-              onClick={() => setActiveThemeId(theme.id)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer outline-none ${
-                activeThemeId === theme.id ? "bg-white/[0.12] text-white" : "text-[#737373] hover:text-white"
-              }`}
-            >
-              {theme.label}
-            </button>
-          ))}
-        </div>
+      {/* Group 2: Preview Content Layers */}
+      <div className="flex items-center gap-2">
+        <StudioSegmentedControl<"both" | "dialogue" | "lyric">
+          size="sm"
+          value={previewType}
+          onChange={setPreviewType}
+          options={[
+            { value: "both", label: t("subModeBoth") },
+            { value: "dialogue", label: t("subModeDialogueOnly") },
+            { value: "lyric", label: t("subModeLyricOnly") },
+          ]}
+        />
+      </div>
 
-        {/* View Scaling Mode */}
-        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl text-xs">
-          <button
-            type="button"
-            onClick={() => setZoomMode("fit")}
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer outline-none ${
-              zoomMode === "fit" ? "bg-white/[0.12] text-white" : "text-[#737373] hover:text-white"
-            }`}
-          >
-            {fitLabel}
-          </button>
-          <button
-            type="button"
-            onClick={() => setZoomMode("actual")}
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer outline-none ${
-              zoomMode === "actual" ? "bg-white/[0.12] text-white" : "text-[#737373] hover:text-white"
-            }`}
-            title="มาตราส่วน 1 ต่อ 1 ระดับพิกเซล 1080p"
-          >
-            <ZoomIn className="w-3 h-3" />
-            <span>{actualLabel}</span>
-          </button>
-        </div>
+      {/* Group 3: Aspect Ratio & Canvas Tools */}
+      <div className="flex items-center gap-2">
+        <StudioSegmentedControl<FramingMode>
+          size="sm"
+          value={framingMode}
+          onChange={setFramingMode}
+          options={[
+            { value: "16/9_letterbox", label: t("subAspectLetterbox") },
+            { value: "16/9_zoom", label: t("subAspectZoom") },
+            { value: "21/9_native", label: t("subAspectNative") },
+          ]}
+        />
 
-        {/* SMPTE Safe Area Guides Toggle */}
+        {/* Safe Area Guides Toggle */}
         <button
           type="button"
           onClick={() => setShowGuides(!showGuides)}
-          className={`h-7 px-2.5 rounded-xl flex items-center gap-1 text-[11px] font-medium transition-colors cursor-pointer outline-none ${
+          className={`h-7 px-2.5 rounded-xl flex items-center gap-1.5 text-[11px] font-medium transition-colors cursor-pointer outline-none ${
             showGuides ? "bg-white/[0.12] text-white" : "bg-white/[0.04] text-[#737373] hover:text-white"
           }`}
-          title="เส้นกรอบปลอดภัยสำหรับการส่งออก"
+          title={t("subSafeMarginDesc")}
         >
           <Grid className="w-3.5 h-3.5" />
-          <span>{guidesLabel}</span>
+          <span className="hidden sm:inline">{t("subSafeMargin")}</span>
         </button>
 
-        {/* Fullscreen Button */}
+        {/* Fullscreen Trigger */}
         <button
           type="button"
           onClick={onOpenFullscreen}
-          className="h-7 px-2.5 rounded-xl flex items-center gap-1 text-[11px] font-medium bg-white/[0.04] text-[#737373] hover:text-white transition-colors cursor-pointer outline-none"
-          title="แสดงพรีวิวแบบเต็มหน้าจอ"
+          className="h-7 px-2.5 rounded-xl flex items-center gap-1.5 text-[11px] font-medium bg-white/[0.04] text-[#737373] hover:text-white transition-colors cursor-pointer outline-none"
+          title={t("subFullscreenDesc")}
         >
           <Maximize2 className="w-3.5 h-3.5" />
-          <span>{fullscreenLabel}</span>
+          <span className="hidden sm:inline">{t("subFullscreenBtn")}</span>
         </button>
       </div>
     </div>

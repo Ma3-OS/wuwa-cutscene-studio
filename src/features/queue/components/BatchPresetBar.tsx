@@ -2,6 +2,7 @@ import React from "react";
 import { StudioButton } from "@/components/ui/StudioButton";
 import { StudioSegmentedControl } from "@/components/ui/StudioSegmentedControl";
 import { StudioSelect } from "@/components/ui/StudioSelect";
+import { useApp } from "@/context/AppContext";
 
 interface BatchPresetBarProps {
   batchGender: "Girl" | "Boy";
@@ -30,11 +31,13 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
   setAutoAction,
   onApplyPresets,
 }) => {
+  const { t } = useApp();
+
   return (
     <div className="p-3.5 rounded-2xl bg-[#141417] flex items-center justify-between gap-3 text-xs overflow-x-auto no-scrollbar border border-white/[0.04]">
       <div className="flex items-center gap-2.5 shrink-0">
         <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider shrink-0 mr-1">
-          พรีเซ็ตส่วนกลาง
+          {t("queueBatchPresetTitle")}
         </span>
 
         {/* Protagonist */}
@@ -44,8 +47,8 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
             value={batchGender}
             onChange={setBatchGender}
             options={[
-              { value: "Girl", label: "โรเวอร์หญิง" },
-              { value: "Boy", label: "โรเวอร์ชาย" },
+              { value: "Girl", label: t("roverGirl") },
+              { value: "Boy", label: t("roverBoy") },
             ]}
           />
         </div>
@@ -72,9 +75,9 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
             value={batchSubMode}
             onChange={setBatchSubMode}
             options={[
-              { value: "Hard-sub", label: "ฝังซับลงภาพ" },
-              { value: "Soft-sub", label: "ซับแยก" },
-              { value: "None", label: "ไม่มีซับ" },
+              { value: "Hard-sub", label: t("subModeHardsub") },
+              { value: "Soft-sub", label: t("subModeSoftsub") },
+              { value: "None", label: t("subModeNone") },
             ]}
           />
         </div>
@@ -85,12 +88,12 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
             value={batchResolution}
             onChange={(e) => setBatchResolution(e.target.value)}
             options={[
-              { value: "1920x1080", label: "16:9 แถบดำภาพยนตร์" },
-              { value: "1920x1080_zoom", label: "16:9 ซูมเต็มจอ ไร้แถบดำ" },
-              { value: "original", label: "21:9 ต้นฉบับเกม" },
-              { value: "1080x1920", label: "9:16 แนวตั้ง Shorts" },
-              { value: "2560x1440", label: "2560x1440 2K" },
-              { value: "3840x2160", label: "3840x2160 4K" },
+              { value: "1920x1080", label: t("res1080pCinema") },
+              { value: "1920x1080_zoom", label: t("res1080pZoom") },
+              { value: "original", label: t("resOriginalUltrawide") },
+              { value: "1080x1920", label: t("resVerticalShorts") },
+              { value: "2560x1440", label: t("res2kQHD") },
+              { value: "3840x2160", label: t("res4kUHD") },
             ]}
           />
         </div>
@@ -101,18 +104,18 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
             value={autoAction}
             onChange={(e) => setAutoAction(e.target.value as any)}
             options={[
-              { value: "none", label: "เมื่อเสร็จ ไม่มีการกระทำ" },
-              { value: "chime", label: "เมื่อเสร็จ ส่งเสียงแจ้งเตือน" },
-              { value: "folder", label: "เมื่อเสร็จ เปิดโฟลเดอร์ผลลัพธ์" },
-              { value: "sleep", label: "เมื่อเสร็จ พักเครื่องคอม" },
-              { value: "shutdown", label: "เมื่อเสร็จ ปิดเครื่องคอม" },
+              { value: "none", label: t("postActionNone") },
+              { value: "chime", label: t("postActionChime") },
+              { value: "folder", label: t("postActionFolder") },
+              { value: "sleep", label: t("postActionSleep") },
+              { value: "shutdown", label: t("postActionShutdown") },
             ]}
           />
         </div>
       </div>
 
       <StudioButton variant="secondary" size="sm" onClick={onApplyPresets} className="shrink-0 whitespace-nowrap ml-2">
-        <span>ปรับใช้กับทุกคลิปในคิว</span>
+        <span>{t("queueApplyAll")}</span>
       </StudioButton>
     </div>
   );

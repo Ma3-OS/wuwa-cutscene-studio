@@ -152,7 +152,7 @@ export const Inspector: React.FC<InspectorProps> = ({
     const fullText = dialogueLines
       .map((l) => `${l.time_formatted}: ${l.content}`)
       .join("\n");
-    handleCopyText(fullText, "dialogue", "คัดลอกบทพูดทั้งหมดลงคลิปบอร์ดสำเร็จ");
+    handleCopyText(fullText, "dialogue", t("toastAllDialogueCopied"));
   };
 
   const handleExportSubtitles = async () => {
@@ -161,12 +161,12 @@ export const Inspector: React.FC<InspectorProps> = ({
     try {
       const files = await RendererAPI.exportSubtitlesBundle(clean);
       if (files && files.length > 0) {
-        toast.success("ส่งออกไฟล์คำบรรยายสำเร็จ");
+        toast.success(t("toastExportSubSuccess"));
       } else {
-        toast.error("ไม่พบบทพูดสำหรับคัตซีนนี้");
+        toast.error(t("toastNoDialogueError"));
       }
     } catch {
-      toast.error("ไม่สามารถส่งออกไฟล์คำบรรยายได้");
+      toast.error(t("toastExportSubError"));
     }
   };
 
@@ -217,7 +217,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                 <div
                   onClick={onOpenRawVideo}
                   className="relative aspect-video w-full rounded-xl overflow-hidden bg-[#0A0A0C] cursor-pointer group select-none shadow-sm"
-                  title="คลิกเพื่อเปิดพรีวิว"
+                  title={t("inspectorClickToPreview")}
                 >
                   {thumbnailUrl || meta?.thumbnail ? (
                     <img
@@ -231,12 +231,12 @@ export const Inspector: React.FC<InspectorProps> = ({
                         <Layers className="w-4 h-4 stroke-[1.25] text-neutral-300" />
                       </div>
                       <span className="text-[11px] font-medium text-white tracking-tight">3D Level Sequence</span>
-                      <span className="text-[9px] font-mono text-[#71717A] mt-0.5">คลิกเพื่อดูข้อมูลและแทร็กเสียง</span>
+                      <span className="text-[9px] font-mono text-[#71717A] mt-0.5">{t("inspectorClickAudioInfo")}</span>
                     </div>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-[#71717A] group-hover:text-white transition-colors bg-[#121215]">
                       <Film className="w-7 h-7 stroke-[1.2] mb-1" />
-                      <span className="text-[10px] font-mono text-[#52525B]">คลิกเพื่อเปิดพรีวิว</span>
+                      <span className="text-[10px] font-mono text-[#52525B]">{t("inspectorClickToPreview")}</span>
                     </div>
                   )}
 
@@ -271,22 +271,22 @@ export const Inspector: React.FC<InspectorProps> = ({
                   <div className="flex items-center gap-1.5 pt-1.5">
                     <button
                       type="button"
-                      onClick={() => handleCopyText(fileName || "", "id", "คัดลอกรหัสคัตซีนสำเร็จ")}
+                      onClick={() => handleCopyText(fileName || "", "id", t("toastCopiedIdSuccess"))}
                       className="px-2 py-0.5 rounded bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-mono text-[#A1A1AA] flex items-center gap-1 transition-colors cursor-pointer outline-none"
-                      title="คัดลอกชื่อรหัสคัตซีน"
+                      title={t("inspectorCopyId")}
                     >
                       {copiedType === "id" ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
-                      <span>{copiedType === "id" ? "คัดลอกแล้ว" : "คัดลอกชื่อ"}</span>
+                      <span>{copiedType === "id" ? t("copied") : t("inspectorCopyId")}</span>
                     </button>
                     {selectedFile && (
                       <button
                         type="button"
-                        onClick={() => handleCopyText(selectedFile, "path", "คัดลอกพาธไฟล์สำเร็จ")}
+                        onClick={() => handleCopyText(selectedFile, "path", t("toastCopiedPathSuccess"))}
                         className="px-2 py-0.5 rounded bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-mono text-[#A1A1AA] flex items-center gap-1 transition-colors cursor-pointer outline-none"
-                        title="คัดลอกพาธไฟล์เต็ม"
+                        title={t("inspectorCopyPath")}
                       >
                         {copiedType === "path" ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
-                        <span>{copiedType === "path" ? "คัดลอกแล้ว" : "คัดลอกพาธ"}</span>
+                        <span>{copiedType === "path" ? t("copied") : t("inspectorCopyPath")}</span>
                       </button>
                     )}
                   </div>
@@ -301,7 +301,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                       onClick={onOpenRawVideo}
                     >
                       <Play className="w-3 h-3 text-[#A1A1AA]" />
-                      <span>{isCached ? t("btnPlayRaw") : "สกัดวิดีโอเพื่อเปิดดู"}</span>
+                      <span>{isCached ? t("btnPlayRaw") : t("inspectorExtractToPlay")}</span>
                     </StudioButton>
                   ) : (
                     <div className="flex-1 px-2.5 py-1.5 rounded-lg bg-white/[0.03] text-[11px] text-neutral-400 font-mono text-center truncate">
@@ -323,7 +323,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                       size="sm"
                       className="w-7 h-7 p-0 flex items-center justify-center shrink-0"
                       onClick={onOpenExternal}
-                      title="เปิดด้วยโปรแกรมเล่นภายนอก"
+                      title={t("inspectorOpenExternal")}
                     >
                       <ExternalLink className="w-3 h-3 text-[#A1A1AA]" />
                     </StudioButton>
@@ -425,7 +425,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                         className="flex items-center gap-1.5 text-xs font-medium text-white hover:text-neutral-300 transition-colors cursor-pointer outline-none min-w-0"
                       >
                         <MessageSquareText className="w-3.5 h-3.5 text-[#8E8E93] shrink-0" />
-                        <span className="whitespace-nowrap shrink-0">คำบรรยายและบทพูด</span>
+                        <span className="whitespace-nowrap shrink-0">{t("inspectorDialogueTitle")}</span>
                         <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-[#71717A] shrink-0">
                           {dialogueLines.length}
                         </span>
@@ -440,8 +440,8 @@ export const Inspector: React.FC<InspectorProps> = ({
                           type="button"
                           onClick={handleCopyAllDialogue}
                           className="w-6 h-6 rounded-md text-[#8E8E93] hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors cursor-pointer outline-none"
-                          title="คัดลอกบทพูดทั้งหมด"
-                          aria-label="คัดลอกบทพูดทั้งหมด"
+                          title={t("inspectorCopyAllDialogue")}
+                          aria-label={t("inspectorCopyAllDialogue")}
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
@@ -449,8 +449,8 @@ export const Inspector: React.FC<InspectorProps> = ({
                           type="button"
                           onClick={handleExportSubtitles}
                           className="w-6 h-6 rounded-md text-[#8E8E93] hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors cursor-pointer outline-none"
-                          title="ส่งออกไฟล์คำบรรยายแยก"
-                          aria-label="ส่งออกไฟล์คำบรรยายแยก"
+                          title={t("inspectorExportSubs")}
+                          aria-label={t("inspectorExportSubs")}
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
@@ -482,13 +482,13 @@ export const Inspector: React.FC<InspectorProps> = ({
                   value={renderResolution}
                   onChange={(e) => onResolutionChange(e.target.value)}
                   options={[
-                    { value: "1920x1080", label: "16:9 แถบดำภาพยนตร์ มาตรฐานเกม" },
-                    { value: "1920x1080_zoom", label: "16:9 ซูมเต็มจอ ไร้แถบดำ" },
-                    { value: "original", label: "21:9 ต้นฉบับเกม อัลตราไวด์" },
-                    { value: "1080x1920", label: "9:16 แนวตั้งสำหรับ Shorts และ TikTok" },
-                    { value: "2560x1440", label: "2560x1440 คมชัดสูง 2K" },
-                    { value: "3840x2160", label: "3840x2160 ละเอียดพิเศษ 4K" },
-                    { value: "1280x720", label: "1280x720 ประหยัดพื้นที่ HD" },
+                    { value: "1920x1080", label: t("res1080pCinema") },
+                    { value: "1920x1080_zoom", label: t("res1080pZoom") },
+                    { value: "original", label: t("resOriginalUltrawide") },
+                    { value: "1080x1920", label: t("resVerticalShorts") },
+                    { value: "2560x1440", label: t("res2kQHD") },
+                    { value: "3840x2160", label: t("res4kUHD") },
+                    { value: "1280x720", label: t("res720pHD") },
                   ]}
                 />
               )}
@@ -503,13 +503,13 @@ export const Inspector: React.FC<InspectorProps> = ({
                 >
                   <ListPlus className="w-3.5 h-3.5" />
                   <span>
-                    {t("btnAddAllToQueue")} {selectedCount} คลิป
+                    {t("btnAddAllToQueue")} {selectedCount} {t("queueClipsUnit")}
                   </span>
                 </StudioButton>
               ) : (
                 /* Single Cutscene Actions: Separate Raw Extraction & Render */
                 <div className="space-y-2">
-                  {/* Action 1: สกัดไฟล์ต้นฉบับลงโปรเจกต์ */}
+                  {/* Action 1: Extract raw file to project */}
                   {onExtractRaw && (
                     <StudioButton
                       variant="secondary"
@@ -519,11 +519,11 @@ export const Inspector: React.FC<InspectorProps> = ({
                       disabled={isRendering || isExtracting}
                     >
                       <FolderArchive className="w-3.5 h-3.5 text-neutral-400" />
-                      <span>สกัดไฟล์ต้นฉบับลงโปรเจกต์</span>
+                      <span>{t("inspectorExtractRaw")}</span>
                     </StudioButton>
                   )}
 
-                  {/* Action 2: เริ่มการเรนเดอร์วิดีโอ หรือ ยกเลิก */}
+                  {/* Action 2: Start video render or cancel */}
                   {isRendering ? (
                     <StudioButton
                       variant="danger"
@@ -532,7 +532,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                       onClick={onCancelRender}
                     >
                       <X className="w-3.5 h-3.5 mr-1 text-neutral-400" />
-                      <span>ยกเลิกการทำงาน</span>
+                      <span>{t("inspectorCancelRender")}</span>
                     </StudioButton>
                   ) : (
                     <StudioButton
@@ -545,12 +545,12 @@ export const Inspector: React.FC<InspectorProps> = ({
                       {isLevelSequence && !hasVideo ? (
                         <>
                           <Layers className="w-3.5 h-3.5 text-black" />
-                          <span>สกัดเสียงและข้อมูลซีน</span>
+                          <span>{t("inspectorExtractAudioData")}</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="w-3.5 h-3.5 text-black" />
-                          <span>เริ่มการเรนเดอร์วิดีโอ</span>
+                          <span>{t("inspectorStartRender")}</span>
                         </>
                       )}
                     </StudioButton>
@@ -563,7 +563,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                 <div className="p-2.5 rounded-lg bg-white/[0.04] space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-white">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-300 shrink-0" />
-                    <span>เรนเดอร์เสร็จสมบูรณ์แล้ว</span>
+                    <span>{t("inspectorRenderDone")}</span>
                   </div>
                   <StudioButton
                     variant="secondary"
@@ -572,7 +572,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                     onClick={onOpenOutputDir}
                   >
                     <FolderOpen className="w-3 h-3 text-neutral-300" />
-                    <span>เปิดตำแหน่งไฟล์ในโฟลเดอร์</span>
+                    <span>{t("inspectorOpenFolder")}</span>
                   </StudioButton>
                 </div>
               )}
@@ -583,20 +583,20 @@ export const Inspector: React.FC<InspectorProps> = ({
                   size="sm"
                   className="text-xs text-[#71717A] hover:text-white"
                   onClick={onOpenSourceFolder || onOpenClipFolder}
-                  title="เปิดโฟลเดอร์ไฟล์ต้นฉบับที่ยังไม่เรนเดอร์"
+                  title={t("inspectorSourceFolder")}
                 >
                   <FolderArchive className="w-3.5 h-3.5" />
-                  <span className="truncate">โฟลเดอร์ต้นฉบับ</span>
+                  <span className="truncate">{t("inspectorSourceFolder")}</span>
                 </StudioButton>
                 <StudioButton
                   variant="ghost"
                   size="sm"
                   className="text-xs text-[#71717A] hover:text-white"
                   onClick={onOpenOutputDir}
-                  title="เปิดโฟลเดอร์ผลลัพธ์วิดีโอที่เรนเดอร์เสร็จแล้ว"
+                  title={t("inspectorOutputFolder")}
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
-                  <span className="truncate">โฟลเดอร์ผลลัพธ์</span>
+                  <span className="truncate">{t("inspectorOutputFolder")}</span>
                 </StudioButton>
               </div>
             </div>

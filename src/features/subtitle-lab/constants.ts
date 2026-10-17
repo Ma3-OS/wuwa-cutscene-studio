@@ -1,6 +1,9 @@
+import type { TranslationKey } from "@/locales";
+
 export interface StylePreset {
   id: string;
-  label: string;
+  labelKey: TranslationKey;
+  label?: string;
   font: string;
   size: number;
   outline: number;
@@ -9,70 +12,79 @@ export interface StylePreset {
   color: string;
 }
 
+export interface SceneTheme {
+  id: string;
+  labelKey: TranslationKey;
+  label?: string;
+  bg: string;
+  isLight: boolean;
+  image?: string;
+}
+
 export const PRESETS: StylePreset[] = [
   {
     id: "authentic_54",
-    label: "ขนาดใหญ่คมชัด 54pt",
+    labelKey: "presetLargeSharp",
     font: "Kanit Medium",
     size: 54,
-    outline: 1.2,
-    shadow: 0.0,
+    outline: 1.0,
+    shadow: 0.6,
     marginV: 54,
     color: "#FFFFFF",
   },
   {
     id: "exact_game",
-    label: "มาตรฐานบทสนทนาเกม 30pt",
+    labelKey: "presetGameStandard",
     font: "Kanit Medium",
     size: 30,
     outline: 1.0,
-    shadow: 0.0,
+    shadow: 0.6,
     marginV: 50,
     color: "#FFFFFF",
   },
   {
     id: "game_lyric",
-    label: "เพลงเปิดและเนื้อเพลง 34pt",
+    labelKey: "presetOpeningLyric",
     font: "Kanit Medium",
     size: 34,
-    outline: 0.0,
-    shadow: 0.0,
+    outline: 1.0,
+    shadow: 0.6,
     marginV: 30,
     color: "#FFFFFF",
   },
   {
     id: "zoom_safe",
-    label: "ซูมเต็มจอ ไร้แถบดำ 32pt",
+    labelKey: "presetCinemaZoom",
     font: "Kanit Medium",
     size: 32,
-    outline: 1.2,
-    shadow: 0.8,
+    outline: 1.0,
+    shadow: 0.6,
     marginV: 64,
     color: "#FFFFFF",
   },
   {
     id: "thai_game",
-    label: "ซับไตเติลทางการ 30pt",
+    labelKey: "presetOfficialSub",
     font: "Kanit Medium",
     size: 30,
-    outline: 1.2,
-    shadow: 0.5,
+    outline: 1.0,
+    shadow: 0.6,
     marginV: 50,
     color: "#FFFFFF",
   },
   {
     id: "fansub",
-    label: "อนิเมะแฟนซับ 38pt",
+    labelKey: "presetAnimeFansub",
     font: "Prompt Medium",
     size: 38,
-    outline: 2.5,
-    shadow: 1.5,
+    outline: 2.0,
+    shadow: 1.2,
     marginV: 45,
     color: "#FEF08A",
   },
   {
     id: "minimal",
-    label: "มินิมอลคลีน 28pt",
+    labelKey: "presetCleanMinimal",
     font: "Segoe UI",
     size: 28,
     outline: 0.8,
@@ -82,14 +94,16 @@ export const PRESETS: StylePreset[] = [
   },
 ];
 
-export const SCENE_THEMES = [
-  { id: "cutscene", label: "ภาพคัตซีนจริง", bg: "bg-cover bg-center", image: "/sample_cutscene.jpg", isLight: false },
-  { id: "dark", label: "มืดสนิท", bg: "bg-[#09090b]", isLight: false },
-  { id: "space", label: "เนบิวลา", bg: "bg-gradient-to-br from-purple-950/40 via-neutral-950 to-[#09090b]", isLight: false },
-  { id: "daylight", label: "กลางวัน", bg: "bg-neutral-200", isLight: true },
-  { id: "sunset", label: "อาทิตย์อัสดง", bg: "bg-gradient-to-br from-amber-950/40 via-neutral-950 to-[#09090b]", isLight: false },
-  { id: "forest", label: "ป่าเขา", bg: "bg-gradient-to-br from-emerald-950/40 via-neutral-950 to-[#09090b]", isLight: false },
-  { id: "midnight", label: "เที่ยงคืน", bg: "bg-gradient-to-br from-blue-950/40 via-neutral-950 to-[#09090b]", isLight: false },
+export const SCENE_THEMES: SceneTheme[] = [
+  { id: "cutscene_video", labelKey: "themeCutsceneVideo", bg: "bg-black", isLight: false },
+  { id: "cutscene", labelKey: "themeCutsceneImage", bg: "bg-cover bg-center", image: "/sample_cutscene.jpg", isLight: false },
+  { id: "dark", labelKey: "themeDark", bg: "bg-[#09090b]", isLight: false },
+  { id: "space", labelKey: "themeSpace", bg: "bg-gradient-to-br from-purple-950/40 via-neutral-950 to-[#09090b]", isLight: false },
+  { id: "studio", labelKey: "themeStudio", bg: "bg-[#18181b]", isLight: false },
+  { id: "daylight", labelKey: "themeDaylight", bg: "bg-neutral-200", isLight: true },
+  { id: "sunset", labelKey: "themeSunset", bg: "bg-gradient-to-br from-amber-950/40 via-neutral-950 to-[#09090b]", isLight: false },
+  { id: "forest", labelKey: "themeForest", bg: "bg-gradient-to-br from-emerald-950/40 via-neutral-950 to-[#09090b]", isLight: false },
+  { id: "midnight", labelKey: "themeMidnight", bg: "bg-gradient-to-br from-blue-950/40 via-neutral-950 to-[#09090b]", isLight: false },
 ];
 
 export const SAMPLE_TEXTS = {

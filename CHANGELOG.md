@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-10-18
+
+### Added
+- **Zero-Hardcoded i18n Architecture:** Complete removal of hardcoded UI strings across all frontend components. Seamless runtime language switching (Thai ⇄ English) across menus, tooltips, dialogs, badges, and notification toasts with 100% key parity across 485 translation keys.
+- **Strict Thai Typographic Standard:** Zero parentheses `()` and zero brackets `[]` compliance across all Thai localizations and system messages.
+- **Enhanced Subtitle Lab Customizer:** Expanded typographic parameter controls for Dialogue, Ruby annotations, and Corner Lyrics (default 54pt size, 1.0 outline, 0.6 shadow, 54px margin), integrated with live video background and 3D level sequence preview modes.
+- **Desktop Folder Navigation Experience:** Direct top-level focus behavior when opening export and output directories in Windows Explorer.
+
 ## [1.0.0] - 2026-10-18
 
 ### Added

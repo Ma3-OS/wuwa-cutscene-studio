@@ -131,7 +131,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       await ToolsAPI.clearProjectCache().catch(() => {});
       await ToolsAPI.clearAppCache().catch(() => {});
       playSound("success");
-      toast.success("ล้างไฟล์แคชชั่วคราวทั้งหมดสำเร็จเรียบร้อย");
+      toast.success(t("toastCacheCleared"));
       await fetchDepsAndCache();
     } catch (err) {
       playSound("error");

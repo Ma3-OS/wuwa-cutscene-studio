@@ -7,7 +7,6 @@ import {
   PRESETS,
   SCENE_THEMES,
   SAMPLE_TEXTS,
-  SAMPLE_LYRICS,
   StylePreset,
 } from "@/features/subtitle-lab/constants";
 import { SubtitleHeader } from "@/features/subtitle-lab/components/SubtitleHeader";
@@ -25,13 +24,6 @@ export const SubtitleLabView: React.FC = () => {
   const [framingMode, setFramingMode] = useState<FramingMode>("16/9_letterbox");
   const [showGuides, setShowGuides] = useState(true);
   const [previewType, setPreviewType] = useState<"both" | "dialogue" | "lyric">("both");
-  const [zoomMode, setZoomMode] = useState<"fit" | "actual">("fit");
-  const [activeThemeId, setActiveThemeId] = useState("cutscene");
-  const [sampleLang, setSampleLang] = useState<"th" | "en" | "ja" | "zh">(
-    (config.subtitle_lang as "th" | "en" | "ja" | "zh") || "th"
-  );
-  const [rubyText, setRubyText] = useState(SAMPLE_TEXTS[sampleLang].ruby);
-  const [baseText, setBaseText] = useState(SAMPLE_TEXTS[sampleLang].base);
 
   // Live video cutscene background
   const cachedVideos = useMemo(
@@ -43,6 +35,15 @@ export const SubtitleLabView: React.FC = () => {
     ? convertFileSrc(activeVideo.fullPath.replace(/\\/g, "/"))
     : null;
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+  const [activeThemeId, setActiveThemeId] = useState(
+    cachedVideos.length > 0 ? "cutscene_video" : "cutscene"
+  );
+
+  const [sampleLang, setSampleLang] = useState<"th" | "en" | "ja" | "zh">(
+    (config.subtitle_lang as "th" | "en" | "ja" | "zh") || "th"
+  );
+  const [rubyText, setRubyText] = useState(SAMPLE_TEXTS[sampleLang].ruby);
+  const [baseText, setBaseText] = useState(SAMPLE_TEXTS[sampleLang].base);
 
   // Fullscreen states
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -51,19 +52,25 @@ export const SubtitleLabView: React.FC = () => {
   // Subtitle custom parameters
   const [subFont, setSubFont] = useState(config.sub_font || "Kanit Medium");
   const [subSize, setSubSize] = useState(config.sub_size || 54);
-  const [subOutline, setSubOutline] = useState(config.sub_outline ?? 1.2);
-  const [subShadow, setSubShadow] = useState(config.sub_shadow ?? 0.0);
+  const [subOutline, setSubOutline] = useState(config.sub_outline ?? 1.0);
+  const [subShadow, setSubShadow] = useState(config.sub_shadow ?? 0.6);
   const [subMarginV, setSubMarginV] = useState(config.sub_margin_v ?? 54);
   const [subColor, setSubColor] = useState(config.sub_color || "#FFFFFF");
 
   // Ruby custom parameters
   const [rubyEnabledState, setRubyEnabledState] = useState(config.ruby_enabled ?? true);
+  const [rubyFont, setRubyFont] = useState(config.ruby_font || "Kanit Medium");
   const [rubySize, setRubySize] = useState(config.ruby_size || 0);
+  const [rubyOutline, setRubyOutline] = useState(config.ruby_outline ?? 1.0);
+  const [rubyShadow, setRubyShadow] = useState(config.ruby_shadow ?? 0.6);
   const [rubyOffsetY, setRubyOffsetY] = useState(config.ruby_offset_y || 0);
   const [rubyColor, setRubyColor] = useState(config.ruby_color || "#E0E0E0");
 
   // Lyric custom parameters
+  const [lyricFont, setLyricFont] = useState(config.lyric_font || "Kanit Medium");
   const [lyricSize, setLyricSize] = useState(config.lyric_size || 0);
+  const [lyricOutline, setLyricOutline] = useState(config.lyric_outline ?? 1.0);
+  const [lyricShadow, setLyricShadow] = useState(config.lyric_shadow ?? 0.6);
   const [lyricMarginX, setLyricMarginX] = useState(config.lyric_margin_x || 160);
   const [lyricMarginY, setLyricMarginY] = useState(config.lyric_margin_y || 30);
   const [lyricBilingual, setLyricBilingual] = useState(config.lyric_bilingual ?? true);
@@ -123,16 +130,22 @@ export const SubtitleLabView: React.FC = () => {
           sub_margin_v: subMarginV,
           sub_color: subColor,
           ruby_enabled: rubyEnabledState,
+          ruby_font: rubyFont,
           ruby_size: rubySize,
+          ruby_outline: rubyOutline,
+          ruby_shadow: rubyShadow,
           ruby_offset_y: rubyOffsetY,
           ruby_color: rubyColor,
+          lyric_font: lyricFont,
           lyric_size: lyricSize,
+          lyric_outline: lyricOutline,
+          lyric_shadow: lyricShadow,
           lyric_margin_x: lyricMarginX,
           lyric_margin_y: lyricMarginY,
           lyric_bilingual: lyricBilingual,
           lyric_color: lyricColor,
         });
-        setLastSaved("บันทึกอัตโนมัติ");
+        setLastSaved(t("subAutoSaved"));
       } catch (e) {
         console.error("Auto-save subtitles failed:", e);
       }
@@ -147,10 +160,16 @@ export const SubtitleLabView: React.FC = () => {
     subMarginV,
     subColor,
     rubyEnabledState,
+    rubyFont,
     rubySize,
+    rubyOutline,
+    rubyShadow,
     rubyOffsetY,
     rubyColor,
+    lyricFont,
     lyricSize,
+    lyricOutline,
+    lyricShadow,
     lyricMarginX,
     lyricMarginY,
     lyricBilingual,
@@ -161,122 +180,20 @@ export const SubtitleLabView: React.FC = () => {
   const handleReset = () => {
     playSound("click");
     handleApplyPreset(PRESETS[0]);
-  };
-
-  // Render Subtitle and Lyric Text elements for fullscreen portal
-  const renderFullscreenSubtitleText = () => {
-    const curScale = window.innerHeight / 1080;
-    const curFontSize = Math.round(subSize * curScale);
-    const curOutline = Number((subOutline * curScale).toFixed(2));
-    const curShadow = Number((subShadow * curScale).toFixed(2));
-    const curMargin = Math.round(subMarginV * curScale);
-
-    const showLyric = previewType === "lyric" || previewType === "both";
-    const showDialogue = previewType === "dialogue" || previewType === "both";
-    const lyricData = SAMPLE_LYRICS[sampleLang];
-
-    const effRubySize = rubySize > 0 ? rubySize : Math.max(18, Math.round(subSize * 0.52));
-    const curRubySize = Math.round(effRubySize * curScale);
-    const effLyricThSize = lyricSize > 0 ? lyricSize : Math.max(34, Math.round(subSize * 0.85));
-    const curLyricThSize = Math.round(effLyricThSize * curScale);
-    const effLyricZhSize = Math.max(26, Math.round(effLyricThSize * 0.76));
-    const curLyricZhSize = Math.round(effLyricZhSize * curScale);
-
-    return (
-      <>
-        {showLyric && (
-          <div
-            className="absolute transition-all pointer-events-none select-none z-20"
-            style={{
-              top: `${Math.round(lyricMarginY * curScale)}px`,
-              left: `${Math.round(lyricMarginX * curScale)}px`,
-              maxWidth: "75%",
-            }}
-          >
-            <div
-              className="font-semibold italic tracking-wide"
-              style={{
-                fontFamily: subFont,
-                fontSize: `${curLyricThSize}px`,
-                color: lyricColor,
-                WebkitTextStroke: "none",
-                paintOrder: "stroke fill",
-                textShadow: "none",
-                lineHeight: 1.2,
-              }}
-            >
-              {lyricData.line1}
-            </div>
-            {lyricBilingual && (
-              <div
-                className="font-medium italic tracking-normal"
-                style={{
-                  fontFamily: "Microsoft YaHei, sans-serif",
-                  fontSize: `${curLyricZhSize}px`,
-                  color: lyricColor,
-                  marginTop: `${Math.round(8 * curScale)}px`,
-                  WebkitTextStroke: "none",
-                  paintOrder: "stroke fill",
-                  textShadow: "none",
-                  lineHeight: 1.2,
-                }}
-              >
-                {lyricData.line2}
-              </div>
-            )}
-          </div>
-        )}
-
-        {showDialogue && (
-          <div
-            className="absolute left-0 right-0 text-center px-6 transition-all pointer-events-none select-none z-20"
-            style={{ bottom: `${curMargin}px` }}
-          >
-            {rubyEnabledState && (
-              <div
-                className="font-medium tracking-wide opacity-95"
-                style={{
-                  fontFamily: subFont,
-                  fontSize: `${curRubySize}px`,
-                  color: rubyColor,
-                  marginBottom: `${Math.round((8 + rubyOffsetY) * curScale)}px`,
-                  WebkitTextStroke:
-                    curOutline > 0
-                      ? `${Math.max(0.4, curOutline * 1.5)}px rgba(0, 0, 0, 0.9)`
-                      : "none",
-                  paintOrder: "stroke fill",
-                  textShadow:
-                    curShadow > 0
-                      ? `${curShadow}px ${curShadow}px 2px rgba(0, 0, 0, 0.5)`
-                      : "none",
-                }}
-              >
-                {rubyText}
-              </div>
-            )}
-            <div
-              style={{
-                fontFamily: subFont,
-                fontSize: `${curFontSize}px`,
-                color: subColor,
-                WebkitTextStroke:
-                  curOutline > 0 ? `${curOutline * 2}px rgba(0, 0, 0, 0.9)` : "none",
-                paintOrder: "stroke fill",
-                textShadow:
-                  curShadow > 0
-                    ? `${curShadow}px ${curShadow}px 2px rgba(0, 0, 0, 0.5)`
-                    : "none",
-                letterSpacing: "0.015em",
-                lineHeight: 1.18,
-              }}
-              className="font-medium"
-            >
-              {baseText}
-            </div>
-          </div>
-        )}
-      </>
-    );
+    setRubyFont("Kanit Medium");
+    setRubySize(0);
+    setRubyOutline(1.0);
+    setRubyShadow(0.6);
+    setRubyOffsetY(0);
+    setRubyColor("#E0E0E0");
+    setLyricFont("Kanit Medium");
+    setLyricSize(0);
+    setLyricOutline(1.0);
+    setLyricShadow(0.6);
+    setLyricMarginX(160);
+    setLyricMarginY(30);
+    setLyricBilingual(true);
+    setLyricColor("#FFFFFF");
   };
 
   return (
@@ -300,11 +217,11 @@ export const SubtitleLabView: React.FC = () => {
             <SubtitleCanvas
               canvasRef={canvasRef}
               framingMode={framingMode}
+              activeThemeId={activeThemeId}
               activeTheme={activeTheme}
               videoUrl={videoUrl}
               isVideoPlaying={isVideoPlaying}
               showGuides={showGuides}
-              zoomMode={zoomMode}
               subFont={subFont}
               subSize={subSize}
               subOutline={subOutline}
@@ -314,12 +231,18 @@ export const SubtitleLabView: React.FC = () => {
               previewType={previewType}
               sampleLang={sampleLang}
               enableRuby={rubyEnabledState}
+              rubyFont={rubyFont}
               rubySize={rubySize}
+              rubyOutline={rubyOutline}
+              rubyShadow={rubyShadow}
               rubyOffsetY={rubyOffsetY}
               rubyColor={rubyColor}
               rubyText={rubyText}
               baseText={baseText}
+              lyricFont={lyricFont}
               lyricSize={lyricSize}
+              lyricOutline={lyricOutline}
+              lyricShadow={lyricShadow}
               lyricMarginX={lyricMarginX}
               lyricMarginY={lyricMarginY}
               lyricBilingual={lyricBilingual}
@@ -331,17 +254,11 @@ export const SubtitleLabView: React.FC = () => {
               setFramingMode={setFramingMode}
               previewType={previewType}
               setPreviewType={setPreviewType}
-              zoomMode={zoomMode}
-              setZoomMode={setZoomMode}
               activeThemeId={activeThemeId}
               setActiveThemeId={setActiveThemeId}
               showGuides={showGuides}
               setShowGuides={setShowGuides}
               onOpenFullscreen={() => setIsFullscreen(true)}
-              fitLabel={t("previewFitFrame")}
-              actualLabel={t("previewActual")}
-              guidesLabel={t("previewGuides")}
-              fullscreenLabel={t("btnFullscreen")}
               hasVideoSource={Boolean(videoUrl)}
               isVideoPlaying={isVideoPlaying}
               onTogglePlayVideo={() => setIsVideoPlaying((prev) => !prev)}
@@ -385,14 +302,26 @@ export const SubtitleLabView: React.FC = () => {
           setSubColor={setSubColor}
           rubyEnabled={rubyEnabledState}
           setRubyEnabled={setRubyEnabledState}
+          rubyFont={rubyFont}
+          setRubyFont={setRubyFont}
           rubySize={rubySize}
           setRubySize={setRubySize}
+          rubyOutline={rubyOutline}
+          setRubyOutline={setRubyOutline}
+          rubyShadow={rubyShadow}
+          setRubyShadow={setRubyShadow}
           rubyOffsetY={rubyOffsetY}
           setRubyOffsetY={setRubyOffsetY}
           rubyColor={rubyColor}
           setRubyColor={setRubyColor}
+          lyricFont={lyricFont}
+          setLyricFont={setLyricFont}
           lyricSize={lyricSize}
           setLyricSize={setLyricSize}
+          lyricOutline={lyricOutline}
+          setLyricOutline={setLyricOutline}
+          lyricShadow={lyricShadow}
+          setLyricShadow={setLyricShadow}
           lyricMarginX={lyricMarginX}
           setLyricMarginX={setLyricMarginX}
           lyricMarginY={lyricMarginY}
@@ -408,12 +337,15 @@ export const SubtitleLabView: React.FC = () => {
       <FullscreenHUD
         isOpen={isFullscreen}
         onClose={() => setIsFullscreen(false)}
+        activeThemeId={activeThemeId}
         activeTheme={activeTheme}
+        videoUrl={videoUrl}
+        isVideoPlaying={isVideoPlaying}
         framingMode={framingMode}
         showGuides={showGuides}
-        renderSubtitleText={renderFullscreenSubtitleText}
         showFullscreenHUD={showFullscreenHUD}
         setShowFullscreenHUD={setShowFullscreenHUD}
+        subFont={subFont}
         subSize={subSize}
         setSubSize={setSubSize}
         subOutline={subOutline}
@@ -422,6 +354,26 @@ export const SubtitleLabView: React.FC = () => {
         setSubShadow={setSubShadow}
         subMarginV={subMarginV}
         setSubMarginV={setSubMarginV}
+        subColor={subColor}
+        previewType={previewType}
+        sampleLang={sampleLang}
+        enableRuby={rubyEnabledState}
+        rubyFont={rubyFont}
+        rubySize={rubySize}
+        rubyOutline={rubyOutline}
+        rubyShadow={rubyShadow}
+        rubyOffsetY={rubyOffsetY}
+        rubyColor={rubyColor}
+        rubyText={rubyText}
+        baseText={baseText}
+        lyricFont={lyricFont}
+        lyricSize={lyricSize}
+        lyricOutline={lyricOutline}
+        lyricShadow={lyricShadow}
+        lyricMarginX={lyricMarginX}
+        lyricMarginY={lyricMarginY}
+        lyricBilingual={lyricBilingual}
+        lyricColor={lyricColor}
         labels={{
           title: t("wsSubtitles"),
           exitFullscreen: t("btnExitFullscreen"),

@@ -1,24 +1,32 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sliders, Minimize2 } from "lucide-react";
 import type { FramingMode } from "./SubtitleCanvas";
+import { SubtitleStage } from "./SubtitleStage";
+import { useApp } from "@/context/AppContext";
 
 interface FullscreenHUDProps {
   isOpen: boolean;
   onClose: () => void;
+  activeThemeId: string;
   activeTheme: {
     id: string;
-    label: string;
+    label?: string;
+    labelKey?: string;
     bg: string;
     image?: string;
     isLight: boolean;
   };
+  videoUrl?: string | null;
+  isVideoPlaying?: boolean;
   framingMode: FramingMode;
   showGuides: boolean;
-  renderSubtitleText: (isFull: boolean) => React.ReactNode;
   showFullscreenHUD: boolean;
   setShowFullscreenHUD: (val: boolean) => void;
+
+  // Dialogue properties
+  subFont: string;
   subSize: number;
   setSubSize: (val: number) => void;
   subOutline: number;
@@ -27,6 +35,31 @@ interface FullscreenHUDProps {
   setSubShadow: (val: number) => void;
   subMarginV: number;
   setSubMarginV: (val: number) => void;
+  subColor: string;
+  previewType: "both" | "dialogue" | "lyric";
+  sampleLang: "th" | "en" | "ja" | "zh";
+
+  // Ruby properties
+  enableRuby?: boolean;
+  rubyFont?: string;
+  rubySize?: number;
+  rubyOutline?: number;
+  rubyShadow?: number;
+  rubyOffsetY?: number;
+  rubyColor?: string;
+  rubyText?: string;
+  baseText: string;
+
+  // Lyric properties
+  lyricFont?: string;
+  lyricSize?: number;
+  lyricOutline?: number;
+  lyricShadow?: number;
+  lyricMarginX?: number;
+  lyricMarginY?: number;
+  lyricBilingual?: boolean;
+  lyricColor?: string;
+
   labels: {
     title: string;
     exitFullscreen: string;
@@ -40,12 +73,15 @@ interface FullscreenHUDProps {
 export const FullscreenHUD: React.FC<FullscreenHUDProps> = ({
   isOpen,
   onClose,
+  activeThemeId,
   activeTheme,
+  videoUrl,
+  isVideoPlaying = true,
   framingMode,
   showGuides,
-  renderSubtitleText,
   showFullscreenHUD,
   setShowFullscreenHUD,
+  subFont,
   subSize,
   setSubSize,
   subOutline,
@@ -54,31 +90,61 @@ export const FullscreenHUD: React.FC<FullscreenHUDProps> = ({
   setSubShadow,
   subMarginV,
   setSubMarginV,
+  subColor,
+  previewType,
+  sampleLang,
+  enableRuby = true,
+  rubyFont,
+  rubySize = 0,
+  rubyOutline = 1.0,
+  rubyShadow = 0.6,
+  rubyOffsetY = 0,
+  rubyColor = "#E0E0E0",
+  rubyText,
+  baseText,
+  lyricFont,
+  lyricSize = 0,
+  lyricOutline = 1.0,
+  lyricShadow = 0.6,
+  lyricMarginX = 160,
+  lyricMarginY = 30,
+  lyricBilingual = true,
+  lyricColor = "#FFFFFF",
   labels,
 }) => {
+  const { t } = useApp();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Sync video play/pause
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isVideoPlaying) {
+        videoRef.current.play().catch(() => {});
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isVideoPlaying]);
+
   if (!isOpen) return null;
+
+  const isNative219 = framingMode === "21/9_native";
+  const stageWidth = isNative219 ? 2560 : 1920;
+  const stageHeight = 1080;
+  const scale = Math.min(window.innerWidth / stageWidth, window.innerHeight / stageHeight);
 
   return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-50 flex items-center justify-center select-none ${activeTheme.bg}`}
-      style={
-        activeTheme.image
-          ? {
-              backgroundImage: `url("${activeTheme.image}")`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }
-          : undefined
-      }
+      className="fixed inset-0 z-50 flex items-center justify-center select-none bg-black overflow-hidden"
     >
       {/* Top Fullscreen Controls Bar */}
       <div className="absolute top-6 inset-x-8 flex items-center justify-between z-40">
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-white tracking-wider uppercase">
-            {labels.title} เต็มจอ
+            {labels.title} {t("subFullscreenBtn")}
           </span>
           <span className="text-xs font-mono text-white/50">
             {window.innerWidth}x{window.innerHeight}
@@ -94,13 +160,13 @@ export const FullscreenHUD: React.FC<FullscreenHUDProps> = ({
             }`}
           >
             <Sliders className="w-3.5 h-3.5" />
-            <span>แถบปรับแต่ง</span>
+            <span>{t("subLiveInspectHUD")}</span>
           </button>
           <button
             type="button"
             onClick={onClose}
             className="h-8 px-3 rounded-xl text-xs font-medium flex items-center gap-1.5 bg-black/60 text-white hover:bg-white/[0.15] transition-colors cursor-pointer outline-none backdrop-blur-xl"
-            title="ออกจากโหมดเต็มจอ"
+            title={labels.exitFullscreen}
           >
             <Minimize2 className="w-3.5 h-3.5" />
             <span>{labels.exitFullscreen}</span>
@@ -108,38 +174,43 @@ export const FullscreenHUD: React.FC<FullscreenHUDProps> = ({
         </div>
       </div>
 
-      {/* 21:9 Letterbox Matte Simulation in Fullscreen */}
-      {framingMode === "16/9_letterbox" && (
-        <>
-          <div
-            className="absolute top-0 left-0 right-0 bg-black pointer-events-none z-10 border-b border-white/[0.04] flex items-center px-8"
-            style={{ height: "12.78%" }}
-          >
-            <span className="text-[10px] font-mono text-white/20">
-              แถบดำบน
-            </span>
-          </div>
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-black pointer-events-none z-10 border-t border-white/[0.04] flex items-center px-8"
-            style={{ height: "12.78%" }}
-          >
-            <span className="text-[10px] font-mono text-white/20">
-              แถบดำล่าง
-            </span>
-          </div>
-        </>
-      )}
-
-      {/* Fullscreen Canvas Safe Guides */}
-      {showGuides && (
-        <>
-          <div className="absolute inset-[5%] border border-dashed border-white/10 pointer-events-none rounded-xl z-15" />
-          <div className="absolute inset-[10%] border border-dashed border-white/20 pointer-events-none rounded-lg z-15" />
-        </>
-      )}
-
-      {/* Subtitle in Fullscreen */}
-      {renderSubtitleText(true)}
+      {/* Main Unified Virtual Stage */}
+      <SubtitleStage
+        framingMode={framingMode}
+        themeId={activeThemeId}
+        activeTheme={activeTheme}
+        videoUrl={videoUrl}
+        videoRef={videoRef}
+        showGuides={showGuides}
+        scale={scale}
+        stageWidth={stageWidth}
+        stageHeight={stageHeight}
+        subFont={subFont}
+        subSize={subSize}
+        subOutline={subOutline}
+        subShadow={subShadow}
+        subMarginV={subMarginV}
+        subColor={subColor}
+        previewType={previewType}
+        sampleLang={sampleLang}
+        enableRuby={enableRuby}
+        rubyFont={rubyFont}
+        rubySize={rubySize}
+        rubyOutline={rubyOutline}
+        rubyShadow={rubyShadow}
+        rubyOffsetY={rubyOffsetY}
+        rubyColor={rubyColor}
+        rubyText={rubyText}
+        baseText={baseText}
+        lyricFont={lyricFont}
+        lyricSize={lyricSize}
+        lyricOutline={lyricOutline}
+        lyricShadow={lyricShadow}
+        lyricMarginX={lyricMarginX}
+        lyricMarginY={lyricMarginY}
+        lyricBilingual={lyricBilingual}
+        lyricColor={lyricColor}
+      />
 
       {/* Floating In-Place Settings HUD Drawer */}
       <AnimatePresence>
@@ -153,14 +224,14 @@ export const FullscreenHUD: React.FC<FullscreenHUDProps> = ({
           >
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="text-xs font-semibold text-white tracking-wider uppercase">
-                ปรับแต่งตัวอักษรสด
+                {t("subLiveInspectHUD")}
               </span>
               <button
                 type="button"
                 onClick={() => setShowFullscreenHUD(false)}
                 className="text-white/40 hover:text-white text-xs cursor-pointer"
               >
-                ปิด
+                {t("btnCancel")}
               </button>
             </div>
 
@@ -234,7 +305,7 @@ export const FullscreenHUD: React.FC<FullscreenHUDProps> = ({
 
       {/* Bottom Keyboard Hint */}
       <div className="absolute bottom-4 inset-x-0 text-center text-[11px] text-white/40 font-mono pointer-events-none">
-        กดปุ่ม Escape เพื่อออกจากโหมดเต็มจอ
+        {t("subEscapeExitHUD")}
       </div>
     </motion.div>,
     document.body

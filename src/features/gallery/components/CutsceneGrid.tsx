@@ -3,6 +3,7 @@ import { Loader2, Film } from "lucide-react";
 import { ProcessedVideoItem, VideoMetaInfo } from "@/features/catalog/stores/useCatalogStore";
 import { CutsceneCard } from "./CutsceneCard";
 import { CutsceneListItem } from "./CutsceneListItem";
+import { useApp } from "@/context/AppContext";
 
 interface CutsceneGridProps {
   loading: boolean;
@@ -39,11 +40,12 @@ export const CutsceneGrid: React.FC<CutsceneGridProps> = ({
   viewMode,
   noMatchingVideosLabel,
 }) => {
+  const { t } = useApp();
   if (loading && totalCatalogCount === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-[#71717A]">
         <Loader2 className="w-7 h-7 animate-spin mb-3 text-white" />
-        <p className="text-xs font-mono">กำลังโหลดแคตตาล็อกคัตซีนจากฐานข้อมูลเกม...</p>
+        <p className="text-xs font-mono">{t("galleryLoadingCatalog")}</p>
       </div>
     );
   }
@@ -58,7 +60,7 @@ export const CutsceneGrid: React.FC<CutsceneGridProps> = ({
           {noMatchingVideosLabel}
         </h3>
         <p className="text-[11px] text-[#71717A] max-w-sm">
-          ไม่พบคัตซีนที่ตรงกับไดเรกทอรีหรือคำค้นหาที่เลือก
+          {t("galleryEmptyFiltered")}
         </p>
       </div>
     );

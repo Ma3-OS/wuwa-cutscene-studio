@@ -39,7 +39,7 @@ export const StorageTab: React.FC<StorageTabProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[10px] text-[#737373] uppercase tracking-wider font-medium">
-              พื้นที่รวมที่ใช้งานในโปรเจกต์
+              {t("storageTotalUsage")}
             </div>
             <div className="text-lg font-bold font-mono text-white mt-0.5">
               {storageStats?.total_formatted || formatBytes(cacheSize)}
@@ -61,19 +61,19 @@ export const StorageTab: React.FC<StorageTabProps> = ({
         {/* Storage Breakdown Cards */}
         <div className="grid grid-cols-3 gap-2 pt-1">
           <div className="p-2.5 rounded-lg bg-white/[0.03] space-y-1">
-            <div className="text-[10px] text-[#71717A]">แคชชั่วคราว</div>
+            <div className="text-[10px] text-[#71717A]">{t("storageTempCache")}</div>
             <div className="text-xs font-mono font-medium text-white">
               {storageStats?.cache_formatted || formatBytes(cacheSize)}
             </div>
           </div>
           <div className="p-2.5 rounded-lg bg-white/[0.03] space-y-1">
-            <div className="text-[10px] text-[#71717A]">โฟลเดอร์สกัด</div>
+            <div className="text-[10px] text-[#71717A]">{t("storageExportFolder")}</div>
             <div className="text-xs font-mono font-medium text-white">
               {storageStats?.export_formatted || "0 MB"}
             </div>
           </div>
           <div className="p-2.5 rounded-lg bg-white/[0.03] space-y-1">
-            <div className="text-[10px] text-[#71717A]">โฟลเดอร์เรนเดอร์</div>
+            <div className="text-[10px] text-[#71717A]">{t("storageOutputFolder")}</div>
             <div className="text-xs font-mono font-medium text-white">
               {storageStats?.render_formatted || "0 MB"}
             </div>
@@ -89,7 +89,7 @@ export const StorageTab: React.FC<StorageTabProps> = ({
             disabled={isClearingCache}
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>ล้างแคชชั่วคราวเพื่อประหยัดพื้นที่</span>
+            <span>{t("storageClearBtn")}</span>
           </StudioButton>
         </div>
       </div>

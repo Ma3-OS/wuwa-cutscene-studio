@@ -7,6 +7,7 @@ import {
   Layers,
   HardDrive,
 } from "lucide-react";
+import { useApp } from "../../context/AppContext";
 
 export interface TreeNode {
   name: string;
@@ -53,7 +54,7 @@ export function buildFolderTree(
 
     if (
       !normalized ||
-      normalized === "คลังในเครื่อง" ||
+      normalized === "cached" ||
       normalized.includes(":") ||
       normalized.toLowerCase().includes("export") ||
       normalized.toLowerCase().includes("cache") ||
@@ -307,6 +308,7 @@ export const DynamicFolderTree: React.FC<DynamicFolderTreeProps> = ({
   onSelectPath,
   className = "",
 }) => {
+  const { t } = useApp();
   const treeNodes = useMemo(() => buildFolderTree(items), [items]);
 
   // Count total and cached cutscenes
@@ -361,7 +363,7 @@ export const DynamicFolderTree: React.FC<DynamicFolderTreeProps> = ({
               selectedPath === "all" ? "text-white" : "text-[#71717A]"
             }`}
           />
-          <span className="truncate text-[11px] tracking-tight">คัตซีนทั้งหมด</span>
+          <span className="truncate text-[11px] tracking-tight">{t("navAll")}</span>
         </div>
         <span
           className={`text-[10px] font-mono px-1 rounded ${
@@ -391,7 +393,7 @@ export const DynamicFolderTree: React.FC<DynamicFolderTreeProps> = ({
                 selectedPath === "cached" ? "text-white" : "text-[#71717A]"
               }`}
             />
-            <span className="truncate text-[11px] tracking-tight">คลังในเครื่อง</span>
+            <span className="truncate text-[11px] tracking-tight">{t("folderInternalCache")}</span>
           </div>
           <span
             className={`text-[10px] font-mono px-1 rounded ${
@@ -408,7 +410,7 @@ export const DynamicFolderTree: React.FC<DynamicFolderTreeProps> = ({
       {/* Hierarchy Section Divider */}
       <div className="pt-2 pb-1 px-2 flex items-center justify-between">
         <span className="text-[10px] font-semibold text-[#52525B] tracking-wider uppercase">
-          โครงสร้างโฟลเดอร์เกม
+          {t("gameFolderStructure")}
         </span>
       </div>
 

@@ -188,9 +188,7 @@ function AppContent() {
   const handleOpenQuickLook = useCallback(
     async (video: ProcessedVideoItem, meta?: VideoMetaInfo | null) => {
       useTaskStore.getState().appendLog({
-        message: `เปิดพรีวิวคัตซีน ${video.fileName} เพศ ${
-          video.roverType === "Girl" ? "โรเวอร์หญิง" : video.roverType === "Boy" ? "โรเวอร์ชาย" : "ทั่วไป"
-        }`,
+        message: `Opened preview for ${video.fileName} (Gender: ${video.roverType})`,
         level: "info",
       });
 
@@ -216,9 +214,9 @@ function AppContent() {
         Boolean(video.cgName && video.cgFile);
 
       if (needsExtraction) {
-        toast.info(`กำลังสกัดไฟล์คัตซีน ${video.fileName} จากคลังเกม`, { id: "studio-op" });
+        toast.info(`${t("galleryExtractingProgress")} ${video.fileName}`, { id: "studio-op" });
         useTaskStore.getState().appendLog({
-          message: `เริ่มการสกัดไฟล์คัตซีน ${video.fileName} เพื่อเปิดพรีวิว`,
+          message: `Extracting cutscene ${video.fileName} to open preview`,
           level: "info",
         });
 
@@ -241,7 +239,7 @@ function AppContent() {
             fullPath: res.video_file,
             isCached: true,
             audio_ready: true,
-            folderName: "คลังในเครื่อง",
+            folderName: "cached",
           };
           useCatalogStore.getState().updateItem(video.uniqueId || video.cgFile || video.fullPath, updated);
 
@@ -257,20 +255,20 @@ function AppContent() {
           setQuickLookVideo(updated);
           setQuickLookMeta(thumbMeta);
           useTaskStore.getState().appendLog({
-            message: `เปิดพรีวิวคัตซีน ${video.fileName} สำเร็จ`,
+            message: `Opened preview for cutscene ${video.fileName} successfully`,
             level: "success",
           });
           return;
         } catch (err) {
           if (
             String(err).includes("CANCELLED") ||
-            String(err).includes("ยกเลิก") ||
+            String(err).toLowerCase().includes("cancel") ||
             useExtractionStore.getState().isCancelled
           ) {
             return;
           }
           useExtractionStore.getState().setError(String(err));
-          const errMsg = "ไม่สามารถเปิดวิดีโอได้: " + String(err);
+          const errMsg = `${t("toastCannotOpenVideo")}: ${String(err)}`;
           useTaskStore.getState().appendLog({
             message: errMsg,
             level: "error",
@@ -282,7 +280,7 @@ function AppContent() {
       setQuickLookVideo(video);
       setQuickLookMeta(meta || null);
     },
-    []
+    [t]
   );
 
   // Extract Raw Cutscene Assets to Project Folder
@@ -304,7 +302,7 @@ function AppContent() {
     if (!currentItem || !currentItem.cgName || !currentItem.cgFile) return;
 
     useTaskStore.getState().appendLog({
-      message: `เริ่มคำขอสกัดไฟล์ต้นฉบับ ${currentItem.fileName || currentItem.cgName} ลงโฟลเดอร์โปรเจกต์`,
+      message: `Extracting raw assets for ${currentItem.fileName || currentItem.cgName} to project folder`,
       level: "info",
     });
 
@@ -328,16 +326,16 @@ function AppContent() {
           hasVideo: true,
           isLevelSequence: false,
           audio_ready: true,
-          folderName: "คลังในเครื่อง",
+          folderName: "cached",
         };
         setSelectedItem(updated);
         setSelectedFile(res.video_file);
         useCatalogStore.getState().updateItem(currentItem.uniqueId || currentItem.cgFile || currentItem.fullPath, updated);
         useTaskStore.getState().appendLog({
-          message: `สกัดไฟล์ต้นฉบับสำเร็จ ${res.video_file}`,
+          message: `Raw assets extracted successfully: ${res.video_file}`,
           level: "success",
         });
-        toast.success("สกัดไฟล์ต้นฉบับลงโฟลเดอร์โปรเจกต์สำเร็จ", { id: "studio-op" });
+        toast.success(t("toastExtractRawSuccess"), { id: "studio-op" });
       } else if (res.audio_files && res.audio_files.length > 0) {
         const updated: ProcessedVideoItem = {
           ...currentItem,
@@ -346,25 +344,25 @@ function AppContent() {
         setSelectedItem(updated);
         useCatalogStore.getState().updateItem(currentItem.uniqueId || currentItem.cgFile || currentItem.fullPath, updated);
         useTaskStore.getState().appendLog({
-          message: `สกัดไฟล์เสียงสำหรับ 3D Sequence ${currentItem.fileName || currentItem.cgName} สำเร็จ ${res.audio_files.length} รายการ`,
+          message: `Extracted audio tracks for 3D Sequence ${currentItem.fileName || currentItem.cgName} (${res.audio_files.length} items)`,
           level: "success",
         });
-        toast.success("สกัดไฟล์เสียงสำหรับ 3D Sequence ลงโฟลเดอร์โปรเจกต์สำเร็จ", { id: "studio-op" });
+        toast.success(t("toastExtract3DAudioSuccess"), { id: "studio-op" });
       }
     } catch (err) {
       if (
         String(err).includes("CANCELLED") ||
-        String(err).includes("ยกเลิก")
+        String(err).toLowerCase().includes("cancel")
       ) {
         useTaskStore.getState().appendLog({
-          message: "การสกัดไฟล์ต้นฉบับถูกยกเลิกโดยผู้ใช้",
+          message: "Raw asset extraction cancelled by user",
           level: "warn",
         });
         return;
       }
       console.error(err);
       playSound("error");
-      const errMsg = "การสกัดขัดข้อง: " + String(err);
+      const errMsg = "Extraction failed: " + String(err);
       useTaskStore.getState().appendLog({
         message: errMsg,
         level: "error",
@@ -393,20 +391,20 @@ function AppContent() {
     if (!currentItem) return;
 
     useTaskStore.getState().appendLog({
-      message: `เริ่มคำขอเรนเดอร์คัตซีน ${currentItem.fileName || currentItem.cgName}`,
+      message: `Render requested for cutscene ${currentItem.fileName || currentItem.cgName}`,
       level: "info",
     });
 
     // 1. Video Dependencies Check
     try {
       useTaskStore.getState().appendLog({
-        message: "กำลังตรวจสอบเครื่องมือระบบ FFmpeg Wwiser และ vgmstream",
+        message: "Checking system dependencies: FFmpeg, Wwiser, vgmstream",
         level: "info",
       });
       const deps = await ToolsAPI.checkDependencies();
       if (!deps.ffmpeg || !deps.wwiser || !deps.vgmstream) {
         useTaskStore.getState().appendLog({
-          message: "ไม่พบเครื่องมือระบบที่จำเป็นสำหรับการเรนเดอร์ กรุณาตรวจสอบในหน้าต่าง Preferences",
+          message: "Required rendering tools missing. Please check Preferences.",
           level: "error",
         });
         toast.error(t("guideMissingToolsTitle"), {
@@ -452,10 +450,10 @@ function AppContent() {
 
       if (needsExtraction && currentItem.cgName && currentItem.cgFile) {
         useTaskStore.getState().appendLog({
-          message: `กำลังเริ่มสกัดไฟล์สำหรับ ${currentItem.fileName || currentItem.cgName} จากแพ็กเกจเกม`,
+          message: `Extracting assets for ${currentItem.fileName || currentItem.cgName} from game packages`,
           level: "info",
         });
-        toast.info(`กำลังสกัดไฟล์คัตซีน ${currentItem.fileName || currentItem.cgName} จากคลังเกม`, { id: "studio-op" });
+        toast.info(`${t("galleryExtractingProgress")} ${currentItem.fileName || currentItem.cgName}`, { id: "studio-op" });
         const reqId = crypto.randomUUID();
         useExtractionStore.getState().startExtraction(currentItem.fileName || currentItem.cgName, reqId);
         const soundEvents = await RendererAPI.getVideoAudioEvent(currentItem.cgName || currentItem.fileName).catch(() => []);
@@ -476,13 +474,13 @@ function AppContent() {
             hasVideo: true,
             isLevelSequence: false,
             audio_ready: true,
-            folderName: "คลังในเครื่อง",
+            folderName: "cached",
           };
           setSelectedItem(updated);
           setSelectedFile(res.video_file);
           useCatalogStore.getState().updateItem(currentItem.uniqueId || currentItem.cgFile || currentItem.fullPath, updated);
           useTaskStore.getState().appendLog({
-            message: `สกัดไฟล์วิดีโอสำเร็จ ${res.video_file}`,
+            message: `Extracted video file successfully: ${res.video_file}`,
             level: "success",
           });
         } else if (res.audio_files && res.audio_files.length > 0) {
@@ -493,10 +491,10 @@ function AppContent() {
           setSelectedItem(updated);
           useCatalogStore.getState().updateItem(currentItem.uniqueId || currentItem.cgFile || currentItem.fullPath, updated);
           useTaskStore.getState().appendLog({
-            message: `คัตซีน ${currentItem.fileName || currentItem.cgName} เป็น 3D In Engine Sequence ที่ไม่มีไฟล์วิดีโอ MP4 ในเกม สกัดเฉพาะไฟล์เสียงสำเร็จ ${res.audio_files.length} รายการ`,
+            message: `Cutscene ${currentItem.fileName || currentItem.cgName} is an in-engine 3D Sequence without MP4. Audio extracted successfully: ${res.audio_files.length} tracks`,
             level: "info",
           });
-          toast.info("คัตซีนนี้เป็น 3D Sequence ในเอนจินเกม ไม่มีไฟล์วิดีโอ MP4 ในแพ็กเกจเกม สกัดไฟล์เสียงเรียบร้อยแล้ว", { id: "studio-op" });
+          toast.info(t("toastExtract3DAudioSuccess"), { id: "studio-op" });
           setIsRendering(false);
           return;
         }
@@ -514,7 +512,7 @@ function AppContent() {
       );
 
       if (!targetDiskPath || !isValidFinal) {
-        const notFoundMsg = `ไม่พบไฟล์วิดีโอบนดิสก์สำหรับ ${currentItem.fileName || currentItem.cgName}`;
+        const notFoundMsg = `Video file not found on disk for ${currentItem.fileName || currentItem.cgName}`;
         useTaskStore.getState().appendLog({
           message: notFoundMsg,
           level: "error",
@@ -525,14 +523,14 @@ function AppContent() {
       }
 
       useTaskStore.getState().appendLog({
-        message: `เตรียมไฟล์วิดีโอต้นฉบับสำเร็จ ${targetDiskPath}`,
+        message: `Source video file prepared: ${targetDiskPath}`,
         level: "info",
       });
 
       // 3. Generate single video info (audio probing and subtitle alignment)
       const renderGender = currentItem.roverType === "Girl" ? "Girl" : currentItem.roverType === "Boy" ? "Boy" : gender;
       useTaskStore.getState().appendLog({
-        message: `กำลังวิเคราะห์แทร็กเสียงและซับไตเติลภาษา ${locale} ตัวละคร ${renderGender}`,
+        message: `Analyzing audio tracks and subtitles for locale ${locale}, character ${renderGender}`,
         level: "info",
       });
 
@@ -543,13 +541,13 @@ function AppContent() {
       );
 
       useTaskStore.getState().appendLog({
-        message: `จัดเตรียมข้อมูลเรนเดอร์สำเร็จ แทร็กเสียง ${payload.sounds.length} แทร็ก ส่งต่อไปยัง FFmpeg`,
+        message: `Prepared render payload with ${payload.sounds.length} sound tracks, sending to FFmpeg`,
         level: "info",
       });
 
       // 4. Invoke FFmpeg rendering
       useTaskStore.getState().appendLog({
-        message: `กำลังประมวลผลเรนเดอร์ด้วย FFmpeg โหมดซับไตเติล ${subtitleMode} ความละเอียด ${renderResolution}`,
+        message: `Encoding video with FFmpeg, subtitle mode: ${subtitleMode}, resolution: ${renderResolution}`,
         level: "info",
       });
 
@@ -558,7 +556,7 @@ function AppContent() {
       playSound("success");
 
       useTaskStore.getState().appendLog({
-        message: `เรนเดอร์คัตซีนสำเร็จ บันทึกไฟล์ที่ ${outputPath}`,
+        message: `Cutscene rendered successfully: ${outputPath}`,
         level: "success",
       });
 
@@ -572,17 +570,17 @@ function AppContent() {
     } catch (err) {
       if (
         String(err).includes("CANCELLED") ||
-        String(err).includes("ยกเลิก")
+        String(err).toLowerCase().includes("cancel")
       ) {
         useTaskStore.getState().appendLog({
-          message: "การเรนเดอร์ถูกยกเลิกโดยผู้ใช้",
+          message: "Render cancelled by user",
           level: "warn",
         });
         return;
       }
       console.error(err);
       playSound("error");
-      const errMsg = "การเรนเดอร์ขัดข้อง: " + String(err);
+      const errMsg = "Render error: " + String(err);
       useTaskStore.getState().appendLog({
         message: errMsg,
         level: "error",
@@ -599,12 +597,12 @@ function AppContent() {
   const handleCancelRender = async () => {
     try {
       useTaskStore.getState().appendLog({
-        message: "ส่งคำขอยกเลิกการเรนเดอร์ไปยังระบบ",
+        message: "Cancellation request sent to render engine",
         level: "warn",
       });
       useExtractionStore.getState().cancel();
       await RendererAPI.cancelRender();
-      toast.info("ยกเลิกการเรนเดอร์เรียบร้อยแล้ว");
+      toast.info(t("toastCancelRenderSuccess"));
     } catch (err) {
       console.error("Cancel render error:", err);
     } finally {
@@ -649,11 +647,10 @@ function AppContent() {
     addToQueue(newQueueItems);
     setSelectedFiles(new Set());
     useTaskStore.getState().appendLog({
-      message: `เพิ่ม ${newQueueItems.length} รายการเข้าสู่คิวเรนเดอร์เรียบร้อยแล้ว`,
+      message: `Added ${newQueueItems.length} items to batch queue`,
       level: "info",
     });
-    const queueActionLabel = t("btnAddAllToQueue");
-    toast.success(queueActionLabel + " " + newQueueItems.length + " คลิป");
+    toast.success(`${t("toastAddedToQueue")} ${newQueueItems.length} ${t("queueClipsUnit")}`);
     setActiveWorkspace("queue");
   };
 
@@ -707,7 +704,7 @@ function AppContent() {
                 gender={gender}
                 onGenderChange={(val) => {
                   useTaskStore.getState().appendLog({
-                    message: `เปลี่ยนการเลือกเพศโรเวอร์เป็น ${val === "Girl" ? "โรเวอร์หญิง" : "โรเวอร์ชาย"}`,
+                    message: `Rover gender selection changed to ${val}`,
                     level: "info",
                   });
                   updateConfig({ char_selection: val });
@@ -725,7 +722,7 @@ function AppContent() {
                 locale={locale}
                 onLocaleChange={(val) => {
                   useTaskStore.getState().appendLog({
-                    message: `เปลี่ยนภาษาเสียงเป็น ${val}`,
+                    message: `Audio locale changed to ${val}`,
                     level: "info",
                   });
                   updateConfig({ locale_selection: val });
@@ -733,7 +730,7 @@ function AppContent() {
                 subtitleMode={subtitleMode}
                 onSubtitleModeChange={(val) => {
                   useTaskStore.getState().appendLog({
-                    message: `เปลี่ยนรูปแบบซับไตเติลเป็น ${val}`,
+                    message: `Subtitle mode changed to ${val}`,
                     level: "info",
                   });
                   updateConfig({ subtitle_mode: val });
@@ -741,7 +738,7 @@ function AppContent() {
                 renderResolution={renderResolution}
                 onResolutionChange={(val) => {
                   useTaskStore.getState().appendLog({
-                    message: `เปลี่ยนความละเอียดการเรนเดอร์เป็น ${val}`,
+                    message: `Render resolution changed to ${val}`,
                     level: "info",
                   });
                   updateConfig({ render_resolution: val });

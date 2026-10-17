@@ -1,6 +1,7 @@
 import React from "react";
 import { Type } from "lucide-react";
 import { SAMPLE_TEXTS } from "../constants";
+import { useApp } from "@/context/AppContext";
 
 interface SampleDialogueCardProps {
   label: string;
@@ -20,9 +21,13 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
   onSwitchLanguage,
   enableRuby,
   setEnableRuby,
+  rubyText: _rubyText,
+  setRubyText,
   baseText,
   setBaseText,
 }) => {
+  const { t } = useApp();
+
   return (
     <div className="p-3.5 rounded-2xl bg-[#141416] space-y-2.5 border border-white/[0.04]">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -53,46 +58,55 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
               enableRuby ? "bg-white/[0.14] text-white" : "text-[#737373] hover:text-white"
             }`}
           >
-            รูบี้กำกับคำ
+            {t("sampleRubyBadge")}
           </button>
         </div>
       </div>
 
       {/* Preset Sentence Buttons */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-[#71717A] font-medium">รูปแบบ:</span>
+        <span className="text-[10px] text-[#71717A] font-medium">{t("sampleStyleLabel")}</span>
         <button
           type="button"
-          onClick={() => setBaseText(SAMPLE_TEXTS[sampleLang].base)}
+          onClick={() => {
+            setBaseText(SAMPLE_TEXTS[sampleLang].base);
+            setRubyText(SAMPLE_TEXTS[sampleLang].ruby);
+          }}
           className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer outline-none ${
             baseText === SAMPLE_TEXTS[sampleLang].base
               ? "bg-white/[0.14] text-white"
               : "text-[#71717A] hover:text-white hover:bg-white/[0.06]"
           }`}
         >
-          มีคำอ่านรูบี้
+          {t("sampleWithRuby")}
         </button>
         <button
           type="button"
-          onClick={() => setBaseText(SAMPLE_TEXTS[sampleLang].long)}
+          onClick={() => {
+            setBaseText(SAMPLE_TEXTS[sampleLang].long);
+            setRubyText("");
+          }}
           className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer outline-none ${
             baseText === SAMPLE_TEXTS[sampleLang].long
               ? "bg-white/[0.14] text-white"
               : "text-[#71717A] hover:text-white hover:bg-white/[0.06]"
           }`}
         >
-          ประโยคยาวสองบรรทัด
+          {t("sampleLongTwoLines")}
         </button>
         <button
           type="button"
-          onClick={() => setBaseText(SAMPLE_TEXTS[sampleLang].short)}
+          onClick={() => {
+            setBaseText(SAMPLE_TEXTS[sampleLang].short);
+            setRubyText("");
+          }}
           className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer outline-none ${
             baseText === SAMPLE_TEXTS[sampleLang].short
               ? "bg-white/[0.14] text-white"
               : "text-[#71717A] hover:text-white hover:bg-white/[0.06]"
           }`}
         >
-          ประโยคสั้นบรรทัดเดียว
+          {t("sampleShortOneLine")}
         </button>
       </div>
 
@@ -101,7 +115,7 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
         type="text"
         value={baseText}
         onChange={(e) => setBaseText(e.target.value)}
-        placeholder="ข้อความบทสนทนาตัวอย่าง..."
+        placeholder={t("sampleDialoguePlaceholder")}
         className="w-full h-8.5 px-3 rounded-xl bg-white/[0.04] text-xs text-white placeholder-[#737373] border-none outline-none focus:ring-1 focus:ring-white/20 transition-all font-medium"
       />
     </div>

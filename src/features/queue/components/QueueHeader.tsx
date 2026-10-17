@@ -2,6 +2,7 @@ import React from "react";
 import { ListPlus, Plus, Trash2, FolderOpen, Pause, Play } from "lucide-react";
 import { StudioButton } from "@/components/ui/StudioButton";
 import { StudioSegmentedControl } from "@/components/ui/StudioSegmentedControl";
+import { useApp } from "@/context/AppContext";
 
 interface QueueHeaderProps {
   totalCount: number;
@@ -28,6 +29,8 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
   onOpenOutput,
   onToggleProcessing,
 }) => {
+  const { t } = useApp();
+
   return (
     <div className="flex items-center justify-between shrink-0">
       <div className="flex items-center gap-3">
@@ -37,14 +40,14 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-semibold text-white tracking-wide">
-              คิวเรนเดอร์แบบกลุ่ม
+              {t("queueBatchRenderTitle")}
             </h1>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-white/60">
-              {totalCount} คลิป
+              {totalCount} {t("queueClipsUnit")}
             </span>
           </div>
           <p className="text-xs text-[#737373] mt-0.5">
-            จัดคิวและแปลงไฟล์วิดีโอคัตซีนหลายคลิปต่อเนื่องในเบื้องหลัง
+            {t("queueBatchRenderDesc")}
           </p>
         </div>
       </div>
@@ -53,7 +56,7 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
       <div className="flex items-center gap-2">
         <StudioButton variant="secondary" size="sm" onClick={onOpenAddModal}>
           <Plus className="w-3.5 h-3.5" />
-          <span>เพิ่มคัตซีน</span>
+          <span>{t("queueAddCutsceneBtn")}</span>
         </StudioButton>
 
         <StudioSegmentedControl<string>
@@ -61,8 +64,8 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
           value={isParallel ? "parallel" : "sequential"}
           onChange={(val) => onSetParallel(val === "parallel")}
           options={[
-            { value: "sequential", label: "ทีละคลิป" },
-            { value: "parallel", label: "พร้อมกันสองคลิป" },
+            { value: "sequential", label: t("queueModeSequential") },
+            { value: "parallel", label: t("queueModeParallel") },
           ]}
         />
 
@@ -70,7 +73,7 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
           <>
             <StudioButton variant="ghost" size="sm" onClick={onClearFinished}>
               <Trash2 className="w-3.5 h-3.5" />
-              <span>ล้างที่เสร็จแล้ว</span>
+              <span>{t("queueClearFinished")}</span>
             </StudioButton>
 
             <StudioButton
@@ -79,14 +82,14 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
               onClick={onClearAll}
               className="text-neutral-400 hover:text-white"
             >
-              <span>ล้างทั้งหมด</span>
+              <span>{t("queueClearAll")}</span>
             </StudioButton>
           </>
         )}
 
         <StudioButton variant="secondary" size="sm" onClick={onOpenOutput}>
           <FolderOpen className="w-3.5 h-3.5" />
-          <span>โฟลเดอร์ผลลัพธ์</span>
+          <span>{t("queueOutputFolderBtn")}</span>
         </StudioButton>
 
         <StudioButton
@@ -99,12 +102,12 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
           {isProcessing ? (
             <>
               <Pause className="w-3.5 h-3.5 mr-1" />
-              <span>หยุดชั่วคราว</span>
+              <span>{t("queuePauseBtn")}</span>
             </>
           ) : (
             <>
               <Play className="w-3.5 h-3.5 mr-1 text-black fill-current" />
-              <span>เริ่มเรนเดอร์คิว</span>
+              <span>{t("queueStartBtn")}</span>
             </>
           )}
         </StudioButton>

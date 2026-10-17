@@ -3,6 +3,7 @@ import { Loader2, CheckCircle2, AlertTriangle, Clock, RotateCcw, ExternalLink, F
 import { StudioButton } from "@/components/ui/StudioButton";
 import { QueueItem } from "@/features/queue/stores/useQueueStore";
 import { resolveThumbnailSrc } from "@/utils/thumbnailResolver";
+import { useApp } from "@/context/AppContext";
 
 interface QueueItemRowProps {
   item: QueueItem;
@@ -21,16 +22,17 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
   onShowInFolder,
   onRemove,
 }) => {
+  const { t } = useApp();
   const isRendering = item.status === "rendering";
   const isDone = item.status === "completed";
   const isFailed = item.status === "failed";
 
   const subModeLabel =
     item.subtitleMode === "Hard-sub"
-      ? "ฝังซับลงภาพ"
+      ? t("subModeHardsub")
       : item.subtitleMode === "Soft-sub"
-      ? "ซับแยก"
-      : "ไม่มีซับ";
+      ? t("subModeSoftsub")
+      : t("subModeNone");
 
   return (
     <div className="p-3 rounded-xl bg-[#141417] border border-white/[0.04] flex items-center justify-between gap-4 transition-colors">
@@ -62,7 +64,7 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
           <div className="flex items-center gap-2 text-[11px] text-white/40 font-mono">
             <span>{item.folderName}</span>
             <span>•</span>
-            <span>{item.gender === "Girl" ? "โรเวอร์หญิง" : "โรเวอร์ชาย"}</span>
+            <span>{item.gender === "Girl" ? t("roverGirl") : t("roverBoy")}</span>
             <span>•</span>
             <span>{item.locale.toUpperCase()}</span>
             <span>•</span>
@@ -107,7 +109,7 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
             className="text-xs text-white"
           >
             <RotateCcw className="w-3 h-3 mr-1" />
-            <span>ลองใหม่</span>
+            <span>{t("queueRetryBtn")}</span>
           </StudioButton>
         )}
 
@@ -121,7 +123,7 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
               className="text-xs text-white/80 hover:text-white"
             >
               <ExternalLink className="w-3 h-3 mr-1" />
-              <span>เปิดดู</span>
+              <span>{t("queueOpenBtn")}</span>
             </StudioButton>
             <StudioButton
               variant="ghost"
@@ -139,7 +141,7 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
           type="button"
           onClick={() => onRemove(item.id)}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer outline-none"
-          title="ลบรายการนี้"
+          title={t("queueRemoveBtn")}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>

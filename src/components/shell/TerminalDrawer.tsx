@@ -122,14 +122,14 @@ export const TerminalDrawer: React.FC<TerminalDrawerProps> = ({
                   const logPath = await ToolsAPI.getLogFilePath();
                   await ToolsAPI.openFile(logPath);
                 } catch {
-                  toast.error("ไม่สามารถเปิดไฟล์บันทึกได้");
+                  toast.error(t("terminalOpenLogError"));
                 }
               }}
               className="h-6 px-2 rounded flex items-center gap-1 text-[11px] font-medium text-[#737373] hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer outline-none"
-              title="เปิดไฟล์บันทึกบนดิสก์"
+              title={t("terminalOpenDiskLog")}
             >
               <FileText className="w-3 h-3" />
-              <span>เปิดไฟล์บันทึก</span>
+              <span>{t("terminalOpenLogBtn")}</span>
             </button>
 
             <button

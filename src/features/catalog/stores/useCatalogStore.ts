@@ -102,7 +102,7 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
     const appendLog = useTaskStore.getState().appendLog;
     set({ loading: true });
     appendLog({
-      message: "กำลังตรวจสอบและโหลดรายชื่อคัตซีนจากฐานข้อมูลเกมและแคชระบบ",
+      message: "Scanning and indexing cutscene database and system cache...",
       level: "info",
     });
 
@@ -144,7 +144,7 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
 
           const folderName =
             normCategoryFolder ||
-            (item.is_cached ? "คลังในเครื่อง" : "Aki/Movies");
+            (item.is_cached ? "cached" : "Aki/Movies");
 
           const effectiveFullPath = item.local_video_path || item.cg_file;
           const baseName = (item.base_cg_name || item.cg_name || "video").trim();
@@ -202,7 +202,7 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
         const mapped = Array.from(itemMap.values());
         set({ items: mapped, loading: false });
         appendLog({
-          message: `โหลดรายการคัตซีนเกมสำเร็จ จำนวนทั้งหมด ${mapped.length} รายการ`,
+          message: `Loaded ${mapped.length} game cutscenes successfully`,
           level: "success",
         });
         return;
@@ -261,7 +261,7 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
         const fallbackItems = Array.from(fallbackMap.values());
         set({ items: fallbackItems, loading: false });
         appendLog({
-          message: `โหลดไฟล์วิดีโอจากโฟลเดอร์นำเข้า ${exportDir} จำนวน ${fallbackItems.length} ไฟล์`,
+          message: `Loaded ${fallbackItems.length} videos from export directory ${exportDir}`,
           level: "success",
         });
       } else {
@@ -270,7 +270,7 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
     } catch (e) {
       const rawErr = String(e);
       const cleanErr = rawErr.split("(").join("").split(")").join("").split("[").join("").split("]").join("");
-      const errMsg = `ไม่สามารถโหลดรายการคัตซีนได้ ${cleanErr}`;
+      const errMsg = `Failed to load cutscenes: ${cleanErr}`;
       console.error(errMsg);
       appendLog({ message: errMsg, level: "error" });
       set({ loading: false });

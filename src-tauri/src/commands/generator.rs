@@ -1352,12 +1352,18 @@ pub fn get_cutscene_dialogue(
     let cfg = config_state.0.lock().unwrap().clone();
     let ruby_cfg = crate::subtitles::RubyConfig {
         enabled: cfg.ruby_enabled,
+        font_name: cfg.ruby_font.clone(),
         size: cfg.ruby_size,
+        outline: cfg.ruby_outline,
+        shadow: cfg.ruby_shadow,
         offset_y: cfg.ruby_offset_y,
         color: cfg.ruby_color.clone(),
     };
     let lyric_cfg = crate::subtitles::LyricConfig {
+        font_name: cfg.lyric_font.clone(),
         size: cfg.lyric_size,
+        outline: cfg.lyric_outline,
+        shadow: cfg.lyric_shadow,
         margin_x: cfg.lyric_margin_x,
         margin_y: cfg.lyric_margin_y,
         bilingual: cfg.lyric_bilingual,

@@ -12,6 +12,7 @@ import {
   List,
   PanelRight,
 } from "lucide-react";
+import { useApp } from "@/context/AppContext";
 
 interface GalleryToolbarProps {
   toolbarMode: "full" | "compact" | "icon";
@@ -60,6 +61,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
   isInspectorOpen = true,
   onToggleInspector,
 }) => {
+  const { t } = useApp();
   if (isSearchOverlayOpen && toolbarMode === "icon") {
     return (
       <div className="h-10 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 bg-[#131316] w-full">
@@ -67,17 +69,17 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
           type="button"
           onClick={onToggleSearchMode}
           className="px-2 py-1 rounded text-xs font-medium bg-white/[0.04] text-[#8E8E93] hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-          title="สลับโหมดค้นหา: ชื่อคัตซีน หรือ บทพูดภาษาไทย"
+          title={t("gallerySearchModeSwitch")}
         >
           {searchMode === "name" ? (
             <>
               <Film className="w-3 h-3 text-neutral-400 shrink-0" />
-              <span className="text-xs">ชื่อคลิป</span>
+              <span className="text-xs">{t("gallerySearchModeName")}</span>
             </>
           ) : (
             <>
               <MessageSquare className="w-3 h-3 text-neutral-300 shrink-0" />
-              <span className="text-xs">บทพูด</span>
+              <span className="text-xs">{t("gallerySearchModeDialogue")}</span>
             </>
           )}
         </button>
@@ -88,7 +90,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
             autoFocus
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder={searchMode === "name" ? "ค้นหาชื่อหรือโฟลเดอร์..." : "ค้นหาคำพูดภาษาไทย..."}
+            placeholder={searchMode === "name" ? t("gallerySearchPlaceholderName") : t("gallerySearchPlaceholderDialogue")}
             className="w-full h-7 pl-7 pr-7 bg-white/[0.04] border border-white/[0.08] focus:border-white/20 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none transition-colors"
           />
           {searchQuery && (
@@ -105,8 +107,8 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
           type="button"
           onClick={() => setIsSearchOverlayOpen(false)}
           className="w-7 h-7 rounded-md bg-white/[0.04] text-[#8E8E93] hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
-          title="ปิดการค้นหา"
-          aria-label="ปิดการค้นหา"
+          title={t("gallerySearchClose")}
+          aria-label={t("gallerySearchClose")}
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -127,12 +129,12 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
-            title="วิดีโอภาพยนตร์"
+            title={t("galleryFilterCinema")}
           >
             {toolbarMode === "full" ? (
-              <span>วิดีโอภาพยนตร์</span>
+              <span>{t("galleryFilterCinema")}</span>
             ) : toolbarMode === "compact" ? (
-              <span>วิดีโอ</span>
+              <span>{t("galleryFilterCinemaShort")}</span>
             ) : (
               <Film className="w-3.5 h-3.5" />
             )}
@@ -147,10 +149,10 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
-            title="ซีน 3D และเสียง"
+            title={t("galleryFilter3D")}
           >
             {toolbarMode === "full" ? (
-              <span>ซีน 3D</span>
+              <span>{t("galleryFilter3DShort")}</span>
             ) : toolbarMode === "compact" ? (
               <span>3D</span>
             ) : (
@@ -167,12 +169,12 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
-            title="ทั้งหมด"
+            title={t("galleryFilterAll")}
           >
             {toolbarMode === "icon" ? (
               <Layers className="w-3.5 h-3.5" />
             ) : (
-              <span>ทั้งหมด</span>
+              <span>{t("galleryFilterAll")}</span>
             )}
             <span className="text-[10px] font-mono text-[#71717A]">{totalKindCount}</span>
           </button>
@@ -190,12 +192,12 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
-            title="ทุกเพศ"
+            title={t("galleryFilterAllGenders")}
           >
             {toolbarMode === "icon" ? (
               <User className="w-3 h-3 text-neutral-400" />
             ) : (
-              <span>ทุกเพศ</span>
+              <span>{t("galleryFilterAllGenders")}</span>
             )}
           </button>
 
@@ -207,11 +209,11 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
-            title="โรเวอร์หญิง"
+            title={t("galleryFilterFemaleRover")}
           >
             <User className="w-3 h-3 text-neutral-400" />
-            {toolbarMode === "full" && <span>โรเวอร์หญิง</span>}
-            {toolbarMode === "compact" && <span>หญิง</span>}
+            {toolbarMode === "full" && <span>{t("galleryFilterFemaleRover")}</span>}
+            {toolbarMode === "compact" && <span>{t("galleryFilterFemaleShort")}</span>}
           </button>
 
           <button
@@ -222,11 +224,11 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
-            title="โรเวอร์ชาย"
+            title={t("galleryFilterMaleRover")}
           >
             <User className="w-3 h-3 text-neutral-400" />
-            {toolbarMode === "full" && <span>โรเวอร์ชาย</span>}
-            {toolbarMode === "compact" && <span>ชาย</span>}
+            {toolbarMode === "full" && <span>{t("galleryFilterMaleRover")}</span>}
+            {toolbarMode === "compact" && <span>{t("galleryFilterMaleShort")}</span>}
           </button>
         </div>
       </div>
@@ -241,8 +243,8 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
               ? "bg-white/[0.12] text-white"
               : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
           }`}
-          title="ค้นหา"
-          aria-label="ค้นหา"
+          title={t("sidebarSearchCutscene")}
+          aria-label={t("sidebarSearchCutscene")}
         >
           <Search className="w-3.5 h-3.5" />
         </button>
@@ -253,7 +255,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder={searchMode === "name" ? "ค้นหาชื่อหรือโฟลเดอร์..." : "ค้นหาคำพูดภาษาไทย..."}
+            placeholder={searchMode === "name" ? t("gallerySearchPlaceholderName") : t("gallerySearchPlaceholderDialogue")}
             className="w-full h-7 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
           />
           {searchQuery && (
@@ -271,7 +273,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
             className={`p-1 rounded text-[10px] font-medium transition-colors cursor-pointer outline-none shrink-0 ${
               searchMode === "dialogue" ? "text-white bg-white/[0.12]" : "text-[#71717A] hover:text-white"
             }`}
-            title={searchMode === "name" ? "โหมดค้นหาชื่อคลิป คลิกเพื่อสลับเป็นค้นหาบทพูด" : "โหมดค้นหาบทพูด คลิกเพื่อสลับเป็นค้นหาชื่อคลิป"}
+            title={searchMode === "name" ? t("gallerySwitchToDialogue") : t("gallerySwitchToName")}
           >
             {searchMode === "name" ? <Film className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
           </button>
@@ -285,8 +287,8 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
           onClick={onRefresh}
           disabled={loading}
           className="w-7 h-7 rounded-md bg-white/[0.03] text-[#8E8E93] hover:text-white flex items-center justify-center transition-colors cursor-pointer outline-none disabled:opacity-40"
-          title="รีเฟรชรายการ"
-          aria-label="รีเฟรชรายการ"
+          title={t("galleryRefresh")}
+          aria-label={t("galleryRefresh")}
         >
           <RefreshCw
             className={`w-3.5 h-3.5 ${loading ? "animate-spin text-white" : ""}`}
@@ -331,7 +333,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white"
                 : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
             }`}
-            title={isInspectorOpen ? "ซ่อนแถบควบคุมขวา" : "แสดงแถบควบคุมขวา"}
+            title={t("galleryToggleInspector")}
             aria-label="Toggle Inspector"
           >
             <PanelRight className="w-3.5 h-3.5" />

@@ -12,17 +12,23 @@ fn default_th() -> String { "th".to_string() }
 fn default_hardsub() -> String { "Hard-sub".to_string() }
 fn default_sub_font() -> String { "Kanit Medium".to_string() }
 fn default_sub_size() -> u32 { 54 }
-fn default_sub_outline() -> f32 { 1.2 }
-fn default_sub_shadow() -> f32 { 0.0 }
+fn default_sub_outline() -> f32 { 1.0 }
+fn default_sub_shadow() -> f32 { 0.6 }
 fn default_sub_color() -> String { "#FFFFFF".to_string() }
 fn default_sub_margin_v() -> u32 { 54 }
 
 fn default_ruby_enabled() -> bool { true }
+fn default_ruby_font() -> String { "Kanit Medium".to_string() }
 fn default_ruby_size() -> u32 { 0 }
+fn default_ruby_outline() -> f32 { 1.0 }
+fn default_ruby_shadow() -> f32 { 0.6 }
 fn default_ruby_offset_y() -> i32 { 0 }
 fn default_ruby_color() -> String { "#E0E0E0".to_string() }
 
+fn default_lyric_font() -> String { "Kanit Medium".to_string() }
 fn default_lyric_size() -> u32 { 0 }
+fn default_lyric_outline() -> f32 { 1.0 }
+fn default_lyric_shadow() -> f32 { 0.6 }
 fn default_lyric_margin_x() -> u32 { 160 }
 fn default_lyric_margin_y() -> u32 { 30 }
 fn default_lyric_bilingual() -> bool { true }
@@ -74,16 +80,28 @@ pub struct AppConfig {
     // Ruby Customization
     #[serde(default = "default_ruby_enabled")]
     pub ruby_enabled: bool,
+    #[serde(default = "default_ruby_font")]
+    pub ruby_font: String,
     #[serde(default = "default_ruby_size")]
     pub ruby_size: u32,
+    #[serde(default = "default_ruby_outline")]
+    pub ruby_outline: f32,
+    #[serde(default = "default_ruby_shadow")]
+    pub ruby_shadow: f32,
     #[serde(default = "default_ruby_offset_y")]
     pub ruby_offset_y: i32,
     #[serde(default = "default_ruby_color")]
     pub ruby_color: String,
 
     // Lyric Customization
+    #[serde(default = "default_lyric_font")]
+    pub lyric_font: String,
     #[serde(default = "default_lyric_size")]
     pub lyric_size: u32,
+    #[serde(default = "default_lyric_outline")]
+    pub lyric_outline: f32,
+    #[serde(default = "default_lyric_shadow")]
+    pub lyric_shadow: f32,
     #[serde(default = "default_lyric_margin_x")]
     pub lyric_margin_x: u32,
     #[serde(default = "default_lyric_margin_y")]
@@ -150,10 +168,16 @@ impl Default for AppConfig {
             sub_color: default_sub_color(),
             sub_margin_v: default_sub_margin_v(),
             ruby_enabled: default_ruby_enabled(),
+            ruby_font: default_ruby_font(),
             ruby_size: default_ruby_size(),
+            ruby_outline: default_ruby_outline(),
+            ruby_shadow: default_ruby_shadow(),
             ruby_offset_y: default_ruby_offset_y(),
             ruby_color: default_ruby_color(),
+            lyric_font: default_lyric_font(),
             lyric_size: default_lyric_size(),
+            lyric_outline: default_lyric_outline(),
+            lyric_shadow: default_lyric_shadow(),
             lyric_margin_x: default_lyric_margin_x(),
             lyric_margin_y: default_lyric_margin_y(),
             lyric_bilingual: default_lyric_bilingual(),

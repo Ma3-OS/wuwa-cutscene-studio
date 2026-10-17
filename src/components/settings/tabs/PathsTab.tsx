@@ -40,7 +40,7 @@ export const PathsTab: React.FC<PathsTabProps> = ({
             type="text"
             readOnly
             value={exportDir || ""}
-            placeholder="เช่น โฟลเดอร์ส่งออก FModel Exports"
+            placeholder={t("pathsExportPlaceholder")}
             className="flex-1 h-8 px-3 rounded-lg bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
           />
           <StudioButton
@@ -66,7 +66,7 @@ export const PathsTab: React.FC<PathsTabProps> = ({
             type="text"
             readOnly
             value={outputDir || ""}
-            placeholder="เช่น โฟลเดอร์บันทึกไฟล์วิดีโอ"
+            placeholder={t("pathsOutputPlaceholder")}
             className="flex-1 h-8 px-3 rounded-lg bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
           />
           <StudioButton

@@ -68,13 +68,25 @@ pub fn build_ass_script(
         &style_cfg.font_name
     };
     let font_size = if style_cfg.font_size == 0 { 54 } else { style_cfg.font_size };
+    let ruby_font = if style_cfg.ruby.font_name.is_empty() {
+        font_name
+    } else {
+        &style_cfg.ruby.font_name
+    };
     let ruby_size = if style_cfg.ruby.size > 0 {
         style_cfg.ruby.size
     } else {
         ((font_size as f32 * 0.52).round() as u32).max(18)
     };
     let ruby_color = hex_to_ass_color(if style_cfg.ruby.color.is_empty() { "#E0E0E0" } else { &style_cfg.ruby.color });
+    let ruby_outline = style_cfg.ruby.outline.max(0.0);
+    let ruby_shadow = style_cfg.ruby.shadow.max(0.0);
 
+    let lyric_font = if style_cfg.lyric.font_name.is_empty() {
+        font_name
+    } else {
+        &style_cfg.lyric.font_name
+    };
     let lyric_th_size = if style_cfg.lyric.size > 0 {
         style_cfg.lyric.size
     } else {
@@ -83,11 +95,11 @@ pub fn build_ass_script(
     let lyric_margin_l = style_cfg.lyric.margin_x.max(20);
     let lyric_margin_v = style_cfg.lyric.margin_y.max(10);
     let lyric_color = hex_to_ass_color(if style_cfg.lyric.color.is_empty() { "#FFFFFF" } else { &style_cfg.lyric.color });
+    let lyric_outline = style_cfg.lyric.outline.max(0.0);
+    let lyric_shadow = style_cfg.lyric.shadow.max(0.0);
 
     let outline = style_cfg.outline.max(0.0);
-    let ruby_outline = (outline * 0.75).max(0.0);
     let shadow = style_cfg.shadow.max(0.0);
-    let ruby_shadow = 0.0;
     let margin_v = if style_cfg.margin_v == 0 { 54 } else { style_cfg.margin_v };
     let primary_color = hex_to_ass_color(&style_cfg.primary_color);
 
@@ -103,8 +115,8 @@ pub fn build_ass_script(
         [V4+ Styles]\n\
         Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n\
         Style: Default,{font_name},{font_size},{primary_color},&H000000FF,&H33000000,&H80000000,0,0,0,0,100,100,0,0,1,{outline:.2},{shadow:.2},2,220,220,{margin_v},1\n\
-        Style: Ruby,{font_name},{ruby_size},{ruby_color},&H000000FF,&H33000000,&H80000000,0,0,0,0,100,100,0,0,1,{ruby_outline:.2},{ruby_shadow:.2},2,0,0,0,1\n\
-        Style: Lyric,{font_name},{lyric_th_size},{lyric_color},&H000000FF,&H33000000,&H80000000,0,-1,0,0,100,100,0,0,1,0.00,0.00,7,{lyric_margin_l},40,{lyric_margin_v},1\n\n\
+        Style: Ruby,{ruby_font},{ruby_size},{ruby_color},&H000000FF,&H33000000,&H80000000,0,0,0,0,100,100,0,0,1,{ruby_outline:.2},{ruby_shadow:.2},2,0,0,0,1\n\
+        Style: Lyric,{lyric_font},{lyric_th_size},{lyric_color},&H000000FF,&H33000000,&H80000000,0,-1,0,0,100,100,0,0,1,{lyric_outline:.2},{lyric_shadow:.2},7,{lyric_margin_l},40,{lyric_margin_v},1\n\n\
         [Events]\n\
         Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     );
@@ -163,13 +175,19 @@ pub fn generate_captions(
 
     let ruby_cfg = RubyConfig {
         enabled: config.ruby_enabled,
+        font_name: config.ruby_font.clone(),
         size: config.ruby_size,
+        outline: config.ruby_outline,
+        shadow: config.ruby_shadow,
         offset_y: config.ruby_offset_y,
         color: config.ruby_color.clone(),
     };
 
     let lyric_cfg = LyricConfig {
+        font_name: config.lyric_font.clone(),
         size: config.lyric_size,
+        outline: config.lyric_outline,
+        shadow: config.lyric_shadow,
         margin_x: config.lyric_margin_x,
         margin_y: config.lyric_margin_y,
         bilingual: config.lyric_bilingual,

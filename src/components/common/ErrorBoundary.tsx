@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RotateCcw, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { getTranslation, type AppLanguage, type TranslationKey } from "../../locales";
 
 interface Props {
   children: ReactNode;
@@ -64,6 +65,11 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       const { error, errorInfo, copied, showDetails } = this.state;
+      const lang =
+        (typeof window !== "undefined" &&
+          (localStorage.getItem("app_lang") as AppLanguage)) ||
+        "th";
+      const t = (k: TranslationKey) => getTranslation(k, lang);
 
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-[#020203] text-[#EDEDEF] p-6 select-none font-kanit">
@@ -80,7 +86,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
               <div>
                 <h1 className="text-xl font-semibold tracking-wide text-white">
-                  เกิดข้อผิดพลาดในการแสดงผล UI
+                  {t("errorBoundaryTitle")}
                 </h1>
                 <p className="text-xs text-rose-300/80 font-mono mt-0.5">
                   Application Runtime Exception Caught
@@ -107,11 +113,11 @@ export class ErrorBoundary extends Component<Props, State> {
               >
                 {showDetails ? (
                   <>
-                    <ChevronUp className="h-4 w-4" /> ซ่อนรายละเอียดเชิงเทคนิค
+                    <ChevronUp className="h-4 w-4" /> {t("errorBoundaryHideDetails")}
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="h-4 w-4" /> ดูข้อมูลเชิงเทคนิค Stack Trace
+                    <ChevronDown className="h-4 w-4" /> {t("errorBoundaryShowDetails")}
                   </>
                 )}
               </button>
@@ -140,12 +146,12 @@ export class ErrorBoundary extends Component<Props, State> {
                 {copied ? (
                   <>
                     <Check className="h-3.5 w-3.5 text-emerald-400" />
-                    <span>คัดลอกแล้ว</span>
+                    <span>{t("errorBoundaryCopied")}</span>
                   </>
                 ) : (
                   <>
                     <Copy className="h-3.5 w-3.5" />
-                    <span>คัดลอกรายละเอียด</span>
+                    <span>{t("errorBoundaryCopy")}</span>
                   </>
                 )}
               </button>
@@ -156,7 +162,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-600/80 hover:bg-rose-500 px-5 py-2.5 text-xs font-medium text-white shadow-lg shadow-rose-600/20 transition-all cursor-pointer active:scale-95"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
-                <span>รีโหลดหน้าต่างใหม่</span>
+                <span>{t("errorBoundaryReload")}</span>
               </button>
             </div>
           </div>

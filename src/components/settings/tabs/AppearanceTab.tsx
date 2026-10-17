@@ -39,8 +39,8 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({
             })
           }
           options={[
-            { value: "th", label: "ภาษาไทย Thai" },
-            { value: "en", label: "English" },
+            { value: "th", label: t("langTh") },
+            { value: "en", label: t("langEn") },
           ]}
         />
 

@@ -39,7 +39,7 @@ export const AudioEngineView: React.FC = () => {
           audio_bitrate: bitrate,
           normalize_audio: normalize,
         });
-        setLastSaved("บันทึกอัตโนมัติแล้ว");
+        setLastSaved(t("subAutoSavedDone"));
       } catch (e) {
         console.error("Auto-save audio config failed:", e);
       }
@@ -132,7 +132,7 @@ export const AudioEngineView: React.FC = () => {
           <div className="p-5 rounded-2xl bg-[#141416] space-y-5">
             <div className="flex items-center gap-2 text-xs font-semibold text-white pb-1 border-b border-white/[0.04]">
               <Sliders className="w-4 h-4 text-neutral-400" />
-              <span>ระดับสัญญาณเสียงและการผสมเสียง</span>
+              <span>{t("audioLevelMixing")}</span>
             </div>
 
             {/* Voice Volume */}
@@ -174,7 +174,7 @@ export const AudioEngineView: React.FC = () => {
                   {t("normalizeAudioLabel")}
                 </div>
                 <div className="text-[10px] text-[#737373] mt-0.5">
-                  ปรับความดังมาตรฐานสากล EBU R128
+                  {t("audioLoudnessNorm")}
                 </div>
               </div>
               <button
@@ -183,7 +183,7 @@ export const AudioEngineView: React.FC = () => {
                 className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer outline-none ${
                   normalize ? "bg-white" : "bg-white/[0.12]"
                 }`}
-                title="เปิดปิดการปรับความดังมาตรฐานสากล"
+                title={t("audioLoudnessNormToggle")}
               >
                 <div
                   className={`w-3.5 h-3.5 rounded-full transition-transform absolute top-0.75 ${
@@ -199,7 +199,7 @@ export const AudioEngineView: React.FC = () => {
             <div className="flex items-center justify-between pb-1 border-b border-white/[0.04]">
               <div className="flex items-center gap-2 text-xs font-semibold text-white">
                 <Disc3 className="w-4 h-4 text-neutral-400" />
-                <span>คุณภาพการส่งออกเสียงมาสเตอร์</span>
+                <span>{t("audioExportQuality")}</span>
               </div>
 
               <StudioButton
@@ -219,10 +219,10 @@ export const AudioEngineView: React.FC = () => {
               value={bitrate}
               onChange={(e) => setBitrate(e.target.value)}
               options={[
-                { value: "192k", label: "192 kbps มาตรฐาน AAC" },
-                { value: "256k", label: "256 kbps คมชัดสูง" },
-                { value: "320k", label: "320 kbps คุณภาพสตูดิโอ" },
-                { value: "flac", label: "FLAC สตูดิโอมาสเตอร์แบบไม่สูญเสียคุณภาพ" },
+                { value: "192k", label: t("bitrate192k") },
+                { value: "256k", label: t("bitrate256k") },
+                { value: "320k", label: t("bitrate320k") },
+                { value: "flac", label: t("bitrateFlac") },
               ]}
             />
 
@@ -230,10 +230,10 @@ export const AudioEngineView: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs font-medium text-white">
                 <Waves className="w-3.5 h-3.5 text-neutral-400" />
-                <span>สถาปัตยกรรม Wwise Cutscene Audio</span>
+                <span>{t("audioWwiseArchTitle")}</span>
               </div>
               <p className="text-[11px] text-[#71717A] leading-relaxed">
-                ระบบจะค้นหาและจับคู่โครงสร้างไฟล์คำสั่งเสียงและไฟล์สัญญาณเสียงจากแพ็กเกจเกม จากนั้นแปลงรหัสด้วย vgmstream ไปยังโฟลเดอร์ Cutscene Bundle ประจำคลิปโดยตรง เพื่อให้ได้คุณภาพเสียงแท้คมชัดสมบูรณ์แบบ
+                {t("audioWwiseArchDesc")}
               </p>
             </div>
           </div>

@@ -79,7 +79,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
           await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
           ]);
-          toast.success("คัดลอกภาพเฟรมวิดีโอลงคลิปบอร์ดสำเร็จ");
+          toast.success(t("toastCopiedFrameSuccess"));
         } catch {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -87,13 +87,13 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
           a.download = `${fileName}_frame.png`;
           a.click();
           URL.revokeObjectURL(url);
-          toast.success("บันทึกภาพเฟรมวิดีโอสำเร็จ");
+          toast.success(t("toastSavedFrameSuccess"));
         }
         setIsCapturing(false);
       }, "image/png");
     } catch {
       setIsCapturing(false);
-      toast.error("ไม่สามารถจับภาพเฟรมวิดีโอได้");
+      toast.error(t("toastCaptureFrameError"));
     }
   };
 
@@ -173,7 +173,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
     const textToCopy = video?.cgFile || video?.fullPath || fileName;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
-    toast.success("คัดลอกพาธ Unreal Engine สำเร็จ");
+    toast.success(t("toastCopiedUnrealSuccess"));
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -184,7 +184,8 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
     }
   };
 
-  const normalizedVideoPath = videoPath ? videoPath.replace(/\\/g, "/") : null;
+  const isDiskPath = Boolean(videoPath && (/^[a-zA-Z]:[\\/]|^\\\\|^\//.test(videoPath)));
+  const normalizedVideoPath = isDiskPath && videoPath ? videoPath.replace(/\\/g, "/") : null;
   const assetUrl = normalizedVideoPath && !isLevelSequence ? convertFileSrc(normalizedVideoPath) : null;
 
   return (
@@ -220,7 +221,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
             </span>
             {video?.roverType && video.roverType !== "Neutral" && (
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-[#A1A1AA]">
-                {video.roverType === "Girl" ? "โรเวอร์หญิง" : "โรเวอร์ชาย"}
+                {video.roverType === "Girl" ? t("roverGirl") : t("roverBoy")}
               </span>
             )}
           </div>
@@ -231,9 +232,9 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                 type="button"
                 onClick={() => onSwitchRover(partnerRoverItem)}
                 className="px-2 py-1 rounded-md text-[11px] font-medium text-[#A1A1AA] hover:text-white hover:bg-white/[0.06] flex items-center gap-1.5 transition-colors cursor-pointer outline-none"
-                title="สลับเวอร์ชันโรเวอร์"
+                title={t("quickLookSwitchRover")}
               >
-                <span>{partnerRoverItem.roverType === "Girl" ? "สลับเป็นโรเวอร์หญิง" : "สลับเป็นโรเวอร์ชาย"}</span>
+                <span>{partnerRoverItem.roverType === "Girl" ? t("quickLookSwitchToFemale") : t("quickLookSwitchToMale")}</span>
               </button>
             )}
             {videoPath && !isLevelSequence && (
@@ -242,10 +243,10 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                 onClick={handleCaptureFrame}
                 disabled={isCapturing}
                 className="px-2 py-1 rounded-md text-[11px] font-medium text-[#A1A1AA] hover:text-white hover:bg-white/[0.06] flex items-center gap-1.5 transition-colors cursor-pointer outline-none"
-                title="จับภาพเฟรมวิดีโอนี้เพื่อทำภาพปก หรือกดปุ่ม C"
+                title={t("quickLookCaptureFrame")}
               >
                 <Camera className="w-3 h-3" />
-                <span>{isCapturing ? "กำลังจับภาพ" : "จับภาพเฟรม"}</span>
+                <span>{isCapturing ? t("quickLookCapturing") : t("quickLookCaptureFrame")}</span>
               </button>
             )}
             {videoPath && !isLevelSequence && (
@@ -253,10 +254,10 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                 type="button"
                 onClick={() => ToolsAPI.openMediaExternal(videoPath).catch(console.error)}
                 className="px-2 py-1 rounded-md text-[11px] font-medium text-[#A1A1AA] hover:text-white hover:bg-white/[0.06] flex items-center gap-1.5 transition-colors cursor-pointer outline-none"
-                title="เปิดด้วยโปรแกรมเล่นภายนอก"
+                title={t("quickLookOpenExternal")}
               >
                 <ExternalLink className="w-3 h-3" />
-                <span>เปิดภายนอก</span>
+                <span>{t("quickLookOpenExternal")}</span>
               </button>
             )}
             <span className="text-[10px] text-[#737373] hidden sm:inline">
@@ -266,7 +267,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
               type="button"
               onClick={onClose}
               className="w-6 h-6 rounded-md text-[#737373] hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition-colors cursor-pointer outline-none"
-              title="ปิดหน้าต่าง Spacebar หรือ Esc"
+              title={t("quickLookHint")}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -274,7 +275,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
         </div>
 
         {/* Content Body: Video vs 3D Level Sequence */}
-        {isLevelSequence || !assetUrl ? (
+        {isLevelSequence ? (
           /* 3D LevelSequence Studio Canvas */
           <div className="relative aspect-video w-full bg-[#0A0A0D] flex flex-col items-center justify-center p-8 select-none">
             {effectiveThumb ? (
@@ -310,10 +311,10 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
               <div className="w-full p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-left space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-white">
                   <Info className="w-3.5 h-3.5 text-[#A1A1AA]" />
-                  <span>ข้อมูลคัตซีน 3D Sequence</span>
+                  <span>{t("quickLook3DInfoTitle")}</span>
                 </div>
                 <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
-                  คัตซีนนี้เป็น Level Sequence ที่เอนจินเกมเรนเดอร์กราฟิก 3D แบบเรียลไทม์ภายในเกม ไม่มีไฟล์วิดีโอ MP4 ในแพ็กเกจเกม ระบบรองรับการเล่นและส่งออกแทร็กเสียง Wwise ทั้งหมดที่เชื่อมโยงกับซีเควนซ์นี้
+                  {t("quickLook3DInfoDesc")}
                 </p>
               </div>
 
@@ -323,9 +324,9 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                   <div className="flex items-center justify-between text-[11px] text-[#71717A]">
                     <span className="flex items-center gap-1">
                       <Volume2 className="w-3 h-3 text-[#A1A1AA]" />
-                      <span>แทร็กเสียง Wwise ที่สกัดแล้ว</span>
+                      <span>{t("quickLookWwiseAudio")}</span>
                     </span>
-                    <span className="font-mono">{audioEvents.length} แทร็ก</span>
+                    <span className="font-mono">{audioEvents.length} {t("quickLookTracksCount")}</span>
                   </div>
                   <div className="max-h-24 overflow-y-auto space-y-1 pr-1">
                     {audioEvents.map((evt) => (
@@ -349,7 +350,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-medium text-white flex items-center gap-1.5 transition-colors cursor-pointer outline-none"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? "คัดลอกแล้ว" : "คัดลอกพาธ Unreal"}</span>
+                  <span>{copied ? t("copied") : t("quickLookCopyUnreal")}</span>
                 </button>
                 <button
                   type="button"
@@ -357,7 +358,69 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-medium text-white flex items-center gap-1.5 transition-colors cursor-pointer outline-none"
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
-                  <span>เปิดโฟลเดอร์ไฟล์</span>
+                  <span>{t("extractionViewFolder")}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : !assetUrl ? (
+          /* Un-extracted Video Cutscene Notice */
+          <div className="relative aspect-video w-full bg-[#0A0A0D] flex flex-col items-center justify-center p-8 select-none">
+            {effectiveThumb ? (
+              <div className="absolute inset-0 overflow-hidden opacity-30 pointer-events-none">
+                <img
+                  src={effectiveThumb}
+                  alt={fileName}
+                  className="w-full h-full object-cover blur-sm scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0D] via-[#0A0A0D]/70 to-[#0A0A0D]/90" />
+              </div>
+            ) : null}
+
+            <div className="relative z-10 flex flex-col items-center text-center max-w-lg space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shadow-xl">
+                <Film className="w-7 h-7 stroke-[1.25] text-neutral-300" />
+              </div>
+
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] font-mono text-[#A1A1AA] mb-2">
+                  <Sparkles className="w-2.5 h-2.5 text-white" />
+                  <span>Game Package Cutscene Asset</span>
+                </div>
+                <h3 className="text-base font-medium text-white tracking-tight">{fileName}</h3>
+                {video?.cgFile && (
+                  <p className="text-[11px] font-mono text-[#71717A] mt-1 break-all select-all">
+                    {video.cgFile}
+                  </p>
+                )}
+              </div>
+
+              <div className="w-full p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-left space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+                  <Info className="w-3.5 h-3.5 text-[#A1A1AA]" />
+                  <span>{t("quickLookNotExtractedTitle")}</span>
+                </div>
+                <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
+                  {t("quickLookNotExtractedDesc")}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCopyPath}
+                  className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-medium text-white flex items-center gap-1.5 transition-colors cursor-pointer outline-none"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? t("copied") : t("quickLookCopyFile")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenFolder}
+                  className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-medium text-white flex items-center gap-1.5 transition-colors cursor-pointer outline-none"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  <span>{t("extractionViewFolder")}</span>
                 </button>
               </div>
             </div>
@@ -371,9 +434,9 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                   <Film className="w-6 h-6 text-neutral-400 stroke-[1.25]" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-white">ไม่สามารถเปิดเล่นในตัวโปรแกรมได้</h4>
+                  <h4 className="text-xs font-semibold text-white">{t("quickLookPlaybackErrorTitle")}</h4>
                   <p className="text-[11px] text-[#71717A] mt-1 max-w-sm">
-                    ไฟล์วิดีโอนี้อาจใช้การเข้ารหัสที่ต้องการโปรแกรมเล่นสื่อภายนอกในการถอดรหัส
+                    {t("quickLookPlaybackErrorDesc")}
                   </p>
                 </div>
                 {videoPath && (
@@ -383,7 +446,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                     className="px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-neutral-200 transition-colors flex items-center gap-2 cursor-pointer outline-none"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>เปิดด้วยโปรแกรมเล่นภายนอก</span>
+                    <span>{t("inspectorOpenExternal")}</span>
                   </button>
                 )}
               </div>

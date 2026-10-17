@@ -171,7 +171,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
                 fullPath: res.video_file,
                 isCached: true,
                 audio_ready: true,
-                folderName: "คลังในเครื่อง",
+                folderName: "cached",
               });
               return { video_file: res.video_file };
             })().finally(() => {
@@ -237,7 +237,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
                 fullPath: res.video_file,
                 isCached: true,
                 audio_ready: true,
-                folderName: "คลังในเครื่อง",
+                folderName: "cached",
               });
               return { video_file: res.video_file };
             })().finally(() => {

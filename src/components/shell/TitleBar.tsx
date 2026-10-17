@@ -3,8 +3,10 @@ import { Minus, Square, Copy, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useExtractionStore } from "../../features/catalog/stores/useExtractionStore";
+import { useApp } from "../../context/AppContext";
 
 export function TitleBar() {
+  const { t } = useApp();
   const [isMaximized, setIsMaximized] = useState(false);
   const { isOpen, isRunning, cgName, statusText, percent, open } = useExtractionStore();
 
@@ -95,11 +97,11 @@ export function TitleBar() {
           onClick={open}
           onMouseDown={(e) => e.stopPropagation()}
           className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.10] text-neutral-200 text-[11px] transition-all cursor-pointer pointer-events-auto border-0 select-none mr-3"
-          title="คลิกเพื่อเปิดหน้าต่างความคืบหน้า"
+          title={t("titlebarProgressOpen")}
         >
           <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
           <span className="font-medium truncate max-w-[140px] text-white">
-            {cgName || "กำลังประมวลผล"}
+            {cgName || t("titlebarProcessing")}
           </span>
           <span className="text-white/60 truncate max-w-[120px]">
             {statusText}

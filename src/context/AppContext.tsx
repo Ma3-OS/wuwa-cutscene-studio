@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { SettingsAPI } from "../core/ipc";
-import { translations, AppLanguage } from "../utils/i18n";
+import { AppLanguage, TranslationKey, getTranslation } from "../utils/i18n";
 import { soundManager } from "../utils/sound";
 
 export interface AppConfig {
@@ -22,12 +22,18 @@ export interface AppConfig {
 
   // Ruby Customization
   ruby_enabled: boolean;
+  ruby_font?: string;
   ruby_size: number;
+  ruby_outline?: number;
+  ruby_shadow?: number;
   ruby_offset_y: number;
   ruby_color: string;
 
   // Lyric Customization
+  lyric_font?: string;
   lyric_size: number;
+  lyric_outline?: number;
+  lyric_shadow?: number;
   lyric_margin_x: number;
   lyric_margin_y: number;
   lyric_bilingual: boolean;
@@ -60,7 +66,7 @@ export interface AppConfig {
 interface AppContextType {
   config: AppConfig;
   lang: AppLanguage;
-  t: (key: keyof typeof translations["th"]) => string;
+  t: (key: TranslationKey) => string;
   updateConfig: (newConfig: Partial<AppConfig>) => Promise<void>;
   playSound: (type: "click" | "success" | "error") => void;
 }
@@ -77,17 +83,23 @@ const defaultConfig: AppConfig = {
   subtitle_mode: "Hard-sub",
   sub_font: "Kanit Medium",
   sub_size: 54,
-  sub_outline: 1.2,
-  sub_shadow: 0.0,
+  sub_outline: 1.0,
+  sub_shadow: 0.6,
   sub_color: "#FFFFFF",
   sub_margin_v: 54,
 
   ruby_enabled: true,
+  ruby_font: "Kanit Medium",
   ruby_size: 0,
+  ruby_outline: 1.0,
+  ruby_shadow: 0.6,
   ruby_offset_y: 0,
   ruby_color: "#E0E0E0",
 
+  lyric_font: "Kanit Medium",
   lyric_size: 0,
+  lyric_outline: 1.0,
+  lyric_shadow: 0.6,
   lyric_margin_x: 160,
   lyric_margin_y: 30,
   lyric_bilingual: true,
@@ -196,9 +208,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const lang: AppLanguage = config.app_language || "th";
 
   const t = useCallback(
-    (key: keyof typeof translations["th"]): string => {
-      const langDict = translations[lang] || translations.th;
-      return (langDict as any)[key] || (translations.th as any)[key] || key;
+    (key: TranslationKey): string => {
+      return getTranslation(key, lang);
     },
     [lang]
   );

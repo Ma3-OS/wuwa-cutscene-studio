@@ -13,7 +13,7 @@ import { QueueItemRow } from "@/features/queue/components/QueueItemRow";
 import { CutscenePickerModal } from "@/features/queue/components/CutscenePickerModal";
 
 export const BatchQueueView: React.FC = () => {
-  const { config, playSound } = useApp();
+  const { config, playSound, t } = useApp();
   const items = useQueueStore((state) => state.items);
   const isProcessing = useQueueStore((state) => state.isProcessing);
   const isParallel = useQueueStore((state) => state.isParallel);
@@ -49,15 +49,15 @@ export const BatchQueueView: React.FC = () => {
       if (allDone) {
         if (autoAction === "chime") {
           playSound("success");
-          toast.success("การเรนเดอร์คิวทั้งหมดเสร็จสมบูรณ์เรียบร้อย");
+          toast.success(t("toastQueueAllDone"));
         } else if (autoAction === "folder") {
           ToolsAPI.openOutputDir().catch(() => {});
-          toast.success("การเรนเดอร์คิวเสร็จสมบูรณ์ เปิดโฟลเดอร์ผลลัพธ์แล้ว");
+          toast.success(t("toastQueueAllDoneFolder"));
         } else if (autoAction === "sleep") {
-          toast.success("กำลังสั่งให้ระบบเข้าสู่โหมดพักเครื่อง");
+          toast.success(t("toastQueueSleepNotice"));
           ToolsAPI.systemPowerAction("sleep").catch(() => {});
         } else if (autoAction === "shutdown") {
-          toast.success("กำลังสั่งปิดเครื่องคอมพิวเตอร์ใน 60 วินาที");
+          toast.success(t("toastQueueShutdownNotice"));
           ToolsAPI.systemPowerAction("shutdown").catch(() => {});
         }
       }
@@ -94,14 +94,14 @@ export const BatchQueueView: React.FC = () => {
       subtitleMode: batchSubMode,
       renderResolution: batchResolution,
     });
-    toast.success("อัปเดตการตั้งค่าพรีเซ็ตให้ทุกคลิปที่รอเรนเดอร์เรียบร้อยแล้ว");
+    toast.success(t("toastQueuePresetApplied"));
   };
 
   const handleOpenOutput = async () => {
     try {
       await ToolsAPI.openOutputDir();
     } catch {
-      toast.error("ไม่สามารถเปิดโฟลเดอร์ผลลัพธ์ได้");
+      toast.error(t("toastCannotOpenOutput"));
     }
   };
 
@@ -110,7 +110,7 @@ export const BatchQueueView: React.FC = () => {
     try {
       await ToolsAPI.openMediaExternal(path);
     } catch {
-      toast.error("ไม่สามารถเปิดไฟล์วิดีโอได้");
+      toast.error(t("toastCannotOpenVideo"));
     }
   };
 
@@ -119,7 +119,7 @@ export const BatchQueueView: React.FC = () => {
     try {
       await ToolsAPI.showInFolder(path);
     } catch {
-      toast.error("ไม่สามารถแสดงตำแหน่งไฟล์ได้");
+      toast.error(t("toastCannotRevealFile"));
     }
   };
 
@@ -132,7 +132,7 @@ export const BatchQueueView: React.FC = () => {
         (x) => x.cgFile === cgFileOrPath || x.fullPath === cgFileOrPath || x.cgName === cgFileOrPath
       );
       const name = match?.fileName || cgFileOrPath.split("/").pop() || "cutscene.mp4";
-      const folder = match?.folderName || "ทั่วไป";
+      const folder = match?.folderName || t("pickerCategoryGeneral");
       return {
         cutscenePath: match?.fullPath || cgFileOrPath,
         fileName: name,
@@ -147,7 +147,7 @@ export const BatchQueueView: React.FC = () => {
     addToQueue(newQueueItems);
     setPickerSelected(new Set());
     setIsAddModalOpen(false);
-    toast.success(`เพิ่มคัตซีนเข้าคิวเรนเดอร์แล้ว ${newQueueItems.length} คลิป`);
+    toast.success(`${t("toastAddedToQueue")} ${newQueueItems.length} ${t("queueClipsUnit")}`);
   };
 
   return (
@@ -211,10 +211,10 @@ export const BatchQueueView: React.FC = () => {
               <Film className="w-6 h-6 stroke-[1.2]" />
             </div>
             <h4 className="text-sm font-semibold text-white/80 mb-1">
-              คิวเรนเดอร์ยังว่างอยู่
+              {t("queueEmptyTitle")}
             </h4>
             <p className="text-xs text-white/40 max-w-sm mb-4 leading-relaxed">
-              คุณสามารถกดปุ่มเพิ่มคัตซีนด้านล่างเพื่อเลือกคลิปที่ต้องการเรนเดอร์ หรือเลือกจากหน้าสตูดิโอได้ทันที
+              {t("queueEmptyDesc")}
             </p>
             <StudioButton
               variant="primary"
@@ -225,7 +225,7 @@ export const BatchQueueView: React.FC = () => {
               }}
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
-              <span>เลือกคัตซีนเพื่อเพิ่มเข้าคิว</span>
+              <span>{t("queueEmptyAction")}</span>
             </StudioButton>
           </div>
         ) : (

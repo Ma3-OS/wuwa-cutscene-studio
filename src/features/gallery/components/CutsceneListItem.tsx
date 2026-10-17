@@ -2,6 +2,7 @@ import React from "react";
 import { Film, Loader2 } from "lucide-react";
 import { ProcessedVideoItem, VideoMetaInfo } from "@/features/catalog/stores/useCatalogStore";
 import { resolveThumbnailSrc } from "@/utils/thumbnailResolver";
+import { useApp } from "@/context/AppContext";
 
 export interface CutsceneListItemProps {
   video: ProcessedVideoItem;
@@ -26,6 +27,7 @@ const CutsceneListItemComponent: React.FC<CutsceneListItemProps> = ({
   onDoubleClick,
   cardRefCallback,
 }) => {
+  const { t } = useApp();
   const resolvedThumb = resolveThumbnailSrc(thumb);
 
   const handleRef = (node: HTMLDivElement | null) => {
@@ -69,7 +71,7 @@ const CutsceneListItemComponent: React.FC<CutsceneListItemProps> = ({
           </span>
           {video.roverType !== "Neutral" && (
             <span className="text-[10px] text-[#A1A1AA] font-mono">
-              {video.roverType === "Girl" ? "หญิง" : "ชาย"}
+              {video.roverType === "Girl" ? t("galleryFilterFemaleShort") : t("galleryFilterMaleShort")}
             </span>
           )}
           <span className="text-[10px] font-mono text-[#71717A] truncate">
@@ -89,10 +91,10 @@ const CutsceneListItemComponent: React.FC<CutsceneListItemProps> = ({
         {isExtracting ? (
           <span className="text-white flex items-center gap-1">
             <Loader2 className="w-2.5 h-2.5 animate-spin" />
-            กำลังสกัด...
+            {t("galleryExtractingProgress")}
           </span>
         ) : video.isCached ? (
-          <span className="w-1.5 h-1.5 rounded-full bg-white/70" title="พร้อมเปิด" />
+          <span className="w-1.5 h-1.5 rounded-full bg-white/70" title={t("galleryReadyDot")} />
         ) : null}
       </div>
     </div>

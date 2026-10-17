@@ -51,9 +51,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSelectFolder = (path: string) => {
     setSelectedFolder(path);
-    const label = !path || path === "all" ? "คัตซีนทั้งหมด" : path === "cached" || path === "คลังในเครื่อง" ? "คลังในเครื่อง" : path;
+    const label = !path || path === "all" ? t("navAll") : path === "cached" ? t("folderInternalCache") : path;
     useTaskStore.getState().appendLog({
-      message: `เลือกโฟลเดอร์ ${label}`,
+      message: `Folder selected: ${label}`,
       level: "info",
     });
   };
@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between px-1 py-1">
             {!isCollapsed && (
               <span className="px-1.5 text-[10px] font-semibold text-[#52525B] tracking-wider uppercase">
-                พื้นที่ทำงาน
+                {t("sidebarWorkspace")}
               </span>
             )}
 
@@ -96,8 +96,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={`w-7 h-7 rounded-md text-[#71717A] hover:text-white hover:bg-white/[0.04] flex items-center justify-center transition-colors cursor-pointer outline-none ${
                   isCollapsed ? "mx-auto" : ""
                 }`}
-                title={isCollapsed ? "กางแถบข้าง" : "พับแถบข้าง"}
-                aria-label={isCollapsed ? "กางแถบข้าง" : "พับแถบข้าง"}
+                title={isCollapsed ? t("sidebarExpand") : t("sidebarCollapse")}
+                aria-label={isCollapsed ? t("sidebarExpand") : t("sidebarCollapse")}
               >
                 {isCollapsed ? (
                   <PanelLeftOpen className="w-4 h-4" />
@@ -172,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  title="ค้นหาคัตซีน"
+                  title={t("sidebarSearchCutscene")}
                   className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-[#8E8E93] hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
                 >
                   <Search className="w-4 h-4 text-[#71717A]" />
@@ -180,7 +180,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSelectFolder("")}
-                  title="คัตซีนทั้งหมด"
+                  title={t("navAll")}
                   className={`w-10 h-10 mx-auto rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
                     !selectedFolder
                       ? "bg-white/[0.10] text-white"
@@ -191,10 +191,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSelectFolder("คลังในเครื่อง")}
-                  title="คลังในเครื่อง"
+                  onClick={() => handleSelectFolder("cached")}
+                  title={t("folderInternalCache")}
                   className={`w-10 h-10 mx-auto rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
-                    selectedFolder === "คลังในเครื่อง"
+                    selectedFolder === "cached"
                       ? "bg-white/[0.10] text-white"
                       : "text-[#8E8E93] hover:text-white hover:bg-white/[0.04]"
                   }`}
@@ -240,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ? "bg-white/[0.12] text-white"
                   : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
               }`}
-              title="บันทึกการทำงาน"
+              title={t("navTerminal")}
             >
               <Terminal className="w-3.5 h-3.5 text-[#71717A]" />
             </button>
@@ -254,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ? "bg-white/[0.12] text-white"
                 : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
             }`}
-            title="เปิดหรือปิดบันทึกการทำงาน"
+            title={t("sidebarToggleLogs")}
           >
             <Terminal className="w-3 h-3 text-[#71717A]" />
             <span>{t("navTerminal")}</span>

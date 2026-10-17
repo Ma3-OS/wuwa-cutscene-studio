@@ -39,7 +39,7 @@ let diskLogQueue: { level: string; component: string; message: string }[] = [];
 let diskFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function queueDiskLog(level: string, component: string, message: string) {
-  if (message.startsWith("เลือกวิดีโอ ") || message.startsWith("เลือกโฟลเดอร์ ")) {
+  if (message.toLowerCase().includes("selected")) {
     return;
   }
   diskLogQueue.push({ level, component, message });
