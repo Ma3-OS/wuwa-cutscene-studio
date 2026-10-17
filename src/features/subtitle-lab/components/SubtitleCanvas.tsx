@@ -211,21 +211,13 @@ export const SubtitleCanvas: React.FC<SubtitleCanvasProps> = ({
         {framingMode === "16/9_letterbox" && (
           <>
             <div
-              className="absolute top-0 left-0 right-0 bg-black pointer-events-none z-10 border-b border-white/[0.06] flex items-center px-8"
+              className="absolute top-0 left-0 right-0 bg-black pointer-events-none z-10 border-b border-white/[0.06]"
               style={{ height: 138 }}
-            >
-              <span className="text-[14px] font-mono text-white/30 tracking-widest uppercase">
-                21:9 Letterbox Matte Top 138px
-              </span>
-            </div>
+            />
             <div
-              className="absolute bottom-0 left-0 right-0 bg-black pointer-events-none z-10 border-t border-white/[0.06] flex items-center px-8"
+              className="absolute bottom-0 left-0 right-0 bg-black pointer-events-none z-10 border-t border-white/[0.06]"
               style={{ height: 138 }}
-            >
-              <span className="text-[14px] font-mono text-white/30 tracking-widest uppercase">
-                21:9 Letterbox Matte Bottom 138px
-              </span>
-            </div>
+            />
           </>
         )}
 
@@ -233,13 +225,9 @@ export const SubtitleCanvas: React.FC<SubtitleCanvasProps> = ({
         {showGuides && (
           <>
             {/* Title Safe: 10% insets */}
-            <div className="absolute inset-[10%] border border-dashed border-white/20 pointer-events-none rounded-lg z-15 flex items-start justify-end p-2">
-              <span className="text-[12px] font-mono text-white/40">Title Safe 80%</span>
-            </div>
+            <div className="absolute inset-[10%] border border-dashed border-white/20 pointer-events-none rounded-lg z-15" />
             {/* Action Safe: 5% insets */}
-            <div className="absolute inset-[5%] border border-dashed border-white/10 pointer-events-none rounded-xl z-15 flex items-start justify-end p-2">
-              <span className="text-[12px] font-mono text-white/30">Action Safe 90%</span>
-            </div>
+            <div className="absolute inset-[5%] border border-dashed border-white/10 pointer-events-none rounded-xl z-15" />
             {/* Center Crosshair */}
             <div className="absolute w-6 h-0.5 bg-white/25 pointer-events-none z-15" />
             <div className="absolute h-6 w-0.5 bg-white/25 pointer-events-none z-15" />
@@ -334,19 +322,6 @@ export const SubtitleCanvas: React.FC<SubtitleCanvasProps> = ({
             </div>
           </div>
         )}
-
-        {/* 1080p Resolution HUD Indicator */}
-        <div className="absolute top-4 left-4 text-[13px] font-mono text-white/50 pointer-events-none z-30 flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded bg-black/60 border border-white/10">
-            {stageWidth}x{stageHeight} Native
-          </span>
-          <span className="px-2 py-0.5 rounded bg-black/60 border border-white/10">
-            {Math.round(scale * 100)}% View Scale
-          </span>
-          <span className="px-2 py-0.5 rounded bg-black/60 border border-white/10">
-            {subFont} {subSize}pt
-          </span>
-        </div>
       </div>
     </div>
   );

@@ -393,9 +393,10 @@ export const DynamicFolderTree: React.FC<DynamicFolderTreeProps> = ({
       {/* Hierarchy Section Divider */}
       <div className="pt-2 pb-1 px-2 flex items-center justify-between">
         <span className="text-[10px] font-semibold text-[#52525B] tracking-wider uppercase">
-          FModel Hierarchy
+          โครงสร้างโฟลเดอร์เกม
         </span>
       </div>
+
 
       {/* Recursive Dynamic Tree Branches */}
       <div className="space-y-0.5">

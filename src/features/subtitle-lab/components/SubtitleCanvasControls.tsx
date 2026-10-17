@@ -48,7 +48,7 @@ export const SubtitleCanvasControls: React.FC<SubtitleCanvasControlsProps> = ({
   videoTitle,
 }) => {
   return (
-    <div className="flex items-center justify-between flex-wrap gap-2.5 bg-[#141417] p-2.5 rounded-2xl border border-white/[0.06]">
+    <div className="flex items-center justify-between flex-wrap gap-2.5 bg-[#141417] p-2.5 border-t border-white/[0.06] shrink-0">
       {/* Group 1: Framing and Aspect Ratio Mode */}
       <div className="flex items-center flex-wrap gap-2">
         <StudioSegmentedControl<FramingMode>

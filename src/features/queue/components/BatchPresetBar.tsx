@@ -31,14 +31,14 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
   onApplyPresets,
 }) => {
   return (
-    <div className="p-3.5 rounded-2xl bg-[#141417] flex flex-wrap items-center justify-between gap-3 text-xs">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">
+    <div className="p-3.5 rounded-2xl bg-[#141417] flex items-center justify-between gap-3 text-xs overflow-x-auto no-scrollbar border border-white/[0.04]">
+      <div className="flex items-center gap-2.5 shrink-0">
+        <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider shrink-0 mr-1">
           พรีเซ็ตส่วนกลาง
         </span>
 
         {/* Protagonist */}
-        <div className="w-36">
+        <div className="w-36 shrink-0">
           <StudioSegmentedControl<"Girl" | "Boy">
             size="sm"
             value={batchGender}
@@ -51,7 +51,7 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
         </div>
 
         {/* Voice Language */}
-        <div className="w-44">
+        <div className="w-44 shrink-0">
           <StudioSegmentedControl<string>
             size="sm"
             value={batchLocale}
@@ -66,13 +66,13 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
         </div>
 
         {/* Subtitle Mode */}
-        <div className="w-52">
+        <div className="w-56 shrink-0">
           <StudioSegmentedControl<"Hard-sub" | "Soft-sub" | "None">
             size="sm"
             value={batchSubMode}
             onChange={setBatchSubMode}
             options={[
-              { value: "Hard-sub", label: "ฝังซับ" },
+              { value: "Hard-sub", label: "ฝังซับลงภาพ" },
               { value: "Soft-sub", label: "ซับแยก" },
               { value: "None", label: "ไม่มีซับ" },
             ]}
@@ -80,7 +80,7 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
         </div>
 
         {/* Resolution */}
-        <div className="w-40">
+        <div className="w-40 shrink-0">
           <StudioSelect
             value={batchResolution}
             onChange={(e) => setBatchResolution(e.target.value)}
@@ -96,7 +96,7 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
         </div>
 
         {/* Auto Action */}
-        <div className="w-52">
+        <div className="w-52 shrink-0">
           <StudioSelect
             value={autoAction}
             onChange={(e) => setAutoAction(e.target.value as any)}
@@ -111,8 +111,8 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
         </div>
       </div>
 
-      <StudioButton variant="ghost" size="sm" onClick={onApplyPresets}>
-        <span>ปรับใช้กับคิวที่รอ</span>
+      <StudioButton variant="secondary" size="sm" onClick={onApplyPresets} className="shrink-0 whitespace-nowrap ml-2">
+        <span>ปรับใช้กับทุกคลิปในคิว</span>
       </StudioButton>
     </div>
   );

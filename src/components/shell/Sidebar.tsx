@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Settings,
   Terminal,
   Search,
   Subtitles,
@@ -23,8 +22,8 @@ export type WorkspaceMode = "studio" | "subtitles" | "audio" | "queue" | "setup"
 interface SidebarProps {
   activeWorkspace: WorkspaceMode;
   onSelectWorkspace: (mode: WorkspaceMode) => void;
-  isGameRunning: boolean;
-  onOpenPreferences: () => void;
+  isGameRunning?: boolean;
+  onOpenPreferences?: () => void;
   isTerminalOpen: boolean;
   onToggleTerminal: () => void;
   isCollapsed?: boolean;
@@ -34,8 +33,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeWorkspace,
   onSelectWorkspace,
-  isGameRunning,
-  onOpenPreferences,
+  isGameRunning: _isGameRunning,
+  onOpenPreferences: _onOpenPreferences,
   isTerminalOpen,
   onToggleTerminal,
   isCollapsed = false,
@@ -86,9 +85,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between px-1 py-1">
             {!isCollapsed && (
               <span className="px-1.5 text-[10px] font-semibold text-[#52525B] tracking-wider uppercase">
-                Workspaces
+                พื้นที่ทำงาน
               </span>
             )}
+
             {onToggleCollapse && (
               <button
                 type="button"
@@ -228,20 +228,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {/* Footer Anti-Cheat Status & Global Controls */}
-      <div className="p-2 bg-[#0E0E11] border-t border-white/[0.04] shrink-0 space-y-2">
+      {/* Footer Controls */}
+      <div className="p-2 bg-[#0E0E11] border-t border-white/[0.04] shrink-0">
         {isCollapsed ? (
-          <div className="space-y-1.5 flex flex-col items-center">
-            <div
-              className="py-1 flex items-center justify-center"
-              title={isGameRunning ? "เกมกำลังเปิดใช้งาน" : "สถานะปลอดภัย"}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isGameRunning ? "bg-amber-400" : "bg-emerald-400"
-                }`}
-              />
-            </div>
+          <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={onToggleTerminal}
@@ -250,70 +240,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ? "bg-white/[0.12] text-white"
                   : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
               }`}
-              title="คอนโซลบันทึกการทำงาน"
+              title="บันทึกการทำงาน"
             >
               <Terminal className="w-3.5 h-3.5 text-[#71717A]" />
             </button>
-            <button
-              type="button"
-              onClick={onOpenPreferences}
-              className="w-10 h-8 rounded-md bg-white/[0.03] text-[#8E8E93] hover:text-white flex items-center justify-center transition-colors cursor-pointer outline-none"
-              title={t("navPreferences")}
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
           </div>
         ) : (
-          <>
-            <div className="flex items-center justify-between px-2 text-[11px]">
-              <span className="text-[#52525B] font-medium text-[10px] uppercase tracking-wide">
-                Anti-Cheat
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    isGameRunning ? "bg-amber-400" : "bg-emerald-400"
-                  }`}
-                />
-                <span
-                  className={`font-mono text-[10px] ${
-                    isGameRunning ? "text-amber-300 font-medium" : "text-[#71717A]"
-                  }`}
-                >
-                  {isGameRunning ? t("gameActiveBadge") : "Safe"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 pt-0.5">
-              <button
-                type="button"
-                onClick={onToggleTerminal}
-                className={`flex-1 h-7 rounded-md px-2 flex items-center justify-center gap-1.5 text-[11px] font-medium transition-colors cursor-pointer outline-none ${
-                  isTerminalOpen
-                    ? "bg-white/[0.12] text-white"
-                    : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
-                }`}
-                title="Toggle Activity Console"
-              >
-                <Terminal className="w-3 h-3 text-[#71717A]" />
-                <span>{t("navTerminal")}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenPreferences}
-                className="w-7 h-7 rounded-md bg-white/[0.03] text-[#8E8E93] hover:text-white flex items-center justify-center transition-colors cursor-pointer outline-none"
-                title={t("navPreferences")}
-                aria-label={t("navPreferences")}
-              >
-                <Settings className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </>
+          <button
+            type="button"
+            onClick={onToggleTerminal}
+            className={`w-full h-7 rounded-md px-2 flex items-center justify-center gap-1.5 text-[11px] font-medium transition-colors cursor-pointer outline-none ${
+              isTerminalOpen
+                ? "bg-white/[0.12] text-white"
+                : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
+            }`}
+            title="เปิดหรือปิดบันทึกการทำงาน"
+          >
+            <Terminal className="w-3 h-3 text-[#71717A]" />
+            <span>{t("navTerminal")}</span>
+          </button>
         )}
       </div>
     </aside>
+
   );
 };
 

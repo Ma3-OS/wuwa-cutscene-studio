@@ -97,8 +97,15 @@ namespace WuWaExtractor
                 var line = await Console.In.ReadLineAsync();
                 if (line == null) break; // Stdin closed
 
-                line = line.Trim();
+                line = line.Trim().Trim('\uFEFF');
                 if (string.IsNullOrEmpty(line)) continue;
+
+                // Validate that the line starts with '{' and ends with '}' before parsing
+                if (!line.StartsWith('{') || !line.EndsWith('}'))
+                {
+                    LogToFile($"[WARN] Ignored malformed stdin line: {line}");
+                    continue;
+                }
 
                 _ = Task.Run(() => ProcessCommand(line));
             }
@@ -108,9 +115,20 @@ namespace WuWaExtractor
         {
             try
             {
-                using var doc = JsonDocument.Parse(jsonLine);
+                var cleanLine = jsonLine.Trim().Trim('\uFEFF');
+                if (!cleanLine.StartsWith('{') || !cleanLine.EndsWith('}'))
+                {
+                    return;
+                }
+
+                using var doc = JsonDocument.Parse(cleanLine);
                 var root = doc.RootElement;
-                var cmd = root.GetProperty("cmd").GetString();
+                if (!root.TryGetProperty("cmd", out var cmdProp))
+                {
+                    return;
+                }
+                var cmd = cmdProp.GetString();
+
 
                 switch (cmd)
                 {

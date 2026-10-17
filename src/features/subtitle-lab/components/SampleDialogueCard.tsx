@@ -20,20 +20,18 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
   onSwitchLanguage,
   enableRuby,
   setEnableRuby,
-  rubyText,
-  setRubyText,
   baseText,
   setBaseText,
 }) => {
   return (
-    <div className="p-4 rounded-2xl bg-[#141416] space-y-3">
+    <div className="p-3.5 rounded-2xl bg-[#141416] space-y-2.5 border border-white/[0.04]">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="text-[11px] text-[#737373] uppercase tracking-wider font-medium flex items-center gap-1.5">
           <Type className="w-3.5 h-3.5 text-neutral-400" />
           {label}
         </span>
 
-        {/* Language Switcher Chips */}
+        {/* Language & Ruby Toggles */}
         <div className="flex items-center gap-1.5">
           {(["th", "en", "ja", "zh"] as const).map((lang) => (
             <button
@@ -47,22 +45,22 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
               {lang}
             </button>
           ))}
-          <div className="w-px h-3 bg-white/[0.08] mx-1" />
+          <div className="w-px h-3 bg-white/[0.08] mx-0.5" />
           <button
             type="button"
             onClick={() => setEnableRuby(!enableRuby)}
-            className={`text-[10px] px-2.5 py-0.5 rounded-lg font-medium transition-colors cursor-pointer outline-none ${
+            className={`text-[10px] px-2 py-0.5 rounded-lg font-medium transition-colors cursor-pointer outline-none ${
               enableRuby ? "bg-white/[0.14] text-white" : "text-[#737373] hover:text-white"
             }`}
           >
-            คำอ่านรูบี้กำกับคำ
+            รูบี้กำกับคำ
           </button>
         </div>
       </div>
 
-      {/* Quick Sentence Presets */}
+      {/* Preset Sentence Buttons */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-[#71717A] font-medium">รูปแบบตัวอย่าง:</span>
+        <span className="text-[10px] text-[#71717A] font-medium">รูปแบบ:</span>
         <button
           type="button"
           onClick={() => setBaseText(SAMPLE_TEXTS[sampleLang].base)}
@@ -72,7 +70,7 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
               : "text-[#71717A] hover:text-white hover:bg-white/[0.06]"
           }`}
         >
-          มีรูบี้
+          มีคำอ่านรูบี้
         </button>
         <button
           type="button"
@@ -83,7 +81,7 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
               : "text-[#71717A] hover:text-white hover:bg-white/[0.06]"
           }`}
         >
-          ตัดสองบรรทัด
+          ประโยคยาวสองบรรทัด
         </button>
         <button
           type="button"
@@ -94,26 +92,17 @@ export const SampleDialogueCard: React.FC<SampleDialogueCardProps> = ({
               : "text-[#71717A] hover:text-white hover:bg-white/[0.06]"
           }`}
         >
-          บรรทัดเดียว
+          ประโยคสั้นบรรทัดเดียว
         </button>
       </div>
 
-      {enableRuby && (
-        <input
-          type="text"
-          value={rubyText}
-          onChange={(e) => setRubyText(e.target.value)}
-          placeholder="คำอ่านรูบี้ เช่น Xuanqing หรือ ซวนชิง"
-          className="w-full h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white placeholder-[#737373] border-none outline-none focus:ring-1 focus:ring-white/20 transition-all"
-        />
-      )}
-
+      {/* Single Clean Dialogue Input */}
       <input
         type="text"
         value={baseText}
         onChange={(e) => setBaseText(e.target.value)}
-        placeholder="ข้อความบทสนทนาหลัก..."
-        className="w-full h-9 px-3 rounded-xl bg-white/[0.04] text-xs text-white placeholder-[#737373] border-none outline-none focus:ring-1 focus:ring-white/20 transition-all font-medium"
+        placeholder="ข้อความบทสนทนาตัวอย่าง..."
+        className="w-full h-8.5 px-3 rounded-xl bg-white/[0.04] text-xs text-white placeholder-[#737373] border-none outline-none focus:ring-1 focus:ring-white/20 transition-all font-medium"
       />
     </div>
   );

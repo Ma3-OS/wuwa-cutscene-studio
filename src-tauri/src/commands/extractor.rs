@@ -239,6 +239,25 @@ pub fn get_system_drive_roots() -> Vec<String> {
     roots
 }
 
+fn count_paks_recursive(dir: &Path) -> usize {
+    let mut count = 0;
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                count += count_paks_recursive(&path);
+            } else if path
+                .extension()
+                .map(|ext| ext.eq_ignore_ascii_case("pak"))
+                .unwrap_or(false)
+            {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
 pub fn detect_game_env_internal(
     app: &AppHandle,
     config: &crate::config::AppConfig,
@@ -274,23 +293,14 @@ pub fn detect_game_env_internal(
         if !candidate.trim().is_empty() {
             let p = Path::new(&candidate);
             if p.exists() && p.is_dir() {
-                if let Ok(entries) = fs::read_dir(p) {
-                    let count = entries
-                        .filter_map(|e| e.ok())
-                        .filter(|e| {
-                            e.path()
-                                .extension()
-                                .map(|ext| ext.eq_ignore_ascii_case("pak"))
-                                .unwrap_or(false)
-                        })
-                        .count();
-                    if count > 0 {
-                        found_paks_dir = candidate;
-                        paks_count = count;
-                        break;
-                    }
+                let count = count_paks_recursive(p);
+                if count > 0 {
+                    found_paks_dir = candidate;
+                    paks_count = count;
+                    break;
                 }
             }
+
         }
     }
 
@@ -433,6 +443,12 @@ pub async fn start_extractor_daemon_internal(
                 continue;
             }
 
+            // If line is not a JSON object, route to standard log
+            if !trimmed.starts_with('{') || !trimmed.ends_with('}') {
+                emit_log(&app_handle, &format!("[WORKER RAW] {}", trimmed));
+                continue;
+            }
+
             if let Ok(val) = serde_json::from_str::<Value>(trimmed) {
                 if let Some(status) = val.get("status").and_then(|s| s.as_str()) {
                     if status == "log" {
@@ -448,12 +464,17 @@ pub async fn start_extractor_daemon_internal(
                         let _ = sender.send(val);
                     }
                 } else if let Some(status) = val.get("status").and_then(|s| s.as_str()) {
-                    if status != "log" {
+                    if status == "error" {
+                        if let Some(msg) = val.get("message").and_then(|m| m.as_str()) {
+                            emit_log(&app_handle, &format!("Worker: {}", msg));
+                        }
+                    } else if status != "log" {
                         emit_log(&app_handle, &format!("Worker Event: {}", status));
                     }
                 }
             }
         }
+
     });
 
     // Background listener task for worker stderr (Captures C# crash/unhandled logs)

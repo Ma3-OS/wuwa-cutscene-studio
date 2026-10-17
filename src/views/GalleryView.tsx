@@ -144,9 +144,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
           if (!matches) continue;
         }
       }
-      const charSel = config.char_selection;
-      const targetGender = roverFilter || charSel;
-      if (targetGender && v.roverType !== "Neutral") {
+      const targetGender = roverFilter;
+      if (targetGender && targetGender !== "all" && v.roverType !== "Neutral") {
         if (targetGender === "Girl" && v.roverType === "Boy") continue;
         if (targetGender === "Boy" && v.roverType === "Girl") continue;
       }
@@ -161,7 +160,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       sequenceCount: sCount,
       totalKindCount: vCount + sCount,
     };
-  }, [items, selectedFolder, roverFilter, config.char_selection]);
+  }, [items, selectedFolder, roverFilter]);
 
   // Main Filtered Cutscenes
   const filteredVideos = useMemo(() => {
@@ -175,9 +174,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       }
 
       // 2. Rover Protagonist Gender Filter
-      const charSel = config.char_selection;
-      const targetGender = roverFilter || charSel;
-      if (targetGender && v.roverType !== "Neutral") {
+      const targetGender = roverFilter;
+      if (targetGender && targetGender !== "all" && v.roverType !== "Neutral") {
         if (targetGender === "Girl" && v.roverType === "Boy") return false;
         if (targetGender === "Boy" && v.roverType === "Girl") return false;
       }
@@ -213,7 +211,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
       return true;
     });
-  }, [items, roverFilter, config.char_selection, selectedFolder, searchQuery, searchMode, dialogueMatches, assetKindFilter]);
+  }, [items, roverFilter, selectedFolder, searchQuery, searchMode, dialogueMatches, assetKindFilter]);
 
   // Reset scroll position and auto-sync selection
   useEffect(() => {
@@ -221,33 +219,38 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       scrollContainerRef.current.scrollTop = 0;
     }
 
-    if (selectedFile) {
-      const stillInFiltered = filteredVideos.some(
-        (v) =>
-          v.uniqueId === selectedFile ||
-          v.fullPath === selectedFile ||
-          v.cgFile === selectedFile ||
-          v.cgName === selectedFile
-      );
+    if (filteredVideos.length > 0) {
+      const stillInFiltered = selectedFile
+        ? filteredVideos.some(
+            (v) =>
+              v.uniqueId === selectedFile ||
+              v.fullPath === selectedFile ||
+              v.cgFile === selectedFile ||
+              v.cgName === selectedFile
+          )
+        : false;
+
       if (!stillInFiltered) {
-        if (filteredVideos.length > 0) {
-          const first = filteredVideos[0];
-          const thumb =
-            thumbnails[first.uniqueId] ||
-            (first.fullPath && thumbnails[first.fullPath]);
-          const meta = videoMetas[first.fullPath] || (thumb ? {
-            thumbnail: thumb,
-            duration_secs: 0,
-            duration_formatted: "",
-            resolution: "1080p",
-          } : null);
-          onSelectVideo(first, meta, false);
-        } else {
-          onSelectVideo(null, null, false);
-        }
+        const first = filteredVideos[0];
+        const thumb =
+          thumbnails[first.uniqueId] ||
+          (first.fullPath && thumbnails[first.fullPath]);
+        const meta =
+          videoMetas[first.fullPath] ||
+          (thumb
+            ? {
+                thumbnail: thumb,
+                duration_secs: 0,
+                duration_formatted: "",
+                resolution: "1080p",
+              }
+            : null);
+        onSelectVideo(first, meta, false);
       }
+    } else if (selectedFile) {
+      onSelectVideo(null, null, false);
     }
-  }, [selectedFolder, assetKindFilter, roverFilter]);
+  }, [selectedFolder, assetKindFilter, roverFilter, filteredVideos.length]);
 
   const inFlightExtractionRef = useRef<Map<string, Promise<ProcessedVideoItem>>>(new Map());
 
@@ -593,11 +596,11 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     toast.success(`เพิ่ม ${video.fileName} เข้าคิวเรนเดอร์เรียบร้อยแล้ว`);
   };
 
-  const handleRoverFilterChange = (gender: "Girl" | "Boy") => {
+  const handleRoverFilterChange = (gender: "all" | "Girl" | "Boy") => {
     playSound("click");
     setRoverFilter(gender);
     appendLog({
-      message: `เปลี่ยนตัวกรองเพศเป็น ${gender === "Girl" ? "โรเวอร์หญิง" : "โรเวอร์ชาย"}`,
+      message: `เปลี่ยนตัวกรองเพศเป็น ${gender === "all" ? "ทุกเพศ" : gender === "Girl" ? "โรเวอร์หญิง" : "โรเวอร์ชาย"}`,
       level: "info",
     });
   };

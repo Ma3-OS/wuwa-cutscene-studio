@@ -37,7 +37,7 @@ interface CatalogState {
   loading: boolean;
   selectedFolder: string;
   searchQuery: string;
-  roverFilter: "Girl" | "Boy";
+  roverFilter: "all" | "Girl" | "Boy";
   assetKindFilter: "video" | "sequence" | "all";
   viewMode: "grid" | "list";
 
@@ -45,7 +45,7 @@ interface CatalogState {
   setLoading: (loading: boolean) => void;
   setSelectedFolder: (folder: string) => void;
   setSearchQuery: (query: string) => void;
-  setRoverFilter: (filter: "Girl" | "Boy") => void;
+  setRoverFilter: (filter: "all" | "Girl" | "Boy") => void;
   setAssetKindFilter: (filter: "video" | "sequence" | "all") => void;
   setViewMode: (mode: "grid" | "list") => void;
   updateItem: (key: string, patch: Partial<ProcessedVideoItem>) => void;
@@ -57,7 +57,7 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
   loading: false,
   selectedFolder: "all",
   searchQuery: "",
-  roverFilter: "Girl",
+  roverFilter: "all",
   assetKindFilter: "all",
   viewMode: "grid",
 

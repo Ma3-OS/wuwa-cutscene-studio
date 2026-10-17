@@ -213,7 +213,7 @@ export const ToolsSetupView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 h-full bg-[#111113] flex flex-col min-w-0 overflow-y-auto select-none p-6">
+    <div className="flex-1 h-full bg-[#111113] flex flex-col min-w-0 overflow-y-auto select-none p-6 pb-12">
       <div className="max-w-5xl mx-auto w-full space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
@@ -249,7 +249,7 @@ export const ToolsSetupView: React.FC = () => {
         </div>
 
         {/* 2-Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
           {/* Card 1: Project Directories & Output Separation */}
           <div className="rounded-2xl bg-[#161619] divide-y divide-white/[0.04] overflow-hidden">
             <div className="p-4 flex items-center justify-between">
@@ -265,7 +265,7 @@ export const ToolsSetupView: React.FC = () => {
                 <label className="text-[11px] font-medium text-neutral-300 block">
                   โฟลเดอร์สกัดไฟล์ดิบ
                 </label>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-neutral-400">
+                <span className="text-[10px] font-mono text-neutral-400">
                   {config.export_dir ? "กำหนดเอง" : "ค่าเริ่มต้นโครงการ"}
                 </span>
               </div>
@@ -281,7 +281,8 @@ export const ToolsSetupView: React.FC = () => {
                   className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                 />
                 <StudioButton variant="secondary" size="sm" onClick={handleBrowseExportDir}>
-                  {t("btnBrowse")}
+                  <Folder className="w-3.5 h-3.5 mr-1 text-neutral-400" />
+                  <span>{t("btnBrowse")}</span>
                 </StudioButton>
                 {Boolean(config.export_dir) && (
                   <StudioButton
@@ -303,7 +304,7 @@ export const ToolsSetupView: React.FC = () => {
                 <label className="text-[11px] font-medium text-neutral-300 block">
                   โฟลเดอร์วิดีโอผลลัพธ์
                 </label>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-neutral-400">
+                <span className="text-[10px] font-mono text-neutral-400">
                   {config.output_dir ? "กำหนดเอง" : "ค่าเริ่มต้นโครงการ"}
                 </span>
               </div>
@@ -319,7 +320,8 @@ export const ToolsSetupView: React.FC = () => {
                   className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                 />
                 <StudioButton variant="secondary" size="sm" onClick={handleBrowseOutputDir}>
-                  {t("btnBrowse")}
+                  <Folder className="w-3.5 h-3.5 mr-1 text-neutral-400" />
+                  <span>{t("btnBrowse")}</span>
                 </StudioButton>
                 {Boolean(config.output_dir) && (
                   <StudioButton
@@ -396,7 +398,8 @@ export const ToolsSetupView: React.FC = () => {
                     className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                   />
                   <StudioButton variant="secondary" size="sm" onClick={handleBrowseGamePaksDir}>
-                    {t("btnBrowse")}
+                    <Folder className="w-3.5 h-3.5 mr-1 text-neutral-400" />
+                    <span>{t("btnBrowse")}</span>
                   </StudioButton>
                 </div>
               </div>
@@ -420,7 +423,8 @@ export const ToolsSetupView: React.FC = () => {
                     className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                   />
                   <StudioButton variant="secondary" size="sm" onClick={handleBrowseKeysFile}>
-                    {t("btnBrowse")}
+                    <Folder className="w-3.5 h-3.5 mr-1 text-neutral-400" />
+                    <span>{t("btnBrowse")}</span>
                   </StudioButton>
                 </div>
               </div>

@@ -152,11 +152,12 @@ export const TerminalDrawer: React.FC<TerminalDrawerProps> = ({
           ) : (
             logs.map((log) => {
               const levelColor = {
-                info: "text-[#A3A3A3]",
-                success: "text-emerald-400 font-medium",
-                warn: "text-amber-400",
-                error: "text-rose-400 font-semibold",
+                info: "text-[#A1A1AA]",
+                success: "text-white font-medium",
+                warn: "text-[#F59E0B]",
+                error: "text-[#FBBF24] font-medium",
               }[log.level];
+
 
               return (
                 <div key={log.id} className="flex items-start gap-2 leading-tight">

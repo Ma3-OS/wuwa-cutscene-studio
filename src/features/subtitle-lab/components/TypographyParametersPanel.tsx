@@ -92,7 +92,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
   const [activeTab, setActiveTab] = useState<"dialogue" | "ruby" | "lyric">("dialogue");
 
   return (
-    <div className="lg:col-span-5 p-5 rounded-2xl bg-[#141416] border border-white/[0.06] space-y-5 overflow-y-auto no-scrollbar">
+    <div className="lg:col-span-5 p-5 rounded-2xl bg-[#141418] border border-white/[0.06] space-y-4 overflow-y-auto no-scrollbar">
       {/* Panel Header */}
       <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
         <h3 className="text-xs font-semibold text-white flex items-center gap-2">
@@ -118,25 +118,27 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
 
       {/* Tab 1: Dialogue Settings */}
       {activeTab === "dialogue" && (
-        <div className="space-y-5">
+        <div className="divide-y divide-white/[0.05]">
           {/* Font Family Selector */}
-          <StudioSelect
-            label={fontFamilyLabel}
-            value={subFont}
-            onChange={(e) => setSubFont(e.target.value)}
-            options={[
-              { value: "Kanit Medium", label: "Kanit Medium มาตรฐานเกม" },
-              { value: "Prompt Medium", label: "Prompt Medium ทรงเรขาคณิต" },
-              { value: "Segoe UI", label: "Segoe UI คมชัดสูง" },
-              { value: "Inter", label: "Inter สไตล์มินิมอล" },
-              { value: "Noto Sans Thai", label: "Noto Sans Thai มาตรฐานเว็บ" },
-              { value: "Tahoma", label: "Tahoma คลาสสิก" },
-              { value: "Arial", label: "Arial สากล" },
-            ]}
-          />
+          <div className="pb-3.5">
+            <StudioSelect
+              label={fontFamilyLabel}
+              value={subFont}
+              onChange={(e) => setSubFont(e.target.value)}
+              options={[
+                { value: "Kanit Medium", label: "Kanit Medium มาตรฐานเกม" },
+                { value: "Prompt Medium", label: "Prompt Medium ทรงเรขาคณิต" },
+                { value: "Segoe UI", label: "Segoe UI คมชัดสูง" },
+                { value: "Inter", label: "Inter สไตล์มินิมอล" },
+                { value: "Noto Sans Thai", label: "Noto Sans Thai มาตรฐานเว็บ" },
+                { value: "Tahoma", label: "Tahoma คลาสสิก" },
+                { value: "Arial", label: "Arial สากล" },
+              ]}
+            />
+          </div>
 
           {/* Parameter 1: Font Size */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-[#A3A3A3] font-medium">{fontSizeLabel}</span>
               <div className="flex items-center gap-1.5">
@@ -172,7 +174,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   54
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={16}
@@ -197,7 +199,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Parameter 2: Outline Width */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-[#A3A3A3] font-medium">{outlineWidthLabel}</span>
               <div className="flex items-center gap-1.5">
@@ -225,7 +227,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   1.2
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={0}
@@ -251,7 +253,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Parameter 3: Shadow Depth */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-[#A3A3A3] font-medium">{shadowDepthLabel}</span>
               <div className="flex items-center gap-1.5">
@@ -271,7 +273,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   0.8
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={0}
@@ -297,7 +299,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Parameter 4: Bottom Margin Offset */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-[#A3A3A3] font-medium flex items-center gap-1.5">
                 <MoveVertical className="w-3.5 h-3.5 text-neutral-400" />
@@ -328,7 +330,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   54
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={0}
@@ -353,7 +355,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Parameter 5: Color Palette */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-3">
+          <div className="pt-3.5 space-y-2.5">
             <span className="text-xs text-[#A3A3A3] font-medium flex items-center gap-2">
               <Palette className="w-3.5 h-3.5 text-neutral-400" />
               <span>{textColorLabel}</span>
@@ -404,11 +406,11 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
         </div>
       )}
 
-      {/* Tab 2: Ruby Settings - เช่น Xuanqing เหนือคำว่า นาง */}
+      {/* Tab 2: Ruby Settings */}
       {activeTab === "ruby" && (
-        <div className="space-y-5">
+        <div className="divide-y divide-white/[0.05]">
           {/* Ruby Enable Toggle */}
-          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between">
+          <div className="pb-3.5 flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-xs font-medium text-white flex items-center gap-2">
                 <Languages className="w-3.5 h-3.5 text-neutral-400" />
@@ -434,7 +436,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Ruby Size */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="space-y-0.5">
                 <span className="text-xs text-[#A3A3A3] font-medium">ขนาดคำอ่านรูบี้</span>
@@ -475,7 +477,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   28
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={0}
@@ -500,7 +502,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Ruby Vertical Elevation / Offset */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="space-y-0.5">
                 <span className="text-xs text-[#A3A3A3] font-medium flex items-center gap-1.5">
@@ -536,7 +538,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   +8
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={-20}
@@ -561,7 +563,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Ruby Color */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-3">
+          <div className="pt-3.5 space-y-2.5">
             <span className="text-xs text-[#A3A3A3] font-medium flex items-center gap-2">
               <Palette className="w-3.5 h-3.5 text-neutral-400" />
               <span>สีคำอ่านรูบี้</span>
@@ -620,9 +622,9 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
 
       {/* Tab 3: Lyric Settings */}
       {activeTab === "lyric" && (
-        <div className="space-y-5">
+        <div className="divide-y divide-white/[0.05]">
           {/* Bilingual Toggle */}
-          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between">
+          <div className="pb-3.5 flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-xs font-medium text-white flex items-center gap-2">
                 <Music className="w-3.5 h-3.5 text-neutral-400" />
@@ -648,7 +650,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Lyric Font Size */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="space-y-0.5">
                 <span className="text-xs text-[#A3A3A3] font-medium">ขนาดตัวอักษรเนื้อเพลง</span>
@@ -689,7 +691,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   46
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={0}
@@ -713,8 +715,8 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             />
           </div>
 
-          {/* Lyric Margin X (Left offset) */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          {/* Lyric Margin X */}
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-[#A3A3A3] font-medium flex items-center gap-1.5">
                 <MoveHorizontal className="w-3.5 h-3.5 text-neutral-400" />
@@ -743,7 +745,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   220
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={20}
@@ -767,8 +769,8 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             />
           </div>
 
-          {/* Lyric Margin Y (Top offset) */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2.5">
+          {/* Lyric Margin Y */}
+          <div className="py-3.5 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-[#A3A3A3] font-medium flex items-center gap-1.5">
                 <MoveVertical className="w-3.5 h-3.5 text-neutral-400" />
@@ -797,7 +799,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
                 >
                   50
                 </button>
-                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-1 rounded-lg border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#1A1A1E] px-2 py-0.5 rounded-lg border border-white/[0.08]">
                   <input
                     type="number"
                     min={10}
@@ -822,7 +824,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           </div>
 
           {/* Lyric Color */}
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-3">
+          <div className="pt-3.5 space-y-2.5">
             <span className="text-xs text-[#A3A3A3] font-medium flex items-center gap-2">
               <Palette className="w-3.5 h-3.5 text-neutral-400" />
               <span>สีเนื้อเพลง</span>

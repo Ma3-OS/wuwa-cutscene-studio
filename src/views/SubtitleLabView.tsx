@@ -11,7 +11,6 @@ import {
   StylePreset,
 } from "@/features/subtitle-lab/constants";
 import { SubtitleHeader } from "@/features/subtitle-lab/components/SubtitleHeader";
-import { SubtitlePresetsBar } from "@/features/subtitle-lab/components/SubtitlePresetsBar";
 import { SubtitleCanvasControls } from "@/features/subtitle-lab/components/SubtitleCanvasControls";
 import { SubtitleCanvas, FramingMode } from "@/features/subtitle-lab/components/SubtitleCanvas";
 import { SampleDialogueCard } from "@/features/subtitle-lab/components/SampleDialogueCard";
@@ -289,11 +288,7 @@ export const SubtitleLabView: React.FC = () => {
         lastSaved={lastSaved}
         onReset={handleReset}
         resetLabel={t("btnResetDefault")}
-      />
-
-      {/* Style Presets Bar */}
-      <SubtitlePresetsBar
-        label={t("presetStyles")}
+        presets={PRESETS}
         onApplyPreset={handleApplyPreset}
       />
 
@@ -301,56 +296,58 @@ export const SubtitleLabView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
         {/* Left Column: Interactive Canvas and Controls */}
         <div className="lg:col-span-7 flex flex-col space-y-4">
-          <SubtitleCanvasControls
-            framingMode={framingMode}
-            setFramingMode={setFramingMode}
-            previewType={previewType}
-            setPreviewType={setPreviewType}
-            zoomMode={zoomMode}
-            setZoomMode={setZoomMode}
-            activeThemeId={activeThemeId}
-            setActiveThemeId={setActiveThemeId}
-            showGuides={showGuides}
-            setShowGuides={setShowGuides}
-            onOpenFullscreen={() => setIsFullscreen(true)}
-            fitLabel={t("previewFitFrame")}
-            actualLabel={t("previewActual")}
-            guidesLabel={t("previewGuides")}
-            fullscreenLabel={t("btnFullscreen")}
-            hasVideoSource={Boolean(videoUrl)}
-            isVideoPlaying={isVideoPlaying}
-            onTogglePlayVideo={() => setIsVideoPlaying((prev) => !prev)}
-            videoTitle={activeVideo?.fileName}
-          />
+          <div className="rounded-2xl overflow-hidden bg-[#141417] border border-white/[0.06] flex flex-col">
+            <SubtitleCanvas
+              canvasRef={canvasRef}
+              framingMode={framingMode}
+              activeTheme={activeTheme}
+              videoUrl={videoUrl}
+              isVideoPlaying={isVideoPlaying}
+              showGuides={showGuides}
+              zoomMode={zoomMode}
+              subFont={subFont}
+              subSize={subSize}
+              subOutline={subOutline}
+              subShadow={subShadow}
+              subMarginV={subMarginV}
+              subColor={subColor}
+              previewType={previewType}
+              sampleLang={sampleLang}
+              enableRuby={rubyEnabledState}
+              rubySize={rubySize}
+              rubyOffsetY={rubyOffsetY}
+              rubyColor={rubyColor}
+              rubyText={rubyText}
+              baseText={baseText}
+              lyricSize={lyricSize}
+              lyricMarginX={lyricMarginX}
+              lyricMarginY={lyricMarginY}
+              lyricBilingual={lyricBilingual}
+              lyricColor={lyricColor}
+            />
 
-          <SubtitleCanvas
-            canvasRef={canvasRef}
-            framingMode={framingMode}
-            activeTheme={activeTheme}
-            videoUrl={videoUrl}
-            isVideoPlaying={isVideoPlaying}
-            showGuides={showGuides}
-            zoomMode={zoomMode}
-            subFont={subFont}
-            subSize={subSize}
-            subOutline={subOutline}
-            subShadow={subShadow}
-            subMarginV={subMarginV}
-            subColor={subColor}
-            previewType={previewType}
-            sampleLang={sampleLang}
-            enableRuby={rubyEnabledState}
-            rubySize={rubySize}
-            rubyOffsetY={rubyOffsetY}
-            rubyColor={rubyColor}
-            rubyText={rubyText}
-            baseText={baseText}
-            lyricSize={lyricSize}
-            lyricMarginX={lyricMarginX}
-            lyricMarginY={lyricMarginY}
-            lyricBilingual={lyricBilingual}
-            lyricColor={lyricColor}
-          />
+            <SubtitleCanvasControls
+              framingMode={framingMode}
+              setFramingMode={setFramingMode}
+              previewType={previewType}
+              setPreviewType={setPreviewType}
+              zoomMode={zoomMode}
+              setZoomMode={setZoomMode}
+              activeThemeId={activeThemeId}
+              setActiveThemeId={setActiveThemeId}
+              showGuides={showGuides}
+              setShowGuides={setShowGuides}
+              onOpenFullscreen={() => setIsFullscreen(true)}
+              fitLabel={t("previewFitFrame")}
+              actualLabel={t("previewActual")}
+              guidesLabel={t("previewGuides")}
+              fullscreenLabel={t("btnFullscreen")}
+              hasVideoSource={Boolean(videoUrl)}
+              isVideoPlaying={isVideoPlaying}
+              onTogglePlayVideo={() => setIsVideoPlaying((prev) => !prev)}
+              videoTitle={activeVideo?.fileName}
+            />
+          </div>
 
           <SampleDialogueCard
             label={t("sampleDialogue")}

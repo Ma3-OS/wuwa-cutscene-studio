@@ -94,7 +94,7 @@ export const AudioEngineView: React.FC = () => {
 
   return (
     <div className="flex-1 h-full bg-[#111113] flex flex-col min-w-0 overflow-y-auto select-none p-6">
-      <div className="max-w-4xl mx-auto w-full space-y-6">
+      <div className="max-w-5xl mx-auto w-full space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3.5">
@@ -107,8 +107,8 @@ export const AudioEngineView: React.FC = () => {
                   {t("wsAudio")}
                 </h1>
                 {lastSaved && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">
-                    <CheckCheck className="w-3 h-3" /> {lastSaved}
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] text-neutral-400 border border-white/[0.04]">
+                    <CheckCheck className="w-3 h-3 text-neutral-400" /> {lastSaved}
                   </span>
                 )}
               </div>
@@ -127,7 +127,7 @@ export const AudioEngineView: React.FC = () => {
         </div>
 
         {/* 2-Column Audio Mixing Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
           {/* Left: Mixing Levels & Normalization */}
           <div className="p-5 rounded-2xl bg-[#141416] space-y-5">
             <div className="flex items-center gap-2 text-xs font-semibold text-white pb-1 border-b border-white/[0.04]">

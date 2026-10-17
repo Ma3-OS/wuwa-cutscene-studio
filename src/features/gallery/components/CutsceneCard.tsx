@@ -37,17 +37,17 @@ export const CutsceneCard: React.FC<CutsceneCardProps> = ({
     <div
       onClick={onSelect}
       onDoubleClick={onDoubleClick}
-      className={`group rounded-xl p-2 flex flex-col justify-between transition-all cursor-pointer select-none relative ${
+      className={`group rounded-xl overflow-hidden flex flex-col justify-between transition-all cursor-pointer select-none relative border border-white/[0.04] ${
         isSelected || isCurrent
-          ? "bg-[#26262B] ring-1 ring-white/20 shadow-lg"
-          : "bg-[#18181C] hover:bg-[#222227]"
+          ? "bg-[#1E1E24] ring-1 ring-white/20 shadow-lg"
+          : "bg-[#141417] hover:bg-[#1A1A1F]"
       }`}
     >
-      {/* Aspect Ratio 16:9 Clean Canvas */}
+      {/* Aspect Ratio 16:9 Edge-to-Edge Canvas */}
       <div
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
-        className="relative aspect-video w-full rounded-lg overflow-hidden bg-[#0A0A0C]"
+        className="relative aspect-video w-full overflow-hidden bg-[#0A0A0C]"
       >
         {thumb ? (
           <img
@@ -140,7 +140,7 @@ export const CutsceneCard: React.FC<CutsceneCardProps> = ({
       </div>
 
       {/* Card Info: Minimal text hierarchy */}
-      <div className="pt-2 px-0.5">
+      <div className="p-2.5">
         <h4
           className="text-xs font-medium text-white truncate"
           title={video.fileName}
@@ -151,14 +151,9 @@ export const CutsceneCard: React.FC<CutsceneCardProps> = ({
           <span className="truncate" title={video.folderName}>
             {video.folderName}
           </span>
-          {video.roverType !== "Neutral" && (
-            <span className="text-[#A1A1AA] text-[10px] font-mono shrink-0">
-              {video.roverType === "Girl" ? "หญิง" : "ชาย"}
-            </span>
-          )}
         </div>
         {dialogueMatch && (
-          <p className="text-[10px] text-neutral-300 truncate italic mt-1 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+          <p className="text-[10px] text-neutral-300 truncate italic mt-1.5 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
             “{dialogueMatch}”
           </p>
         )}

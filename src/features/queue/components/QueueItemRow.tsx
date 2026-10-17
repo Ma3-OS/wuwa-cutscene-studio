@@ -1,10 +1,11 @@
 import React from "react";
-import { Loader2, CheckCircle2, AlertTriangle, Clock, RotateCcw, ExternalLink, FolderOpen, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Clock, RotateCcw, ExternalLink, FolderOpen, Trash2, Film } from "lucide-react";
 import { StudioButton } from "@/components/ui/StudioButton";
 import { QueueItem } from "@/features/queue/stores/useQueueStore";
 
 interface QueueItemRowProps {
   item: QueueItem;
+  thumbnail?: string;
   onRetry: (id: string) => void;
   onOpenFile: (path?: string) => void;
   onShowInFolder: (path?: string) => void;
@@ -13,6 +14,7 @@ interface QueueItemRowProps {
 
 export const QueueItemRow: React.FC<QueueItemRowProps> = ({
   item,
+  thumbnail,
   onRetry,
   onOpenFile,
   onShowInFolder,
@@ -22,19 +24,34 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
   const isDone = item.status === "completed";
   const isFailed = item.status === "failed";
 
+  const subModeLabel =
+    item.subtitleMode === "Hard-sub"
+      ? "ฝังซับลงภาพ"
+      : item.subtitleMode === "Soft-sub"
+      ? "ซับแยก"
+      : "ไม่มีซับ";
+
   return (
-    <div className="p-3.5 rounded-xl bg-[#141417] flex items-center justify-between gap-4 transition-colors">
+    <div className="p-3 rounded-xl bg-[#141417] border border-white/[0.04] flex items-center justify-between gap-4 transition-colors">
       <div className="flex items-center gap-3.5 min-w-0">
-        <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0 text-white/60">
-          {isRendering ? (
-            <Loader2 className="w-4 h-4 animate-spin text-white" />
-          ) : isDone ? (
-            <CheckCircle2 className="w-4 h-4 text-white" />
-          ) : isFailed ? (
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+        {/* 64x36 16:9 Mini Thumbnail with Status Indicator */}
+        <div className="w-16 h-9 rounded-md bg-[#0A0A0C] border border-white/[0.06] overflow-hidden shrink-0 relative flex items-center justify-center">
+          {thumbnail ? (
+            <img src={thumbnail} alt={item.fileName} className="w-full h-full object-cover" />
           ) : (
-            <Clock className="w-4 h-4 text-white/40" />
+            <Film className="w-4 h-4 text-white/30" />
           )}
+          <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
+            {isRendering ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+            ) : isDone ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+            ) : isFailed ? (
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 text-white/60" />
+            )}
+          </div>
         </div>
 
         <div className="min-w-0 space-y-0.5">
@@ -48,7 +65,7 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
             <span>•</span>
             <span>{item.locale.toUpperCase()}</span>
             <span>•</span>
-            <span>{item.subtitleMode}</span>
+            <span>{subModeLabel}</span>
             {item.renderResolution && item.renderResolution !== "original" && (
               <>
                 <span>•</span>
@@ -57,7 +74,7 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
             )}
           </div>
           {item.error && (
-            <div className="text-[11px] text-rose-400 font-mono truncate max-w-md">
+            <div className="text-[11px] text-amber-400/90 font-mono truncate max-w-md">
               {item.error}
             </div>
           )}

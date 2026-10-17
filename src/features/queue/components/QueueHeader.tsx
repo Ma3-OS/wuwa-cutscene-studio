@@ -77,7 +77,7 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClearAll}
-              className="text-rose-400 hover:text-rose-300"
+              className="text-neutral-400 hover:text-white"
             >
               <span>ล้างทั้งหมด</span>
             </StudioButton>

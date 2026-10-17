@@ -228,19 +228,21 @@ export const BatchQueueView: React.FC = () => {
             </StudioButton>
           </div>
         ) : (
-          items.map((item) => (
-            <QueueItemRow
-              key={item.id}
-              item={item}
-              onRetry={(id) => {
-                playSound("click");
-                retryItem(id);
-              }}
-              onOpenFile={handleOpenFile}
-              onShowInFolder={handleShowInFolder}
-              onRemove={removeItem}
-            />
-          ))
+          items.map((item) => {
+            return (
+              <QueueItemRow
+                key={item.id}
+                item={item}
+                onRetry={(id) => {
+                  playSound("click");
+                  retryItem(id);
+                }}
+                onOpenFile={handleOpenFile}
+                onShowInFolder={handleShowInFolder}
+                onRemove={removeItem}
+              />
+            );
+          })
         )}
       </div>
 

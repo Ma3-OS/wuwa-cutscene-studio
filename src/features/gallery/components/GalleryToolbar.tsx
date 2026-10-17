@@ -24,7 +24,7 @@ interface GalleryToolbarProps {
   totalKindCount: number;
   roverFilter: string;
   charSelection: string;
-  onRoverFilterChange: (gender: "Girl" | "Boy") => void;
+  onRoverFilterChange: (gender: "all" | "Girl" | "Boy") => void;
   searchQuery: string;
   onSearchQueryChange: (q: string) => void;
   searchMode: "name" | "dialogue";
@@ -47,7 +47,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
   sequenceCount,
   totalKindCount,
   roverFilter,
-  charSelection,
+  charSelection: _charSelection,
   onRoverFilterChange,
   searchQuery,
   onSearchQueryChange,
@@ -184,15 +184,32 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
         <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 shrink-0">
           <button
             type="button"
+            onClick={() => onRoverFilterChange("all")}
+            className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
+              roverFilter === "all" || !roverFilter
+                ? "bg-white/[0.12] text-white font-medium shadow-sm"
+                : "text-[#8E8E93] hover:text-white"
+            }`}
+            title="ทุกเพศ"
+          >
+            {toolbarMode === "icon" ? (
+              <User className="w-3 h-3 text-neutral-400" />
+            ) : (
+              <span>ทุกเพศ</span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => onRoverFilterChange("Girl")}
             className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
-              (roverFilter || charSelection) === "Girl"
+              roverFilter === "Girl"
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
             title="โรเวอร์หญิง"
           >
-            <User className={`w-3 h-3 ${toolbarMode === "icon" ? "text-pink-400" : "text-neutral-400"}`} />
+            <User className="w-3 h-3 text-neutral-400" />
             {toolbarMode === "full" && <span>โรเวอร์หญิง</span>}
             {toolbarMode === "compact" && <span>หญิง</span>}
           </button>
@@ -201,20 +218,20 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
             type="button"
             onClick={() => onRoverFilterChange("Boy")}
             className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer outline-none flex items-center gap-1 ${
-              (roverFilter || charSelection) === "Boy"
+              roverFilter === "Boy"
                 ? "bg-white/[0.12] text-white font-medium shadow-sm"
                 : "text-[#8E8E93] hover:text-white"
             }`}
             title="โรเวอร์ชาย"
           >
-            <User className={`w-3 h-3 ${toolbarMode === "icon" ? "text-blue-400" : "text-neutral-400"}`} />
+            <User className="w-3 h-3 text-neutral-400" />
             {toolbarMode === "full" && <span>โรเวอร์ชาย</span>}
             {toolbarMode === "compact" && <span>ชาย</span>}
           </button>
         </div>
       </div>
 
-      {/* Middle: Studio Search */}
+      {/* Middle: Studio Spotlight Search */}
       {toolbarMode === "icon" ? (
         <button
           type="button"
@@ -230,45 +247,34 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
           <Search className="w-3.5 h-3.5" />
         </button>
       ) : (
-        <div className="flex-1 min-w-[120px] max-w-[260px] flex items-center gap-1 bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06] focus-within:border-white/20 transition-colors">
+        <div className="flex-1 min-w-[140px] max-w-[280px] relative flex items-center bg-white/[0.04] rounded-lg px-2 border border-white/[0.06] focus-within:border-white/20 transition-colors">
+          <Search className="w-3.5 h-3.5 text-neutral-500 pointer-events-none shrink-0 mr-1.5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
+            placeholder={searchMode === "name" ? "ค้นหาชื่อหรือโฟลเดอร์..." : "ค้นหาคำพูดภาษาไทย..."}
+            className="w-full h-7 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchQueryChange("")}
+              className="w-4 h-4 rounded flex items-center justify-center text-neutral-500 hover:text-white cursor-pointer mr-1"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          )}
           <button
             type="button"
             onClick={onToggleSearchMode}
-            className="px-1.5 py-0.5 rounded text-[10px] font-medium text-[#8E8E93] hover:text-white flex items-center gap-1 transition-colors cursor-pointer outline-none shrink-0"
-            title="สลับโหมดค้นหา: ชื่อคัตซีน หรือ บทพูดภาษาไทย"
+            className={`p-1 rounded text-[10px] font-medium transition-colors cursor-pointer outline-none shrink-0 ${
+              searchMode === "dialogue" ? "text-white bg-white/[0.12]" : "text-[#71717A] hover:text-white"
+            }`}
+            title={searchMode === "name" ? "โหมดค้นหาชื่อคลิป คลิกเพื่อสลับเป็นค้นหาบทพูด" : "โหมดค้นหาบทพูด คลิกเพื่อสลับเป็นค้นหาชื่อคลิป"}
           >
-            {searchMode === "name" ? (
-              <>
-                <Film className="w-3 h-3 text-neutral-400 shrink-0" />
-                {toolbarMode === "full" && <span>ชื่อคลิป</span>}
-              </>
-            ) : (
-              <>
-                <MessageSquare className="w-3 h-3 text-neutral-300 shrink-0" />
-                {toolbarMode === "full" && <span>บทพูด</span>}
-              </>
-            )}
+            {searchMode === "name" ? <Film className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
           </button>
-          <div className="h-3 w-px bg-white/[0.08] shrink-0" />
-          <div className="relative flex-1 flex items-center min-w-0">
-            <Search className="w-3.5 h-3.5 absolute left-1.5 text-neutral-500 pointer-events-none shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchQueryChange(e.target.value)}
-              placeholder={searchMode === "name" ? "ค้นหาชื่อหรือโฟลเดอร์..." : "ค้นหาคำพูดภาษาไทย..."}
-              className="w-full h-6 pl-6 pr-5 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => onSearchQueryChange("")}
-                className="absolute right-1 w-4 h-4 rounded flex items-center justify-center text-neutral-500 hover:text-white cursor-pointer"
-              >
-                <X className="w-2.5 h-2.5" />
-              </button>
-            )}
-          </div>
         </div>
       )}
 
