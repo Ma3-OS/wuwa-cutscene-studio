@@ -3,7 +3,16 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 import path from "node:path";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+
+// Canonicalize process.cwd() to prevent path mismatches in esbuild dependency optimization
+try {
+  const realCwd = fs.realpathSync(process.cwd());
+  if (process.cwd() !== realCwd) {
+    process.chdir(realCwd);
+  }
+} catch (_) {}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,7 +23,6 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [tailwindcss(), react()],
   resolve: {
-    preserveSymlinks: true,
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
@@ -63,7 +71,7 @@ export default defineConfig(async () => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom", "framer-motion", "lucide-react"],
+          vendor: ["react", "react-dom", "motion", "lucide-react"],
           tauri: ["@tauri-apps/api", "@tauri-apps/plugin-dialog", "@tauri-apps/plugin-fs", "@tauri-apps/plugin-shell", "@tauri-apps/plugin-opener"],
         },
       },
