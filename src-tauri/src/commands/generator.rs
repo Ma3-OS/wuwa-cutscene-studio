@@ -950,17 +950,16 @@ pub async fn generate_single_video_info(
 
     // 4. Verify all referenced .wem files in sounds and auto-extract any missing streams from PAKs
     let mut missing_wems = Vec::new();
-    if let Ok(re) = regex::Regex::new(r"(?i)(?:wem[\\/]|(?:\b))([0-9]{5,12})\.wem") {
-        for s in &sounds {
-            if s.to_lowercase().ends_with(".txtp") {
-                if let Ok(content) = fs::read_to_string(s) {
-                    for cap in re.captures_iter(&content) {
-                        if let Some(m) = cap.get(1) {
-                            let id = m.as_str().to_string();
-                            let wem_file = format!("{}.wem", id).to_lowercase();
-                            if !wem_map.contains_key(&wem_file) && !missing_wems.contains(&id) {
-                                missing_wems.push(id);
-                            }
+    let re = &*crate::commands::wwiser::WEM_ID_REGEX;
+    for s in &sounds {
+        if s.to_lowercase().ends_with(".txtp") {
+            if let Ok(content) = fs::read_to_string(s) {
+                for cap in re.captures_iter(&content) {
+                    if let Some(m) = cap.get(1) {
+                        let id = m.as_str().to_string();
+                        let wem_file = format!("{}.wem", id).to_lowercase();
+                        if !wem_map.contains_key(&wem_file) && !missing_wems.contains(&id) {
+                            missing_wems.push(id);
                         }
                     }
                 }

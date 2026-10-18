@@ -56,7 +56,7 @@ export const TerminalDrawer: React.FC<TerminalDrawerProps> = ({
       await navigator.clipboard.writeText(text);
       toast.success(t("copiedSuccess"));
     } catch {
-      toast.error("Failed to copy logs");
+      toast.error(t("logCopyError"));
     }
   };
 
@@ -136,7 +136,8 @@ export const TerminalDrawer: React.FC<TerminalDrawerProps> = ({
               type="button"
               onClick={onClose}
               className="w-6 h-6 rounded flex items-center justify-center text-[#737373] hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer outline-none ml-1"
-              title="Close Terminal Drawer"
+              title={t("terminalClose")}
+              aria-label={t("terminalClose")}
             >
               <ChevronDown className="w-3.5 h-3.5" />
             </button>

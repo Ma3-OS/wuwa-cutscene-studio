@@ -81,8 +81,8 @@ const COLOR_SWATCHES: Array<{ nameKey: TranslationKey; hex: string }> = [
   { nameKey: "subColorMint", hex: "#CCFBF1" },
 ];
 
-// Sleek Apple Pro App Parameter Row with Slider and Precision Numeric Box
-const AppleProSliderRow: React.FC<{
+// Precision Parameter Row with Slider and Numeric Box
+const ParameterSliderRow: React.FC<{
   label: string;
   value: number;
   min: number;
@@ -126,8 +126,8 @@ const AppleProSliderRow: React.FC<{
   );
 };
 
-// Sleek Apple Pro Color Picker Row
-const AppleProColorRow: React.FC<{
+// Parameter Color Picker Row
+const ParameterColorRow: React.FC<{
   label: string;
   color: string;
   onChange: (val: string) => void;
@@ -285,7 +285,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             />
           </div>
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={effectiveFontSizeLabel}
             value={subSize}
             min={16}
@@ -295,7 +295,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             onChange={setSubSize}
           />
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={effectiveOutlineWidthLabel}
             value={subOutline}
             min={0}
@@ -305,7 +305,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             onChange={setSubOutline}
           />
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={effectiveShadowDepthLabel}
             value={subShadow}
             min={0}
@@ -315,7 +315,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             onChange={setSubShadow}
           />
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={effectiveVerticalMarginLabel}
             value={subMarginV}
             min={0}
@@ -325,7 +325,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             onChange={setSubMarginV}
           />
 
-          <AppleProColorRow
+          <ParameterColorRow
             label={effectiveTextColorLabel}
             color={subColor}
             onChange={setSubColor}
@@ -375,7 +375,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             </div>
           )}
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={t("subRubySize")}
             value={rubySize}
             min={0}
@@ -387,7 +387,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           />
 
           {setRubyOutline && (
-            <AppleProSliderRow
+            <ParameterSliderRow
               label={t("subRubyOutline")}
               value={rubyOutline}
               min={0}
@@ -400,7 +400,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           )}
 
           {setRubyShadow && (
-            <AppleProSliderRow
+            <ParameterSliderRow
               label={t("subRubyShadow")}
               value={rubyShadow}
               min={0}
@@ -412,7 +412,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             />
           )}
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={t("subRubyOffsetY")}
             value={rubyOffsetY}
             min={-20}
@@ -423,7 +423,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             hint={t("subRubyOffsetYHint")}
           />
 
-          <AppleProColorRow
+          <ParameterColorRow
             label={t("subRubyColor")}
             color={rubyColor}
             onChange={setRubyColor}
@@ -473,7 +473,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             </div>
           )}
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={t("subLyricSize")}
             value={lyricSize}
             min={0}
@@ -485,7 +485,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           />
 
           {setLyricOutline && (
-            <AppleProSliderRow
+            <ParameterSliderRow
               label={t("subLyricOutline")}
               value={lyricOutline}
               min={0}
@@ -498,7 +498,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
           )}
 
           {setLyricShadow && (
-            <AppleProSliderRow
+            <ParameterSliderRow
               label={t("subLyricShadow")}
               value={lyricShadow}
               min={0}
@@ -510,7 +510,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             />
           )}
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={t("subLyricMarginX")}
             value={lyricMarginX}
             min={20}
@@ -521,7 +521,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             hint={t("subLyricMarginXHint")}
           />
 
-          <AppleProSliderRow
+          <ParameterSliderRow
             label={t("subLyricMarginY")}
             value={lyricMarginY}
             min={10}
@@ -532,7 +532,7 @@ export const TypographyParametersPanel: React.FC<TypographyParametersPanelProps>
             hint={t("subLyricMarginYHint")}
           />
 
-          <AppleProColorRow
+          <ParameterColorRow
             label={t("subLyricColor")}
             color={lyricColor}
             onChange={setLyricColor}

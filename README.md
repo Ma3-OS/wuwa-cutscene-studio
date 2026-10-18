@@ -16,7 +16,7 @@
   </a>
   <img src="https://img.shields.io/badge/Platform-Windows_x64-18181b?style=for-the-badge&labelColor=09090b" alt="Platform" />
   <img src="https://img.shields.io/badge/Tauri-v2-18181b?style=for-the-badge&labelColor=09090b" alt="Tauri v2" />
-  <img src="https://img.shields.io/badge/React-19-18181b?style=for-the-badge&labelColor=09090b" alt="React 19" />
+  <img src="https://img.shields.io/badge/React-19.3-18181b?style=for-the-badge&labelColor=09090b" alt="React 19.3" />
   <img src="https://img.shields.io/badge/Rust-2024-18181b?style=for-the-badge&labelColor=09090b" alt="Rust 2024" />
 </p>
 
@@ -24,7 +24,7 @@
   <b>English</b> | <a href="README.th.md">ภาษาไทย</a>
 </p>
 
-**High-performance desktop suite for extracting, customizing, previewing, and rendering Wuthering Waves cinematic cutscenes with automated Wwise audio mixing, localized subtitle typography, and multi-resolution framing.**
+**A desktop application for extracting, previewing, customizing subtitles, and rendering Wuthering Waves cutscenes with Wwise audio mixing.**
 
 [Features](#-key-features) • [Architecture](#-system-architecture) • [Audio Engine](#-wwise-audio-pipeline) • [Quick Start](#-quick-start) • [Development](#-developer-guide) • [Docs](docs/architecture.md) • [License](#-license--disclaimer)
 
@@ -36,56 +36,56 @@
 
 In **Wuthering Waves**, raw cinematic video files extracted from game archives do not contain embedded subtitles, localized character dialogue, or complete soundtrack mixes. Voiceovers and environmental audio reside inside proprietary Audiokinetic Wwise SoundBanks (`.bnk` / `.wem`), while dialogue scripts and Furigana / Ruby annotations are distributed across versioned game text databases.
 
-**WuWa Cutscene Studio** automates this entire production pipeline in a native desktop environment:
-- Discovers and catalogs cutscene videos across complex game directory structures.
+**WuWa Cutscene Studio** streamlines this production pipeline in a native desktop environment:
+- Discovers and catalogs cutscene videos across game directory structures.
 - Parses Audiokinetic Wwise soundbanks and synchronizes multilingual voiceover tracks (Japanese, English, Korean, Simplified Chinese).
-- Accurately aligns localized subtitle scripts and Ruby reading annotations with sub-pixel mathematical precision.
-- Renders high-fidelity, hardware-accelerated videos (1080p, 21:9 UltraWide, 4K) via an optimized FFmpeg engine.
+- Accurately aligns localized subtitle scripts and Ruby reading annotations over character dialogue.
+- Renders hardware-accelerated videos (1080p, 21:9 UltraWide, 4K) via an optimized FFmpeg engine.
 
 ---
 
 ## Key Features
 
 ### 1. Smart Asset Discovery & Instant Preview
-- **Zero-Extract Scanning:** Rapidly discovers cutscenes and maps corresponding audio banks without requiring upfront multi-gigabyte decompression.
-- **Dynamic Metadata Extraction:** Real-time extraction of video duration, resolution, frame rate, and thumbnail badges.
+- **Zero-Extract Scanning:** Discovers cutscenes and maps corresponding audio banks without requiring upfront multi-gigabyte decompression.
+- **Dynamic Metadata Extraction:** Real-time extraction of video duration, resolution, frame rate, and thumbnail previews.
 - **Protagonist Routing:** Filters and routes dialogue tracks based on selected Rover gender (Female / Male).
-- **Interactive Onboarding:** Intelligent detection for missing tool dependencies, unmapped export paths, or corrupted soundbanks.
+- **Interactive Onboarding:** Guidance for missing tool dependencies, unmapped export paths, or soundbanks.
 
 ### 2. Wwise Audio Pipeline & Multi-Track Mixing
 - **SoundBank Decoding:** Integrates **Wwiser** and **vgmstream** to parse `.bnk` sound structures into `.txtp` configurations and decode 48kHz Opus audio streams.
-- **Multilingual Voiceovers:** Seamless switching between Japanese (`ja`), English (`en`), Korean (`ko`), and Simplified Chinese (`zh-Hans`).
-- **5.1-to-Stereo Matrix Downmixing:** Downmixes multi-channel game cinematics into balanced stereo with phase compensation and center dialogue boost.
-- **Dynamic Peak Limiter:** Prevents digital clipping and audio distortion across complex multi-layer soundscapes.
+- **Multilingual Voiceovers:** Switching between Japanese (`ja`), English (`en`), Korean (`ko`), and Simplified Chinese (`zh-Hans`).
+- **5.1-to-Stereo Matrix Downmixing:** Downmixes multi-channel game cinematics into balanced stereo with phase compensation and center dialogue clarity.
+- **Dynamic Peak Limiter:** Prevents digital clipping across multi-layer soundscapes.
 
 ### 3. Subtitle Studio & Typography Lab
-- **Sub-Pixel Ruby Alignment:** Custom typographic engine calculating exact Ruby reading annotation placement over target characters with zero horizontal drift.
-- **Libass Font Scaling Calibration:** Empirically calibrated font scale ratio ($0.635$) ensuring pixel-perfect parity between web preview canvas and FFmpeg `libass` output.
+- **Ruby Reading Alignment:** Custom typographic engine calculating Ruby reading annotation placement over target characters.
+- **Libass Font Scaling Calibration:** Empirically calibrated font scale ratio ($0.635$) ensuring parity between web preview canvas and FFmpeg `libass` output.
 - **Corner Lyrics Display:** Independent top-left lyrics module with customizable font size, line spacing, margins, and border stroke.
 - **Safe Area Guides:** Visual overlays for 90% Title Safe and Lower Third framing standards.
-- **Presets & Granular Control:** Built-in typography presets, outline stroke control, shadow depth, and vertical margins.
+- **Presets & Granular Control:** Typography presets, outline stroke control, shadow depth, and vertical margins.
 
 ### 4. Resolution & Aspect Ratio Engine
 - **16:9 Zoom Fill (1920x1080):** Center-crops 21:9 ultrawide cinematics to fill standard 16:9 displays without letterbox black bars.
-- **21:9 UltraWide (2560x1080):** Preserves native widescreen cinematics with cinematic top and bottom borders.
+- **21:9 UltraWide (2560x1080):** Preserves native widescreen cinematics with top and bottom borders.
 - **Native Resolution:** Retains original source dimensions without scaling.
-- **4K UHD (3840x2160):** High-bitrate upscaling for archive-grade presentations.
+- **4K UHD (3840x2160):** Upscaling for high-resolution displays.
 
 ### 5. Multi-Item Batch Queue & Task Automation
-- **Multi-Item Queue:** Enqueue dozens of cutscenes with distinct gender, language, subtitle mode, and resolution settings.
-- **Background Worker & Concurrency:** Multi-threaded encoding pipeline keeping the UI responsive at 120 FPS during heavy video rendering.
+- **Multi-Item Queue:** Enqueue multiple cutscenes with distinct gender, language, subtitle mode, and resolution settings.
+- **Background Worker & Concurrency:** Multi-threaded encoding pipeline keeping the UI responsive during video rendering.
 - **Automated Post-Render Power Actions:** Configure system actions upon queue completion (Chime alert, open output directory, system sleep, or automatic shutdown).
 
-### 6. Zero-Lag Performance Architecture
-- **Chromium Native Virtualization:** Utilizes `content-visibility: auto` to skip offscreen DOM layout, style, and paint calculations for 595+ cutscene cards.
-- **Viewport Dwell Timer & LIFO Worker Queue:** 100ms dwell delay prevents thumbnail extraction stampedes during rapid scrolling; prioritizing active viewport cards first.
-- **In-Memory Pre-Scanning:** Single-pass disk pre-indexing turns over 4,500 catalog filesystem queries into instant O(1) in-memory checks (<15ms catalog load).
-- **Persistent DOM State:** Zero reflow and 0ms latency when switching between Studio, Subtitle Lab, Audio Engine, and Queue workspaces.
+### 6. Performance & Responsive UI
+- **DOM Virtualization:** Utilizes `content-visibility: auto` to defer offscreen layout and paint calculations for cutscene cards.
+- **Viewport Dwell Timer:** Short dwell delay avoids unnecessary thumbnail extractions during rapid scrolling.
+- **In-Memory Filesystem Indexing:** Single-pass indexing caches cutscene paths for fast catalog loads.
+- **Persistent State:** Smooth switching between Studio, Subtitle Lab, Audio Engine, and Queue workspaces.
 
-### 7. Dynamic Bilingual Architecture (English & Thai)
-- **Zero-Hardcoded UI:** 100% decoupling of user interface strings via typed translation dictionaries with full parity across 485 keys.
-- **Instant Language Switching:** Switch dynamically between English and Thai on-the-fly without application restart.
-- **Apple Studio Copywriting:** Concise, professional terminology aligned with Apple Human Interface Guidelines and zero parentheses formatting standards in Thai.
+### 7. Bilingual Interface (English & Thai)
+- **Fully Localized UI:** Complete separation of user interface strings via typed translation dictionaries with full parity across 500+ keys.
+- **Instant Language Switching:** Switch between English and Thai on-the-fly directly from the title bar without application restart.
+- **Clean Copywriting:** Clear, professional terminology with zero parentheses in Thai.
 
 ---
 

@@ -548,4 +548,25 @@ export const th = {
   gallerySwitchToName: "โหมดค้นหาบทพูด คลิกเพื่อสลับเป็นค้นหาชื่อคลิป",
   toastExtractingCutscene: "กำลังสกัดไฟล์คัตซีนจากคลังเกม",
   toastCannotOpenPreview: "ไม่สามารถเปิดวิดีโอตัวอย่างได้",
+
+  // Window TitleBar & Controls
+  titlebarSwitchToEn: "เปลี่ยนเป็นภาษาอังกฤษ",
+  titlebarSwitchToTh: "เปลี่ยนเป็นภาษาไทย",
+  titlebarMinimize: "ย่อหน้าต่าง",
+  titlebarMaximize: "ขยายหน้าต่าง",
+  titlebarRestore: "คืนขนาดหน้าต่าง",
+  titlebarClose: "ปิดหน้าต่าง",
+  titlebarDragHint: "ดับเบิลคลิกเพื่อสลับขนาดหน้าต่าง",
+
+  // Modals & Inspector Details
+  quickLookUe4Sequence: "คัตซีนแบบเรียลไทม์ Unreal Engine 4",
+  quickLookWwiseBank: "คลังเสียง Wwise",
+  quickLookGameAsset: "ไฟล์สินทรัพย์คัตซีนของเกม",
+  inspectorLevelSequence: "คัตซีน 3D Level Sequence",
+  inspectorClose: "ปิดหน้าต่างตรวจสอบ",
+  galleryGridView: "มุมมองตาราง",
+  galleryListView: "มุมมองรายการ",
+  terminalClose: "ปิดหน้าต่างคอนโซล",
+  logCopyError: "ไม่สามารถคัดลอกบันทึกข้อความได้",
+  commonClose: "ปิด",
 } as const;

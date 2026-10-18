@@ -177,7 +177,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             type="button"
             onClick={onClose}
             className="w-6 h-6 rounded-md text-[#737373] hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition-colors cursor-pointer outline-none"
-            title="Close"
+            title={t("commonClose")}
+            aria-label={t("commonClose")}
           >
             <X className="w-3.5 h-3.5" />
           </button>

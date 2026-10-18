@@ -1,12 +1,22 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
+use regex::Regex;
 use tokio::process::Command;
 use tauri::{AppHandle, Manager};
 
 use crate::config::ConfigState;
 use crate::commands::downloader::get_tools_dir;
 use crate::commands::log::emit_log;
+
+pub static WEM_REF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?i)([^\s"';#]+\.wem)"#).expect("invalid wem ref regex")
+});
+
+pub static WEM_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?:wem[\\/]|(?:\b))([0-9]{5,12})\.wem").expect("invalid wem id regex")
+});
 
 /// Index all .wem files in export_dir recursively into a map of lowercase_filename -> full_path
 pub fn index_wem_files(export_dir: &Path) -> HashMap<String, PathBuf> {
@@ -44,10 +54,7 @@ pub fn resolve_wem_paths_in_txtp(txtp_path: &Path, wem_map: &HashMap<String, Pat
     let mut new_lines = Vec::new();
     let mut changed = false;
 
-    let re = match regex::Regex::new(r#"(?i)([^\s"';#]+\.wem)"#) {
-        Ok(r) => r,
-        Err(e) => return Err(e.to_string()),
-    };
+    let re = &*WEM_REF_REGEX;
 
     for line in content.lines() {
         let trimmed = line.trim();
@@ -110,10 +117,7 @@ pub fn fix_all_txtp_wem_paths(txtp_dir: &Path, export_dir: &Path) -> Result<usiz
 /// Extract all referenced .wem IDs from all .txtp files inside a directory
 pub fn extract_wem_ids_from_txtp_dir(txtp_dir: &Path) -> Vec<String> {
     let mut ids = Vec::new();
-    let re = match regex::Regex::new(r"(?i)(?:wem[\\/]|(?:\b))([0-9]{5,12})\.wem") {
-        Ok(r) => r,
-        Err(_) => return ids,
-    };
+    let re = &*WEM_ID_REGEX;
     if let Ok(entries) = fs::read_dir(txtp_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -141,10 +145,7 @@ pub fn is_txtp_resolvable(txtp_path: &Path) -> bool {
         Err(_) => return false,
     };
 
-    let re = match regex::Regex::new(r#"(?i)([^\s"';#]+\.wem)"#) {
-        Ok(r) => r,
-        Err(_) => return false,
-    };
+    let re = &*WEM_REF_REGEX;
 
     let mut found_wem = false;
     for line in content.lines() {

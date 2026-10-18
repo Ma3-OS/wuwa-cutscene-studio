@@ -304,8 +304,8 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white shadow-sm"
                 : "text-[#71717A] hover:text-white"
             }`}
-            title="Grid View"
-            aria-label="Grid View"
+            title={t("galleryGridView")}
+            aria-label={t("galleryGridView")}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
           </button>
@@ -317,8 +317,8 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 ? "bg-white/[0.12] text-white shadow-sm"
                 : "text-[#71717A] hover:text-white"
             }`}
-            title="List View"
-            aria-label="List View"
+            title={t("galleryListView")}
+            aria-label={t("galleryListView")}
           >
             <List className="w-3.5 h-3.5" />
           </button>
@@ -334,7 +334,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
                 : "bg-white/[0.03] text-[#8E8E93] hover:text-white"
             }`}
             title={t("galleryToggleInspector")}
-            aria-label="Toggle Inspector"
+            aria-label={t("galleryToggleInspector")}
           >
             <PanelRight className="w-3.5 h-3.5" />
           </button>

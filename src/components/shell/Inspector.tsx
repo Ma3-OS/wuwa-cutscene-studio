@@ -188,8 +188,8 @@ export const Inspector: React.FC<InspectorProps> = ({
           type="button"
           onClick={onClose}
           className="w-6 h-6 rounded-md text-[#8E8E93] hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition-colors cursor-pointer outline-none"
-          title="Close Inspector"
-          aria-label="Close Inspector"
+          title={t("inspectorClose")}
+          aria-label={t("inspectorClose")}
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -230,7 +230,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                       <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center text-white mb-1.5 shadow-sm">
                         <Layers className="w-4 h-4 stroke-[1.25] text-neutral-300" />
                       </div>
-                      <span className="text-[11px] font-medium text-white tracking-tight">3D Level Sequence</span>
+                      <span className="text-[11px] font-medium text-white tracking-tight">{t("inspectorLevelSequence")}</span>
                       <span className="text-[9px] font-mono text-[#71717A] mt-0.5">{t("inspectorClickAudioInfo")}</span>
                     </div>
                   ) : (

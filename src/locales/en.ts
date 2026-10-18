@@ -1,5 +1,5 @@
-// Clean, Human Studio Copywriting for WuWa Studio (macOS HIG Standard)
-// Zero AI-slop, crisp terminology.
+// Clean, professional copywriting for WuWa Studio
+// Structured, crisp terminology.
 export const en = {
   // Brand & Navigation
   appTitle: "WuWa Studio",
@@ -548,4 +548,25 @@ export const en = {
   gallerySwitchToName: "Search by Dialogue mode, click to switch to Name",
   toastExtractingCutscene: "Extracting cutscene asset from game archive",
   toastCannotOpenPreview: "Unable to open video preview",
+
+  // Window TitleBar & Controls
+  titlebarSwitchToEn: "Switch to English",
+  titlebarSwitchToTh: "Switch to Thai",
+  titlebarMinimize: "Minimize",
+  titlebarMaximize: "Maximize",
+  titlebarRestore: "Restore",
+  titlebarClose: "Close",
+  titlebarDragHint: "Double-click to toggle maximize",
+
+  // Modals & Inspector Details
+  quickLookUe4Sequence: "Unreal Engine 4 Real-time Level Sequence",
+  quickLookWwiseBank: "Wwise Bank",
+  quickLookGameAsset: "Game Package Cutscene Asset",
+  inspectorLevelSequence: "3D Level Sequence",
+  inspectorClose: "Close Inspector",
+  galleryGridView: "Grid View",
+  galleryListView: "List View",
+  terminalClose: "Close Terminal Drawer",
+  logCopyError: "Failed to copy logs",
+  commonClose: "Close",
 } as const;

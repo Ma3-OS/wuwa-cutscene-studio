@@ -297,7 +297,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] font-mono text-[#A1A1AA] mb-2">
                   <Sparkles className="w-2.5 h-2.5 text-white" />
-                  <span>Unreal Engine 4 Real-time Level Sequence</span>
+                  <span>{t("quickLookUe4Sequence")}</span>
                 </div>
                 <h3 className="text-base font-medium text-white tracking-tight">{fileName}</h3>
                 {video?.cgFile && (
@@ -335,7 +335,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
                         className="px-2 py-1 rounded bg-white/[0.03] text-[10px] font-mono text-[#A1A1AA] truncate flex items-center justify-between"
                       >
                         <span className="truncate">{evt}</span>
-                        <span className="text-[9px] text-[#71717A]">Wwise Bank</span>
+                        <span className="text-[9px] text-[#71717A]">{t("quickLookWwiseBank")}</span>
                       </div>
                     ))}
                   </div>
@@ -385,7 +385,7 @@ export const QuickLookModal: React.FC<QuickLookModalProps> = ({
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] font-mono text-[#A1A1AA] mb-2">
                   <Sparkles className="w-2.5 h-2.5 text-white" />
-                  <span>Game Package Cutscene Asset</span>
+                  <span>{t("quickLookGameAsset")}</span>
                 </div>
                 <h3 className="text-base font-medium text-white tracking-tight">{fileName}</h3>
                 {video?.cgFile && (

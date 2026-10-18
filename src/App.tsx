@@ -656,7 +656,7 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#111113] text-white overflow-hidden select-none font-sans">
-      {/* 1. macOS Borderless TitleBar */}
+      {/* 1. Window TitleBar */}
       <TitleBar />
 
       {/* 2. Main Workspace Layout */}
@@ -810,7 +810,7 @@ function AppContent() {
         />
       )}
 
-      {/* 4. macOS Spacebar Quick Look Modal */}
+      {/* 4. Quick Look Modal */}
       <QuickLookModal
         isOpen={Boolean(quickLookVideo)}
         video={quickLookVideo}
@@ -842,7 +842,7 @@ function AppContent() {
         onRefreshLibrary={() => setRefreshTrigger((prev) => prev + 1)}
       />
 
-      {/* 7. Apple macOS Pure Neutral Extraction Progress Modal */}
+      {/* 7. Extraction Progress Modal */}
       <ExtractionProgressModal />
 
       {/* 8. Minimal Dark Sonner Toaster */}

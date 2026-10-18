@@ -1,4 +1,10 @@
+use std::sync::LazyLock;
+use regex::Regex;
 use super::font_metrics::measure_text_width;
+
+pub static ANO_TAG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"<ano=([^>]+)>([\s\S]*?)</ano>").expect("invalid ano regex")
+});
 
 #[derive(Debug, Clone)]
 pub struct RubyAnnotation {
@@ -25,20 +31,14 @@ pub fn clean_subtitle_text(raw: &str) -> String {
         return String::new();
     }
 
-    let mut text = raw.to_string();
+    // Replace <ano=RubyText>BaseText</ano> with BaseText directly using static precompiled regex
+    let mut text = ANO_TAG_REGEX.replace_all(raw, "$2").to_string();
 
-    // Replace <ano=RubyText>BaseText</ano> with BaseText directly
+    // Remove any unclosed stray <ano=...> tags
     while let Some(start) = text.find("<ano=") {
         if let Some(tag_end) = text[start..].find('>') {
-            let after_tag = start + tag_end + 1;
-            if let Some(close_tag) = text[after_tag..].find("</ano>") {
-                let base_text = text[after_tag..after_tag + close_tag].to_string();
-                let full_len = (after_tag + close_tag + 6) - start;
-                text.replace_range(start..start + full_len, &base_text);
-            } else {
-                let full_tag = text[start..start + tag_end + 1].to_string();
-                text = text.replace(&full_tag, "");
-            }
+            let full_tag = text[start..start + tag_end + 1].to_string();
+            text = text.replace(&full_tag, "");
         } else {
             break;
         }
@@ -139,44 +139,34 @@ pub fn parse_ruby_segments(
     // Positive ruby_offset_y elevates the ruby higher above the base text
     let y_ruby = 1080.0 - (margin_v as f32) - (font_size * 0.74) - (ruby_offset_y as f32);
 
-    // Find all <ano=Ruby>Base</ano> tags
-    let mut search_idx = 0;
+    // Find all <ano=Ruby>Base</ano> tags using precompiled ANO_TAG_REGEX
     let mut prefix_accumulator = String::new();
+    let mut last_end = 0;
 
-    while let Some(rel_start) = raw[search_idx..].find("<ano=") {
-        let tag_start = search_idx + rel_start;
-        // Text between search_idx and tag_start belongs to prefix
-        let raw_prefix_segment = &raw[search_idx..tag_start];
+    for caps in ANO_TAG_REGEX.captures_iter(raw) {
+        let full_match = caps.get(0).unwrap();
+        let ruby_cap = caps.get(1).unwrap();
+        let base_cap = caps.get(2).unwrap();
+
+        let raw_prefix_segment = &raw[last_end..full_match.start()];
         prefix_accumulator.push_str(&clean_subtitle_text(raw_prefix_segment));
 
-        if let Some(tag_end) = raw[tag_start..].find('>') {
-            let eq_pos = tag_start + 5;
-            let ruby_text = raw[eq_pos..tag_start + tag_end].trim().to_string();
-            let after_tag = tag_start + tag_end + 1;
+        let ruby_text = ruby_cap.as_str().trim().to_string();
+        let base_text = clean_subtitle_text(base_cap.as_str());
 
-            if let Some(close_rel) = raw[after_tag..].find("</ano>") {
-                let base_text_raw = &raw[after_tag..after_tag + close_rel];
-                let base_text = clean_subtitle_text(base_text_raw);
+        let prefix_width = measure_text_width(&prefix_accumulator, font_name, font_size);
+        let base_width = measure_text_width(&base_text, font_name, font_size);
+        let pos_x = x_start + prefix_width + (base_width / 2.0);
 
-                let prefix_width = measure_text_width(&prefix_accumulator, font_name, font_size);
-                let base_width = measure_text_width(&base_text, font_name, font_size);
-                let pos_x = x_start + prefix_width + (base_width / 2.0);
+        annotations.push(RubyAnnotation {
+            ruby_text,
+            base_text: base_text.clone(),
+            pos_x,
+            pos_y: y_ruby,
+        });
 
-                annotations.push(RubyAnnotation {
-                    ruby_text,
-                    base_text: base_text.clone(),
-                    pos_x,
-                    pos_y: y_ruby,
-                });
-
-                prefix_accumulator.push_str(&base_text);
-                search_idx = after_tag + close_rel + 6;
-            } else {
-                search_idx = after_tag;
-            }
-        } else {
-            break;
-        }
+        prefix_accumulator.push_str(&base_text);
+        last_end = full_match.end();
     }
 
     RubyLineResult {
