@@ -133,8 +133,7 @@ pub fn heal_and_validate_video_path(
     }
 
     // 2. Strip compound uniqueId prefix if present e.g. M0374_Neutral_Folder_C:\...
-    if cleaned.contains(":\\") || cleaned.contains(":/") {
-        let pos = cleaned.rfind(":\\").or_else(|| cleaned.rfind(":/")).unwrap();
+    if let Some(pos) = cleaned.rfind(":\\").or_else(|| cleaned.rfind(":/")) {
         if pos >= 1 {
             let drive_char = cleaned.as_bytes()[pos - 1];
             if drive_char.is_ascii_alphabetic() {
@@ -445,7 +444,8 @@ pub async fn generate_single_video_info(
         return Err(format!("ไม่พบไฟล์วิดีโอบนดิสก์ {}", mp4.display()));
     }
 
-    emit_log(&app, &format!("Parsing metadata for {}...", mp4.file_name().unwrap().to_string_lossy()));
+    let fn_display = mp4.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "cutscene".to_string());
+    emit_log(&app, &format!("Parsing metadata for {}...", fn_display));
 
     let lang = if config.subtitle_lang.is_empty() { "th".to_string() } else { config.subtitle_lang.clone() };
     let videodata_path = resolve_videodata_file(&data_dir);
@@ -472,7 +472,7 @@ pub async fn generate_single_video_info(
     let videodata: Vec<Value> = serde_json::from_str(&videodata_str).map_err(|e| e.to_string())?;
     let videosound: Vec<Value> = serde_json::from_str(&videosound_str).map_err(|e| e.to_string())?;
 
-    let base_name = mp4.file_stem().unwrap().to_string_lossy().to_string().to_lowercase();
+    let base_name = mp4.file_stem().map(|s| s.to_string_lossy().to_string().to_lowercase()).unwrap_or_default();
     let clean_base = strip_rover_suffix(&base_name);
     
     // Auto-detect Rover gender strictly from video filename if explicitly specified
@@ -509,7 +509,7 @@ pub async fn generate_single_video_info(
             }
         }
         if let Some(cg_file) = item.get("CgFile").and_then(|v| v.as_str()) {
-            let fn_name = cg_file.split('/').last().unwrap().split('.').next().unwrap().to_lowercase();
+            let fn_name = cg_file.split('/').last().unwrap_or("").split('.').next().unwrap_or("").to_lowercase();
             if fn_name == base_name {
                 target_cg_name = item.get("CgName").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 break;
@@ -528,7 +528,7 @@ pub async fn generate_single_video_info(
                 }
             }
             if let Some(cg_file) = item.get("CgFile").and_then(|v| v.as_str()) {
-                let fn_name = cg_file.split('/').last().unwrap().split('.').next().unwrap().to_lowercase();
+                let fn_name = cg_file.split('/').last().unwrap_or("").split('.').next().unwrap_or("").to_lowercase();
                 let clean_fn = strip_rover_suffix(&fn_name);
                 if clean_fn == clean_base || base_name.contains(&clean_fn) || fn_name.contains(&clean_base) {
                     target_cg_name = item.get("CgName").and_then(|v| v.as_str()).unwrap_or("").to_string();
@@ -560,7 +560,7 @@ pub async fn generate_single_video_info(
                 let sound_gender = item.get("GirlOrBoy").and_then(|v| v.as_i64()).unwrap_or(2);
                 if sound_gender == 2 || sound_gender == target_gender_num as i64 {
                     if let Some(event_path) = item.get("EventPath").and_then(|v| v.as_str()) {
-                        let event = event_path.split('/').last().unwrap().split('.').next().unwrap().to_string();
+                        let event = event_path.split('/').last().unwrap_or("").split('.').next().unwrap_or("").to_string();
                         if !events.contains(&event) {
                             events.push(event);
                         }

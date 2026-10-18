@@ -25,6 +25,7 @@ import {
   type VideoMetaInfo,
 } from "./features/catalog/stores/useCatalogStore";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { safeUUID } from "./utils/uuid";
 import "./index.css";
 
 function AppContent() {
@@ -220,7 +221,7 @@ function AppContent() {
           level: "info",
         });
 
-        const reqId = crypto.randomUUID();
+        const reqId = safeUUID();
         useExtractionStore.getState().startExtraction(video.fileName || video.cgName || "cutscene", reqId);
 
         try {
@@ -821,7 +822,7 @@ function AppContent() {
         meta={quickLookMeta}
         partnerRoverItem={partnerRoverItem}
         onSwitchRover={(next) => {
-          setQuickLookVideo(next);
+          handleOpenQuickLook(next, quickLookMeta);
         }}
         onClose={() => {
           setQuickLookVideo(null);

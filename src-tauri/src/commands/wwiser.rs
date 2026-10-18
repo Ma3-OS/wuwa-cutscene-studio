@@ -18,6 +18,27 @@ pub static WEM_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?:wem[\\/]|(?:\b))([0-9]{5,12})\.wem").expect("invalid wem id regex")
 });
 
+pub fn resolve_python_command() -> &'static str {
+    static PYTHON_CMD: LazyLock<String> = LazyLock::new(|| {
+        for candidate in ["python", "py", "python3"] {
+            let mut test = std::process::Command::new(candidate);
+            test.arg("--version");
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                test.creation_flags(0x08000000);
+            }
+            if let Ok(status) = test.status() {
+                if status.success() {
+                    return candidate.to_string();
+                }
+            }
+        }
+        "python".to_string()
+    });
+    &PYTHON_CMD
+}
+
 /// Index all .wem files in export_dir recursively into a map of lowercase_filename -> full_path
 pub fn index_wem_files(export_dir: &Path) -> HashMap<String, PathBuf> {
     index_wem_files_multiple(&[export_dir])
@@ -205,7 +226,7 @@ pub async fn run_wwiser_for_banks(
     }
     fs::write(&config_path, config_content).map_err(|e| e.to_string())?;
 
-    let mut cmd = Command::new("python");
+    let mut cmd = Command::new(resolve_python_command());
     cmd.arg(&wwiser_py)
         .arg(format!("--config={}", config_path.display()))
         .stdout(std::process::Stdio::null())
@@ -369,7 +390,7 @@ pub async fn run_wwiser(app: AppHandle, state: tauri::State<'_, ConfigState>, ta
 
     let mut children = Vec::new();
     for config_path in &config_paths {
-        let mut cmd = Command::new("python");
+        let mut cmd = Command::new(resolve_python_command());
         cmd.arg(&wwiser_py)
             .arg(format!("--config={}", config_path.display()))
             .stdout(std::process::Stdio::null())

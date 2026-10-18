@@ -61,9 +61,12 @@ pub fn get_or_build_video_index(app: &AppHandle, config: &crate::config::AppConf
     if export_path.exists() {
         index_directory_videos(&export_path, &mut map);
     }
-    let fmodel_export = PathBuf::from(r"D:\Datamine\Datamine\FModel\Output\Exports\Client\Content\Aki\Movies");
-    if fmodel_export.exists() {
-        index_directory_videos(&fmodel_export, &mut map);
+    for root in get_system_drive_roots() {
+        let fmodel_export = PathBuf::from(format!(r"{}Datamine\Datamine\FModel\Output\Exports\Client\Content\Aki\Movies", root));
+        if fmodel_export.exists() {
+            index_directory_videos(&fmodel_export, &mut map);
+            break;
+        }
     }
     let out_path = config.get_effective_render_dir();
     if out_path.exists() {
@@ -1018,9 +1021,12 @@ pub async fn extract_cutscene_on_demand(
 
     if cached_video.is_none() {
         let mut map = HashMap::new();
-        let fmodel_export = PathBuf::from(r"D:\Datamine\Datamine\FModel\Output\Exports\Client\Content\Aki\Movies");
-        if fmodel_export.exists() {
-            index_directory_videos(&fmodel_export, &mut map);
+        for root in get_system_drive_roots() {
+            let fmodel_export = PathBuf::from(format!(r"{}Datamine\Datamine\FModel\Output\Exports\Client\Content\Aki\Movies", root));
+            if fmodel_export.exists() {
+                index_directory_videos(&fmodel_export, &mut map);
+                break;
+            }
         }
         if export_dir.exists() {
             index_directory_videos(&export_dir, &mut map);

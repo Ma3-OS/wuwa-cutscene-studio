@@ -165,7 +165,10 @@ const CutsceneCardComponent: React.FC<CutsceneCardProps> = ({
           </div>
           <button
             type="button"
-            onClick={(e) => onQuickAddToQueue(e, video)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickAddToQueue(e, video);
+            }}
             className="w-7 h-7 rounded-full bg-black/85 backdrop-blur-md text-white/80 hover:text-white flex items-center justify-center shadow-xl hover:bg-white/[0.2] transition-colors cursor-pointer outline-none"
             title={t("galleryQueueInstant")}
           >

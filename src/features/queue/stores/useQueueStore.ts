@@ -37,12 +37,7 @@ interface QueueState {
   pauseProcessing: () => void;
 }
 
-function safeUUID(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
-}
+import { safeUUID } from "../../../utils/uuid";
 
 const inFlightExtractions = new Map<string, Promise<{ video_file: string }>>();
 
@@ -156,7 +151,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
             catalogItem?.cgFile;
 
           if (needsExtraction) {
-            const reqId = crypto.randomUUID();
+            const reqId = safeUUID();
             const cgFileKey = catalogItem.cgFile || "";
             const cgNameKey = catalogItem.cgName || catalogItem.fileName || "";
             const extractPromise = (async () => {
@@ -222,7 +217,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
             nextCatalog.cgFile
           ) {
             const prefetchKey = nextItem.cutscenePath;
-            const reqId = crypto.randomUUID();
+            const reqId = safeUUID();
             const nextCgFileKey = nextCatalog.cgFile || "";
             const nextCgNameKey = nextCatalog.cgName || nextCatalog.fileName || "";
             const p = (async () => {

@@ -13,6 +13,7 @@ import {
 } from "@/features/catalog/stores/useCatalogStore";
 import { GalleryToolbar } from "@/features/gallery/components/GalleryToolbar";
 import { CutsceneGrid } from "@/features/gallery/components/CutsceneGrid";
+import { safeUUID } from "@/utils/uuid";
 
 export type { ProcessedVideoItem, VideoMetaInfo };
 
@@ -292,7 +293,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       }
 
       const extractPromise = (async () => {
-        const reqId = crypto.randomUUID();
+        const reqId = safeUUID();
         activeRequestIdRef.current = reqId;
         setExtractingItems((prev) => ({
           ...prev,

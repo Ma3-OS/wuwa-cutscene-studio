@@ -20,7 +20,7 @@ pub struct ActiveRenderHandle {
     pub is_cancelled: Arc<AtomicBool>,
 }
 
-pub struct RenderState(pub Arc<Mutex<Option<ActiveRenderHandle>>>);
+pub struct RenderState(pub Arc<Mutex<Vec<ActiveRenderHandle>>>);
 
 fn hex_to_ass_color(hex: &str) -> String {
     let clean = hex.trim_start_matches('#');
@@ -67,8 +67,11 @@ pub async fn cancel_render(
     app: AppHandle,
     render_state: tauri::State<'_, RenderState>,
 ) -> Result<(), String> {
-    let mut lock = render_state.0.lock().await;
-    if let Some(handle) = lock.take() {
+    let handles: Vec<ActiveRenderHandle> = {
+        let mut lock = render_state.0.lock().await;
+        lock.drain(..).collect()
+    };
+    for handle in handles {
         handle.is_cancelled.store(true, Ordering::SeqCst);
         if let Some(pid) = handle.pid {
             emit_log(&app, &format!("กำลังสั่งหยุดโพรเซสเรนเดอร์หมายเลข {}", pid));
@@ -268,7 +271,7 @@ pub async fn render_video(
     let is_cancelled = Arc::new(AtomicBool::new(false));
     {
         let mut lock = render_state.0.lock().await;
-        *lock = Some(ActiveRenderHandle {
+        lock.push(ActiveRenderHandle {
             pid: None,
             partial_file: None,
             is_cancelled: is_cancelled.clone(),
@@ -279,7 +282,7 @@ pub async fn render_video(
     for sound in &video_info.sounds {
         if is_cancelled.load(Ordering::SeqCst) {
             let mut lock = render_state.0.lock().await;
-            *lock = None;
+            lock.retain(|h| !Arc::ptr_eq(&h.is_cancelled, &is_cancelled));
             return Err("CANCELLED".into());
         }
 
@@ -328,7 +331,7 @@ pub async fn render_video(
     }
     if wav_paths.is_empty() && !video_info.sounds.is_empty() {
         let mut lock = render_state.0.lock().await;
-        *lock = None;
+        lock.retain(|h| !Arc::ptr_eq(&h.is_cancelled, &is_cancelled));
         return Err("ไม่สามารถแปลงแทร็กเสียงใดๆ ได้เลย กรุณาตรวจสอบไฟล์เสียง".into());
     }
     wav_paths.sort();
@@ -542,7 +545,7 @@ pub async fn render_video(
             let _ = fs::remove_file(wav);
         }
         let mut lock = render_state.0.lock().await;
-        *lock = None;
+        lock.retain(|h| !Arc::ptr_eq(&h.is_cancelled, &is_cancelled));
         return Err("CANCELLED".into());
     }
 
@@ -551,11 +554,10 @@ pub async fn render_video(
 
     {
         let mut lock = render_state.0.lock().await;
-        *lock = Some(ActiveRenderHandle {
-            pid,
-            partial_file: Some(PathBuf::from(&out_path)),
-            is_cancelled: is_cancelled.clone(),
-        });
+        if let Some(h) = lock.iter_mut().find(|h| Arc::ptr_eq(&h.is_cancelled, &is_cancelled)) {
+            h.pid = pid;
+            h.partial_file = Some(PathBuf::from(&out_path));
+        }
     }
 
     let mut output_res = child.wait_with_output().await;
@@ -566,7 +568,7 @@ pub async fn render_video(
             emit_log(&app, "การเรนเดอร์ด้วยฮาร์ดแวร์ขัดข้อง กำลังสลับไปใช้ซีพียู libx264 อัตโนมัติ");
             let fallback_codec = ["-c:v", "libx264", "-preset", "superfast", "-crf", "18", "-pix_fmt", "yuv420p", "-threads", "0"];
             let fallback_args = build_ffmpeg_args(
-                &video_info.cg_file,
+                &validated_input_str,
                 &wav_paths,
                 &srt_path,
                 is_softsub,
@@ -593,21 +595,20 @@ pub async fn render_video(
             if let Ok(mut fb_child) = fb_cmd.spawn() {
                 {
                     let mut lock = render_state.0.lock().await;
-                    *lock = Some(ActiveRenderHandle {
-                        pid: fb_child.id(),
-                        partial_file: Some(PathBuf::from(&out_path)),
-                        is_cancelled: is_cancelled.clone(),
-                    });
+                    if let Some(h) = lock.iter_mut().find(|h| Arc::ptr_eq(&h.is_cancelled, &is_cancelled)) {
+                        h.pid = fb_child.id();
+                        h.partial_file = Some(PathBuf::from(&out_path));
+                    }
                 }
                 output_res = fb_child.wait_with_output().await;
             }
         }
     }
 
-    // Reset render state
+    // Reset render state for this cutscene
     {
         let mut lock = render_state.0.lock().await;
-        *lock = None;
+        lock.retain(|h| !Arc::ptr_eq(&h.is_cancelled, &is_cancelled));
     }
 
     // Cleanup temporary wav files

@@ -22,7 +22,7 @@ pub fn run() {
             commands::log::init_logger(app.handle());
             commands::scanner::purge_black_thumbnails_on_startup(app.handle());
             app.manage(commands::extractor::ExtractorState(Arc::new(Mutex::new(None))));
-            app.manage(commands::renderer::RenderState(Arc::new(Mutex::new(None))));
+            app.manage(commands::renderer::RenderState(Arc::new(Mutex::new(Vec::new()))));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
