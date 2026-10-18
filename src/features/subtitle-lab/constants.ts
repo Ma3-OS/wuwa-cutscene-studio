@@ -98,7 +98,7 @@ export const SCENE_THEMES: SceneTheme[] = [
   { id: "cutscene_video", labelKey: "themeCutsceneVideo", bg: "bg-black", isLight: false },
   { id: "cutscene", labelKey: "themeCutsceneImage", bg: "bg-cover bg-center", image: "/sample_cutscene.jpg", isLight: false },
   { id: "dark", labelKey: "themeDark", bg: "bg-[#09090b]", isLight: false },
-  { id: "space", labelKey: "themeSpace", bg: "bg-gradient-to-br from-purple-950/40 via-neutral-950 to-[#09090b]", isLight: false },
+  { id: "space", labelKey: "themeSpace", bg: "bg-gradient-to-br from-[#1c0f38] via-[#120f26] to-[#090714]", isLight: false },
   { id: "studio", labelKey: "themeStudio", bg: "bg-[#18181b]", isLight: false },
   { id: "daylight", labelKey: "themeDaylight", bg: "bg-neutral-200", isLight: true },
   { id: "sunset", labelKey: "themeSunset", bg: "bg-gradient-to-br from-amber-950/40 via-neutral-950 to-[#09090b]", isLight: false },

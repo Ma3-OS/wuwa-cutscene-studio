@@ -70,8 +70,8 @@ const CutsceneListItemComponent: React.FC<CutsceneListItemProps> = ({
             {video.fileName}
           </span>
           {video.roverType !== "Neutral" && (
-            <span className="text-[10px] text-[#A1A1AA] font-mono">
-              {video.roverType === "Girl" ? t("galleryFilterFemaleShort") : t("galleryFilterMaleShort")}
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.08] text-white/90 border border-white/[0.08] font-mono font-medium">
+              {video.roverType === "Girl" ? t("roverGirl") : t("roverBoy")}
             </span>
           )}
           <span className="text-[10px] font-mono text-[#71717A] truncate">

@@ -32,7 +32,7 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
   const { t } = useApp();
 
   return (
-    <div className="flex items-center justify-between shrink-0">
+    <div className="flex items-center justify-between flex-wrap gap-3 shrink-0">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center text-white">
           <ListPlus className="w-5 h-5" />
@@ -53,7 +53,7 @@ export const QueueHeader: React.FC<QueueHeaderProps> = ({
       </div>
 
       {/* Action Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center flex-wrap gap-2">
         <StudioButton variant="secondary" size="sm" onClick={onOpenAddModal}>
           <Plus className="w-3.5 h-3.5" />
           <span>{t("queueAddCutsceneBtn")}</span>

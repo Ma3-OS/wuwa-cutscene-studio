@@ -111,6 +111,11 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
             fn ILFree(pidl: *mut c_void);
         }
 
+        #[link(name = "user32")]
+        unsafe extern "system" {
+            fn AllowSetForegroundWindow(dw_process_id: u32) -> i32;
+        }
+
         #[link(name = "ole32")]
         unsafe extern "system" {
             fn CoInitializeEx(pv_reserved: *mut c_void, dw_co_init: u32) -> i32;
@@ -123,6 +128,7 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
             wide_path.push(0);
 
             let opened = unsafe {
+                let _ = AllowSetForegroundWindow(0xFFFFFFFF);
                 let _ = CoInitializeEx(std::ptr::null_mut(), 0x2 | 0x4);
                 let mut pidl_target: *mut c_void = std::ptr::null_mut();
                 let hr = SHParseDisplayName(wide_path.as_ptr(), std::ptr::null_mut(), &mut pidl_target, 0, std::ptr::null_mut());
@@ -153,6 +159,7 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
             cmd.raw_arg(format!("\"{}\"", dir.display()));
         }
 
+        let _ = unsafe { AllowSetForegroundWindow(0xFFFFFFFF) };
         let _ = cmd.spawn().map_err(|e| e.to_string())?;
         return Ok(());
     }
@@ -193,12 +200,11 @@ pub fn open_media_external(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn open_output_dir(app: AppHandle, state: tauri::State<'_, crate::config::ConfigState>) -> Result<(), String> {
+pub fn open_output_dir(_app: AppHandle, state: tauri::State<'_, crate::config::ConfigState>) -> Result<(), String> {
     let config = state.0.lock().unwrap().clone();
     let render_dir = config.get_effective_render_dir();
     let _ = fs::create_dir_all(&render_dir);
-    open::that(&render_dir).map_err(|e| e.to_string())?;
-    Ok(())
+    show_in_folder(render_dir.to_string_lossy().to_string())
 }
 
 #[tauri::command]
@@ -215,45 +221,39 @@ pub fn open_source_folder(
         let clean = name.trim();
         let direct_bundle = export_dir.join(clean);
         if direct_bundle.exists() {
-            let _ = open::that(&direct_bundle);
-            return Ok(());
+            return show_in_folder(direct_bundle.to_string_lossy().to_string());
         }
 
         let target_bundle = cutscenes_dir.join(clean);
         if target_bundle.exists() {
-            let _ = open::that(&target_bundle);
-            return Ok(());
+            return show_in_folder(target_bundle.to_string_lossy().to_string());
         }
 
         let nan_bundle = cutscenes_dir.join(format!("{}_nan", clean));
         if nan_bundle.exists() {
-            let _ = open::that(&nan_bundle);
-            return Ok(());
+            return show_in_folder(nan_bundle.to_string_lossy().to_string());
         }
 
         let nv_bundle = cutscenes_dir.join(format!("{}_nv", clean));
         if nv_bundle.exists() {
-            let _ = open::that(&nv_bundle);
-            return Ok(());
+            return show_in_folder(nv_bundle.to_string_lossy().to_string());
         }
 
         // Check legacy cache
         let old_cache = crate::commands::downloader::get_base_dir(&app).join("cache").join("cutscenes").join(clean);
         if old_cache.exists() {
-            let _ = open::that(&old_cache);
-            return Ok(());
+            return show_in_folder(old_cache.to_string_lossy().to_string());
         }
     }
 
     if cutscenes_dir.exists() {
-        let _ = open::that(&cutscenes_dir);
-        return Ok(());
+        show_in_folder(cutscenes_dir.to_string_lossy().to_string())
+    } else {
+        let _ = fs::create_dir_all(&export_dir);
+        show_in_folder(export_dir.to_string_lossy().to_string())
     }
-
-    let _ = fs::create_dir_all(&export_dir);
-    open::that(&export_dir).map_err(|e| e.to_string())?;
-    Ok(())
 }
+
 
 fn dir_size_recursive(dir: &Path) -> u64 {
     let mut total = 0;

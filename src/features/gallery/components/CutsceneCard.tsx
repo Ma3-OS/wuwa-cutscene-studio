@@ -105,6 +105,13 @@ const CutsceneCardComponent: React.FC<CutsceneCardProps> = ({
           />
         </div>
 
+        {/* Top-Left: Monochrome Rover Gender Badge */}
+        {video.roverType && video.roverType !== "Neutral" && (
+          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-md flex items-center gap-1 text-[9px] font-mono font-medium text-white/90 border border-white/10 pointer-events-none z-10 shadow-sm">
+            <span>{video.roverType === "Girl" ? t("roverGirl") : t("roverBoy")}</span>
+          </div>
+        )}
+
         {/* Top-Right: Loading status or cached indicator */}
         <div className="absolute top-2 right-2 pointer-events-none flex items-center gap-1 z-10">
           {isExtracting ? (

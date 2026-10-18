@@ -43,7 +43,7 @@ export const StudioButton: React.FC<StudioButtonProps> = ({
       whileHover={{ scale: disabled ? 1 : 1.01 }}
       whileTap={{ scale: disabled ? 1 : 0.97 }}
       transition={{ type: "spring", stiffness: 450, damping: 32, mass: 0.8 }}
-      className={`inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors outline-none focus-visible:ring-1 focus-visible:ring-white/40 disabled:pointer-events-none disabled:opacity-40 rounded-lg ${sizeClasses} ${variantClasses} ${activeClasses} ${className}`}
+      className={`inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors outline-none focus-visible:ring-1 focus-visible:ring-white/40 disabled:pointer-events-none disabled:opacity-40 rounded-lg whitespace-nowrap shrink-0 ${sizeClasses} ${variantClasses} ${activeClasses} ${className}`}
       disabled={disabled}
       {...props}
     >

@@ -20,6 +20,26 @@ import {
 import { useApp } from "../context/AppContext";
 import { toast } from "sonner";
 
+function formatDisplayPath(rawPath?: string | null, projectRoot?: string | null): string {
+  if (!rawPath) return "";
+  let clean = rawPath.replace(/\\/g, "/");
+  if (projectRoot) {
+    const rootNorm = projectRoot.replace(/\\/g, "/").replace(/\/$/, "");
+    if (clean.startsWith(rootNorm)) {
+      clean = clean.slice(rootNorm.length).replace(/^\//, "");
+      return clean || ".";
+    }
+  }
+  if (/^[a-zA-Z]:\/Users\/[^/]+/i.test(clean)) {
+    const match = clean.match(/(?:data\/vid\.json|data\/keys\.json|export|output)$/i);
+    if (match) {
+      return match[0];
+    }
+    clean = clean.replace(/^[a-zA-Z]:\/Users\/[^/]+/i, "~");
+  }
+  return clean;
+}
+
 export const ToolsSetupView: React.FC = () => {
   const { config, updateConfig, t, playSound } = useApp();
 
@@ -276,7 +296,7 @@ export const ToolsSetupView: React.FC = () => {
                 <input
                   type="text"
                   readOnly
-                  value={config.export_dir || defaultPaths?.export_dir || ""}
+                  value={formatDisplayPath(config.export_dir || defaultPaths?.export_dir, defaultPaths?.project_root)}
                   placeholder="<project_root>/export"
                   className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                 />
@@ -315,7 +335,7 @@ export const ToolsSetupView: React.FC = () => {
                 <input
                   type="text"
                   readOnly
-                  value={config.output_dir || defaultPaths?.render_dir || ""}
+                  value={formatDisplayPath(config.output_dir || defaultPaths?.render_dir, defaultPaths?.project_root)}
                   placeholder="<project_root>/output"
                   className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                 />
@@ -418,8 +438,8 @@ export const ToolsSetupView: React.FC = () => {
                   <input
                     type="text"
                     readOnly
-                    value={config.keys_file_path || gameEnv?.keys_path || ""}
-                    placeholder=".../vid.json, .../keys.json"
+                    value={formatDisplayPath(config.keys_file_path || gameEnv?.keys_path, defaultPaths?.project_root)}
+                    placeholder="data/vid.json"
                     className="flex-1 h-8 px-3 rounded-xl bg-white/[0.04] text-xs text-white font-mono border-none outline-none"
                   />
                   <StudioButton variant="secondary" size="sm" onClick={handleBrowseKeysFile}>

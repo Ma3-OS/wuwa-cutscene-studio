@@ -127,7 +127,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
   // Dialogue Search Debouncer
   useEffect(() => {
-    if (searchMode !== "dialogue" || !searchQuery.trim()) {
+    if (!searchQuery.trim()) {
       setDialogueMatches(new Map());
       return;
     }
@@ -146,7 +146,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, searchMode, config.subtitle_lang]);
+  }, [searchQuery, config.subtitle_lang]);
 
   // Total Counts for Asset Kind Badges
   const { videoCount, sequenceCount, totalKindCount } = useMemo(() => {
@@ -222,19 +222,20 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       // 4. Search query matching on filename, folder or dialogue script
       if (searchQuery.trim() !== "") {
         const q = searchQuery.toLowerCase();
-        if (searchMode === "dialogue") {
-          const stem = (v.cgName || v.baseCgName || v.fileName).toLowerCase().replace(/\.[^/.]+$/, "");
-          if (!dialogueMatches.has(stem)) return false;
-        } else {
-          const matchesName = v.fileName.toLowerCase().includes(q);
-          const matchesFolder = (v.categoryFolder || v.folderName || "").toLowerCase().includes(q);
-          if (!matchesName && !matchesFolder) return false;
+        const matchesName = v.fileName.toLowerCase().includes(q);
+        const matchesCgName = v.cgName ? v.cgName.toLowerCase().includes(q) : false;
+        const matchesFolder = (v.categoryFolder || v.folderName || "").toLowerCase().includes(q);
+        const stem = (v.cgName || v.baseCgName || v.fileName).toLowerCase().replace(/\.[^/.]+$/, "");
+        const matchesDialogue = dialogueMatches.has(stem);
+
+        if (!matchesName && !matchesCgName && !matchesFolder && !matchesDialogue) {
+          return false;
         }
       }
 
       return true;
     });
-  }, [items, roverFilter, selectedFolder, searchQuery, searchMode, dialogueMatches, assetKindFilter]);
+  }, [items, roverFilter, selectedFolder, searchQuery, dialogueMatches, assetKindFilter]);
 
   // Reset scroll position and auto-sync selection
   useEffect(() => {
@@ -765,10 +766,14 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                 ? t("folderInternalCache")
                 : selectedFolder.replace(/\\/g, " / ")}
             </span>
-            <span className="text-[#52525B]">/</span>
-            <span className="text-[11px] text-[#71717A] shrink-0 font-sans">
-              {filteredVideos.length} {t("galleryItemsCount")}
-            </span>
+            {filteredVideos.length !== items.length && (
+              <>
+                <span className="text-[#52525B]">/</span>
+                <span className="text-[11px] text-[#71717A] shrink-0 font-sans">
+                  {filteredVideos.length} / {items.length} {t("galleryItemsCount")}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

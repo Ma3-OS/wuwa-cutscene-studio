@@ -1,6 +1,7 @@
 import React from "react";
-import { Grid, Maximize2, Play, Pause, Film } from "lucide-react";
+import { Grid, Maximize2, Play, Pause } from "lucide-react";
 import { StudioSegmentedControl } from "@/components/ui/StudioSegmentedControl";
+import { StudioSelect } from "@/components/ui/StudioSelect";
 import type { FramingMode } from "./SubtitleCanvas";
 import { SCENE_THEMES } from "../constants";
 import { useApp } from "@/context/AppContext";
@@ -31,58 +32,53 @@ export const SubtitleCanvasControls: React.FC<SubtitleCanvasControlsProps> = ({
   showGuides,
   setShowGuides,
   onOpenFullscreen,
-  hasVideoSource = false,
+  hasVideoSource: _hasVideoSource = false,
   isVideoPlaying = true,
   onTogglePlayVideo,
   videoTitle,
 }) => {
   const { t } = useApp();
 
-  // Primary backdrop themes
-  const availableThemes = SCENE_THEMES.filter((theme) => {
-    if (theme.id === "cutscene_video" && !hasVideoSource) return false;
-    return ["cutscene_video", "cutscene", "dark", "space"].includes(theme.id);
-  });
+  // Primary backdrop themes (Always include both video and image cutscene alongside dark and space)
+  const availableThemes = SCENE_THEMES.filter((theme) =>
+    ["cutscene_video", "cutscene", "dark", "space"].includes(theme.id)
+  );
+
+  const themeOptions = availableThemes.map((theme) => ({
+    value: theme.id,
+    label: t(theme.labelKey),
+  }));
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-2.5 bg-[#141417] px-3.5 py-2.5 border-t border-white/[0.06] shrink-0">
-      {/* Group 1: Scene Backdrop & Playback */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl text-xs border border-white/[0.04]">
-          {availableThemes.map((theme) => {
-            const isSelected = activeThemeId === theme.id;
-            return (
-              <button
-                key={theme.id}
-                type="button"
-                onClick={() => setActiveThemeId(theme.id)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer outline-none flex items-center gap-1.5 ${
-                  isSelected ? "bg-white/[0.12] text-white" : "text-[#737373] hover:text-white"
-                }`}
-              >
-                {theme.id === "cutscene_video" && <Film className="w-3 h-3 text-neutral-400" />}
-                <span>{t(theme.labelKey)}</span>
-              </button>
-            );
-          })}
+      {/* Group 1: Scene Backdrop Dropdown & Playback Controller */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="w-40 shrink-0">
+          <StudioSelect
+            value={activeThemeId}
+            onChange={(e) => setActiveThemeId(e.target.value)}
+            options={themeOptions}
+          />
         </div>
 
         {/* Video Play/Pause Controller if Video Backdrop is active */}
-        {hasVideoSource && activeThemeId === "cutscene_video" && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-            <span className="text-[11px] font-mono text-neutral-300 max-w-[110px] truncate" title={videoTitle}>
-              {videoTitle || t("subRealCutscene")}
-            </span>
+        {activeThemeId === "cutscene_video" && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-white/[0.04] border border-white/[0.06] shrink-0">
+            {videoTitle ? (
+              <span className="text-[11px] font-mono text-neutral-300 max-w-[100px] truncate" title={videoTitle}>
+                {videoTitle}
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={onTogglePlayVideo}
-              className="w-5 h-5 rounded-md flex items-center justify-center hover:bg-white/[0.1] text-white transition-colors cursor-pointer outline-none ml-0.5"
+              className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/[0.1] text-white transition-colors cursor-pointer outline-none"
               title={isVideoPlaying ? t("subPauseVideo") : t("subResumeVideo")}
             >
               {isVideoPlaying ? (
-                <Pause className="w-3 h-3 fill-white" />
+                <Pause className="w-3.5 h-3.5 fill-white" />
               ) : (
-                <Play className="w-3 h-3 fill-white" />
+                <Play className="w-3.5 h-3.5 fill-white" />
               )}
             </button>
           </div>

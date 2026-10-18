@@ -5,7 +5,6 @@ import {
   Layers,
   User,
   Search,
-  MessageSquare,
   X,
   RefreshCw,
   LayoutGrid,
@@ -28,8 +27,8 @@ interface GalleryToolbarProps {
   onRoverFilterChange: (gender: "all" | "Girl" | "Boy") => void;
   searchQuery: string;
   onSearchQueryChange: (q: string) => void;
-  searchMode: "name" | "dialogue";
-  onToggleSearchMode: () => void;
+  searchMode?: "name" | "dialogue";
+  onToggleSearchMode?: () => void;
   loading: boolean;
   onRefresh: () => void;
   viewMode: "grid" | "list";
@@ -52,8 +51,8 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
   onRoverFilterChange,
   searchQuery,
   onSearchQueryChange,
-  searchMode,
-  onToggleSearchMode,
+  searchMode: _searchMode,
+  onToggleSearchMode: _onToggleSearchMode,
   loading,
   onRefresh,
   viewMode,
@@ -65,24 +64,6 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
   if (isSearchOverlayOpen && toolbarMode === "icon") {
     return (
       <div className="h-10 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 bg-[#131316] w-full">
-        <button
-          type="button"
-          onClick={onToggleSearchMode}
-          className="px-2 py-1 rounded text-xs font-medium bg-white/[0.04] text-[#8E8E93] hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-          title={t("gallerySearchModeSwitch")}
-        >
-          {searchMode === "name" ? (
-            <>
-              <Film className="w-3 h-3 text-neutral-400 shrink-0" />
-              <span className="text-xs">{t("gallerySearchModeName")}</span>
-            </>
-          ) : (
-            <>
-              <MessageSquare className="w-3 h-3 text-neutral-300 shrink-0" />
-              <span className="text-xs">{t("gallerySearchModeDialogue")}</span>
-            </>
-          )}
-        </button>
         <div className="relative flex-1 flex items-center min-w-0">
           <Search className="w-3.5 h-3.5 absolute left-2 text-neutral-500 pointer-events-none shrink-0" />
           <input
@@ -90,7 +71,7 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
             autoFocus
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder={searchMode === "name" ? t("gallerySearchPlaceholderName") : t("gallerySearchPlaceholderDialogue")}
+            placeholder={t("sidebarSearchCutscene")}
             className="w-full h-7 pl-7 pr-7 bg-white/[0.04] border border-white/[0.08] focus:border-white/20 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none transition-colors"
           />
           {searchQuery && (
@@ -255,28 +236,18 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder={searchMode === "name" ? t("gallerySearchPlaceholderName") : t("gallerySearchPlaceholderDialogue")}
+            placeholder={t("sidebarSearchCutscene")}
             className="w-full h-7 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchQueryChange("")}
-              className="w-4 h-4 rounded flex items-center justify-center text-neutral-500 hover:text-white cursor-pointer mr-1"
+              className="w-4 h-4 rounded flex items-center justify-center text-neutral-500 hover:text-white cursor-pointer mr-0.5"
             >
               <X className="w-2.5 h-2.5" />
             </button>
           )}
-          <button
-            type="button"
-            onClick={onToggleSearchMode}
-            className={`p-1 rounded text-[10px] font-medium transition-colors cursor-pointer outline-none shrink-0 ${
-              searchMode === "dialogue" ? "text-white bg-white/[0.12]" : "text-[#71717A] hover:text-white"
-            }`}
-            title={searchMode === "name" ? t("gallerySwitchToDialogue") : t("gallerySwitchToName")}
-          >
-            {searchMode === "name" ? <Film className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
-          </button>
         </div>
       )}
 

@@ -140,7 +140,7 @@ export const SubtitleStage: React.FC<SubtitleStageProps> = ({
   rubyShadow = 0.6,
   rubyOffsetY = 0,
   rubyColor = "#E0E0E0",
-  rubyText,
+  rubyText: _rubyText,
   baseText,
   lyricFont,
   lyricSize = 0,
@@ -178,14 +178,21 @@ export const SubtitleStage: React.FC<SubtitleStageProps> = ({
         <video
           ref={videoRef}
           src={videoUrl || undefined}
-          autoPlay
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full ${
+          className={`absolute inset-0 w-full h-full cursor-pointer ${
             framingMode === "16/9_zoom" ? "object-cover scale-100" : "object-contain"
           }`}
         />
+      ) : themeId === "cutscene_video" && !videoUrl ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#09090b]">
+          <p className="text-xs font-mono text-neutral-400">
+            {sampleLang === "th"
+              ? "ไม่พบไฟล์วิดีโอในแคช กรุณาแตกไฟล์คัตซีนจากแกลลอรี หรือเลือกภาพคัตซีนจริง"
+              : "No cached cutscene video available. Extract video from Gallery or select Cutscene Image."}
+          </p>
+        </div>
       ) : themeId === "cutscene" && activeTheme.image ? (
         <div
           className={`absolute inset-0 w-full h-full ${
@@ -273,30 +280,12 @@ export const SubtitleStage: React.FC<SubtitleStageProps> = ({
             bottom: subMarginV,
           }}
         >
-          {/* Standalone ruby header only if explicit rubyText exists and baseText does NOT contain ano tag */}
-          {enableRuby && rubyText && rubyText.trim() !== "" && !baseText.includes("<ano=") && (
-            <div
-              className="font-medium tracking-wide opacity-90 select-none"
-              style={{
-                fontFamily: effRubyFont,
-                fontSize: `${effRubySize}px`,
-                color: rubyColor,
-                marginBottom: `${8 + rubyOffsetY}px`,
-                WebkitTextStroke: rubyOutline > 0 ? `${rubyOutline}px rgba(0, 0, 0, 0.85)` : "none",
-                paintOrder: "stroke fill",
-                textShadow: rubyShadow > 0 ? `${rubyShadow}px ${rubyShadow}px 2px rgba(0, 0, 0, 0.5)` : "none",
-                lineHeight: 1.15,
-              }}
-            >
-              {rubyText}
-            </div>
-          )}
           <div
             style={{
               fontFamily: subFont,
               fontSize: `${subSize}px`,
               color: subColor,
-              WebkitTextStroke: subOutline > 0 ? `${subOutline * 1.5}px rgba(0, 0, 0, 0.9)` : "none",
+              WebkitTextStroke: subOutline > 0 ? `${subOutline}px rgba(0, 0, 0, 0.9)` : "none",
               paintOrder: "stroke fill",
               textShadow: subShadow > 0 ? `${subShadow}px ${subShadow}px 2px rgba(0, 0, 0, 0.5)` : "none",
               letterSpacing: "0.012em",

@@ -34,9 +34,9 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
   const { t } = useApp();
 
   return (
-    <div className="p-3.5 rounded-2xl bg-[#141417] flex items-center justify-between gap-3 text-xs overflow-x-auto no-scrollbar border border-white/[0.04]">
-      <div className="flex items-center gap-2.5 shrink-0">
-        <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider shrink-0 mr-1">
+    <div className="p-3.5 rounded-2xl bg-[#141417] flex flex-wrap items-center justify-between gap-3 text-xs border border-white/[0.04]">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider mr-1">
           {t("queueBatchPresetTitle")}
         </span>
 
