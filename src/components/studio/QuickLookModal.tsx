@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import {
   X,
   Film,

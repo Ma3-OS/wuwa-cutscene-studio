@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Folder, Wrench, Globe, HardDrive, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ToolsAPI, DependencyStatusDto, StorageStatsDto } from "@/core/ipc";
 import { useApp } from "@/context/AppContext";

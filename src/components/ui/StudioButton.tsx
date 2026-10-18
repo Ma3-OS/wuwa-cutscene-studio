@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, type HTMLMotionProps } from "framer-motion";
+import { motion, type HTMLMotionProps } from "motion/react";
 
 export interface StudioButtonProps extends HTMLMotionProps<"button"> {
   variant?: "primary" | "secondary" | "ghost" | "icon" | "danger";

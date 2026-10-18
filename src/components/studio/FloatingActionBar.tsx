@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Layers, ListPlus } from "lucide-react";
 import { StudioButton } from "../ui/StudioButton";
 import { useApp } from "../../context/AppContext";

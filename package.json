@@ -2,7 +2,7 @@
   "name": "wuwa-cutscene-studio",
   "private": true,
   "version": "1.0.0",
-  "description": "High-performance Wuthering Waves cutscene extractor, subtitle studio & video renderer.",
+  "description": "Desktop studio for extracting, customizing subtitles, and rendering Wuthering Waves cutscenes.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,10 +11,12 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "npm run build && tauri build",
-    "tauri:clean": "node -e \"const fs = require('fs'); ['dist', 'src-tauri/target', 'txtp', 'txtp_test', 'captions', 'renders', 'output', 'temp', 'cache', '.cache'].forEach(p => fs.rmSync(p, { recursive: true, force: true })); console.log('Build artifacts cleaned.');\""
+    "check:parens": "python scripts/check_thai_parens.py",
+    "check:audit": "python scripts/pre_publish_audit.py",
+    "clean": "node -e \"const fs = require('fs'); ['dist', 'cache/temp', '.cache', 'temp'].forEach(p => { try { fs.rmSync(p, { recursive: true, force: true }); } catch (_) {} }); try { require('child_process').execSync('cargo clean --manifest-path src-tauri/Cargo.toml', { stdio: 'ignore' }); } catch (_) {} console.log('Build cache cleaned.');\"",
+    "clean:all": "node -e \"const fs = require('fs'); ['dist', 'cache', 'export', 'output', 'temp'].forEach(p => { try { fs.rmSync(p, { recursive: true, force: true }); } catch (_) {} }); try { require('child_process').execSync('cargo clean --manifest-path src-tauri/Cargo.toml', { stdio: 'ignore' }); } catch (_) {} console.log('All artifacts and outputs cleaned.');\""
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-virtual": "^3.14.13",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.2",
@@ -22,22 +24,20 @@
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.43.0",
     "lucide-react": "^1.28.0",
+    "motion": "^12.43.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-hot-toast": "^2.6.0",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^4.6.0",
-    "autoprefixer": "^10.5.4",
-    "postcss": "^8.5.25",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"

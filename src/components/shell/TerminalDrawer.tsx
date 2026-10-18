@@ -7,7 +7,7 @@ import {
   Loader2,
   FileText,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { useTaskStore } from "../../features/task-monitor/stores/useTaskStore";
 import { useApp } from "../../context/AppContext";
 import { ToolsAPI } from "../../core/ipc/tools.api";
