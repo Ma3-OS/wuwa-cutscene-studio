@@ -458,7 +458,7 @@ pub async fn generate_single_video_info(
     }
 
     if !mp4.is_file() {
-        return Err(format!("ไม่พบไฟล์วิดีโอบนดิสก์ {}", mp4.display()));
+        return Err(format!("Video file not found on disk: {}", mp4.display()));
     }
 
     let fn_display = mp4.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "cutscene".to_string());
@@ -479,7 +479,7 @@ pub async fn generate_single_video_info(
     let needs_version_sync = current_version != crate::config::tools_manifest::DATABASE_BRANCH;
 
     if needs_version_sync || !videodata_path.exists() || !videosound_path.exists() || !videocaption_path.exists() || !multitext_path.exists() {
-        emit_log(&app, &format!("ตรวจพบฐานข้อมูลยังไม่สมบูรณ์ กำลังซิงค์ข้อมูลสาขา {} ภาษา {}", crate::config::tools_manifest::DATABASE_BRANCH, lang));
+        emit_log(&app, &format!("Incomplete database detected. Synchronizing branch {} for language '{}'...", crate::config::tools_manifest::DATABASE_BRANCH, lang));
         let _ = crate::commands::downloader::download_data(app.clone(), Some(lang.clone()), None).await;
     }
 
@@ -490,7 +490,7 @@ pub async fn generate_single_video_info(
 
     // If still missing after remote sync attempt (e.g. offline or GitHub unreachable), attempt local ConfigDB dump
     if !videodata_path.exists() || !videosound_path.exists() || !videocaption_path.exists() || !multitext_path.exists() {
-        emit_log(&app, "ดาวน์โหลดข้อมูลจาก Arikatsu ไม่สำเร็จ กำลังพยายามสกัดข้อมูลจาก ConfigDB ในเครื่อง...");
+        emit_log(&app, "Remote database download unreachable. Attempting fallback extraction from local ConfigDB...");
         let extractor_state = app.state::<crate::commands::extractor::ExtractorState>();
         let config_state = app.state::<crate::config::ConfigState>();
         let _ = crate::commands::extractor::dump_local_configdb_internal(&app, &extractor_state, &config_state, None).await;
@@ -502,10 +502,10 @@ pub async fn generate_single_video_info(
     }
 
     if !videodata_path.exists() || !videosound_path.exists() {
-        let err_msg = "ไม่พบฐานข้อมูลคัตซีนและไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ กรุณาตรวจสอบการตั้งค่าโฟลเดอร์เกมหรือการเชื่อมต่อเครือข่าย";
-        emit_log(&app, &format!("เกิดข้อผิดพลาด {}", err_msg));
+        let err_msg = "Cutscene database not found and remote connection unreachable. Please check game directory settings or network connection.";
+        emit_log(&app, &format!("Database error: {}", err_msg));
         let _ = app.emit("system-alert", serde_json::json!({
-            "title": "ไม่พบฐานข้อมูล",
+            "title": "Database Not Found",
             "message": err_msg,
         }));
         return Err(err_msg.to_string());
@@ -799,7 +799,7 @@ pub async fn generate_single_video_info(
     });
 
     if (!events.is_empty() || !clean_target_cg.is_empty()) && !has_existing_audio {
-        emit_log(&app, &format!("ตรวจพบไฟล์เสียงสำหรับ {} ยังไม่มีบนดิสก์ กำลังเปิดระบบ Self Healing สกัดจากแพ็กเกจเกม", target_cg_name));
+        emit_log(&app, &format!("Audio files for '{}' not found on disk. Initiating self-healing extraction from game paks...", target_cg_name));
         let extractor_state = app.state::<crate::commands::extractor::ExtractorState>();
         let config_state = app.state::<crate::config::ConfigState>();
         let _ = crate::commands::extractor::ensure_daemon_alive(&app, &extractor_state, &config_state).await;
@@ -1013,7 +1013,7 @@ pub async fn generate_single_video_info(
     }
 
     if !missing_wems.is_empty() {
-        emit_log(&app, &format!("ตรวจพบไฟล์สตรีมเสียง .wem ที่ยังขาดอยู่ {} ไฟล์ กำลังดึงจากแพ็กเกจเกม...", missing_wems.len()));
+        emit_log(&app, &format!("Detected {} missing .wem audio stream(s). Extracting from game paks...", missing_wems.len()));
         let config_state = app.state::<crate::config::ConfigState>();
         let extractor_state = app.state::<crate::commands::extractor::ExtractorState>();
         let wem_target = if bundle_dir.exists() {
@@ -1056,7 +1056,7 @@ pub async fn generate_single_video_info(
                 valid_sounds.push(s.clone());
             } else {
                 let fname = p.file_name().unwrap_or_default().to_string_lossy().to_string();
-                emit_log(&app, &format!("ข้ามแทร็กเสียงที่ไม่สมบูรณ์เนื่องจากขาดไฟล์สตรีม {}", fname));
+                emit_log(&app, &format!("Skipping incomplete audio track due to missing stream: {}", fname));
             }
         } else if p.is_file() {
             valid_sounds.push(s.clone());

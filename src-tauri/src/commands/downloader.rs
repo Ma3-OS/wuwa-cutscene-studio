@@ -53,14 +53,14 @@ async fn download_file(url: &str, dest_path: &Path, app: &AppHandle, task_name: 
     let mut last_err = String::new();
     for attempt in 1..=3 {
         if attempt > 1 {
-            emit_log(app, &format!("กำลังลองดาวน์โหลดใหม่ {} ครั้งที่ {}", task_name, attempt));
+            emit_log(app, &format!("[DOWNLOAD] Retrying download '{}' (attempt {}/3)...", task_name, attempt));
             tokio::time::sleep(std::time::Duration::from_millis(1500 * attempt as u64)).await;
         }
 
         match client.get(url).send().await {
             Ok(res) => {
                 if !res.status().is_success() {
-                    last_err = format!("ดาวน์โหลดไม่สำเร็จ รหัสสถานะ HTTP {} สำหรับ {}", res.status(), task_name);
+                    last_err = format!("Download failed with HTTP status {} for {}", res.status(), task_name);
                     continue;
                 }
 
@@ -114,7 +114,7 @@ async fn download_file(url: &str, dest_path: &Path, app: &AppHandle, task_name: 
         }
     }
 
-    Err(format!("ดาวน์โหลดล้มเหลวหลังจากลอง 3 ครั้ง {}", last_err))
+    Err(format!("Download failed after 3 attempts: {}", last_err))
 }
 
 fn extract_zip(zip_path: &Path, dest_dir: &Path, app: &AppHandle, task_name: &str) -> Result<(), String> {
@@ -316,7 +316,7 @@ pub async fn download_data(
 
     let needs_force_refresh = current_version != branch;
     if needs_force_refresh {
-        emit_log(&app, &format!("ตรวจพบฐานข้อมูลรุ่นเก่าหรือยังไม่ได้ซิงค์ กำลังอัปเดตเป็นรุ่น {}", branch));
+        emit_log(&app, &format!("Outdated or unsynced database detected, updating to branch {}", branch));
     } else {
         emit_log(&app, &format!("Using database branch: {} (Language: {})", branch, lang));
     }
@@ -353,7 +353,7 @@ pub async fn download_data(
     let lang_file_path = json_dir.join(&lang_file_name);
     
     if needs_force_refresh || !lang_file_path.exists() {
-        emit_log(&app, &format!("กำลังดาวน์โหลดและผสานข้อมูลข้อความสำหรับภาษา {}...", lang));
+        emit_log(&app, &format!("Downloading and merging textmaps for language '{}'...", lang));
         
         let sub_textmap_sources = vec![
             format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/multi_text/MultiText.json", branch, lang),
@@ -379,7 +379,7 @@ pub async fn download_data(
                             }
                         }
                         if !merged_map.is_empty() {
-                            emit_log(&app, &format!("ตรวจพบและโหลดข้อมูลข้อความท้องถิ่นภาษา {} สำเร็จ {} รายการ", lang, merged_map.len()));
+                            emit_log(&app, &format!("Found and preloaded {} local text entries for '{}'", merged_map.len(), lang));
                             break;
                         }
                     }
@@ -429,10 +429,10 @@ pub async fn download_data(
             let _ = fs::write(&version_file, &branch);
             emit_log(&app, &format!("Merged {} text entries into {}", final_list.len(), lang_file_name));
         } else if !remote_success {
-            emit_log(&app, &format!("คำเตือน ไม่สามารถดึงข้อมูลข้อความภาษา {} จาก Arikatsu ได้และไม่พบไฟล์ในเครื่อง", lang));
+            emit_log(&app, &format!("Warning: Could not fetch textmaps for '{}' from Arikatsu and no local files found", lang));
             let _ = app.emit("system-alert", serde_json::json!({
-                "title": "ไม่พบฐานข้อมูลบทบรรยาย",
-                "message": format!("ไม่สามารถดึงข้อมูลภาษา {} จากเครื่องหรืออินเทอร์เน็ตได้ กรุณาตรวจสอบการเชื่อมต่อ", lang)
+                "title": "Subtitle Database Not Found",
+                "message": format!("Could not load subtitle textmap for language '{}' from local cache or remote server. Please check your network connection.", lang)
             }));
         }
     }

@@ -694,7 +694,7 @@ pub async fn ensure_daemon_alive(
         let config = config_state.0.lock().unwrap().clone();
         let env = detect_game_env_internal(app, &config);
         if !env.game_paks_found {
-            return Err("ไม่พบไดเรกทอรีแพ็กเกจเกม กรุณากำหนดค่าในแถบตั้งค่า".into());
+            return Err("Game packages directory not found. Please configure it in Settings.".into());
         }
 
         let paks = if !config.game_paks_dir.is_empty() {
@@ -871,7 +871,7 @@ pub async fn create_preview_muxed_video(
         return None;
     }
 
-    emit_log(app, &format!("กำลังรวมสัญญาณเสียง {} แทร็กเข้ากับภาพพรีวิวสำหรับคัตซีน {}", decoded_wavs.len(), cg_name));
+    emit_log(app, &format!("[PREVIEW] Multiplexing {} audio track(s) with preview video for cutscene '{}'...", decoded_wavs.len(), cg_name));
 
     let mut mux_cmd = Command::new(&ffmpeg_cmd);
     #[cfg(target_os = "windows")]
@@ -929,7 +929,7 @@ pub async fn create_preview_muxed_video(
     }
 
     if mux_res.is_ok() && preview_muxed.exists() && fs::metadata(&preview_muxed).map(|m| m.len() > 10_000).unwrap_or(false) {
-        emit_log(app, &format!("สร้างวิดีโอพรีวิวพร้อมเสียงสำเร็จ {}", preview_muxed.display()));
+        emit_log(app, &format!("[PREVIEW] Generated audio-muxed preview successfully: {}", preview_muxed.display()));
         return Some(preview_muxed);
     }
 
@@ -1114,7 +1114,7 @@ pub async fn extract_cutscene_on_demand(
 
     if let Some(ref existing_vid) = cached_video {
         if has_audio_on_disk {
-            emit_log(&app, &format!("พบคัตซีน {} ในเครื่องแล้ว {}", cg_name, existing_vid.display()));
+            emit_log(&app, &format!("[EXTRACT] Cutscene '{}' already exists on disk: {}", cg_name, existing_vid.display()));
 
             // Ensure pristine video is located in project bundle/video directory
             let video_dir = bundle_dir.join("video");
@@ -1194,18 +1194,18 @@ pub async fn extract_cutscene_on_demand(
                 thumbnail_base64: thumb_base64,
             });
         } else {
-            emit_log(&app, &format!("พบคัตซีน {} แล้วแต่ยังไม่มีไฟล์เสียง กำลังสกัดเสียงจากแพ็กเกจเกม", cg_name));
+            emit_log(&app, &format!("[EXTRACT] Cutscene '{}' found but missing audio tracks. Extracting from game paks...", cg_name));
         }
     }
 
-    emit_log(&app, &format!("เริ่มกระบวนการสกัดไฟล์คัตซีน {} จากแพ็กเกม", cg_name));
+    emit_log(&app, &format!("[EXTRACT] Starting extraction pipeline for cutscene '{}' from game paks...", cg_name));
 
     // Emit Stage 1
     use tauri::Emitter;
     let _ = app.emit("extraction-progress", json!({
         "cg_name": &cg_name,
         "stage": 1,
-        "status_text": "กำลังค้นหาตำแหน่งไฟล์ในแพ็กเกจเกม",
+        "status_text": "Locating cutscene assets in game paks",
         "percent": 20
     }));
 
@@ -1222,7 +1222,7 @@ pub async fn extract_cutscene_on_demand(
         "locale": config.locale_selection
     });
 
-    emit_log(&app, &format!("ส่งคำขอสกัดคัตซีน {} ไปยัง CUE4Parse Worker รหัส {}", cg_name, request_id));
+    emit_log(&app, &format!("[EXTRACT] Dispatched extraction request for '{}' to CUE4Parse Worker (ID: {})...", cg_name, request_id));
 
     // Auto-recovering pipe transmission: Retries once if the pipe broke
     let mut retried = false;
@@ -1239,7 +1239,7 @@ pub async fn extract_cutscene_on_demand(
             let flush_res = if write_res.is_ok() { manager.stdin.flush().await } else { write_res };
 
             if let Err(e) = flush_res {
-                emit_log(&app, &format!("ตรวจพบท่อส่งคำสั่งตัดการเชื่อมต่อ รหัสข้อผิดพลาด {} กำลังกู้คืน Worker...", e));
+                emit_log(&app, &format!("[EXTRACT] Broken pipe detected (error: {}). Recovering Worker daemon...", e));
                 *manager_lock = None;
                 if !retried {
                     retried = true;
@@ -1257,19 +1257,19 @@ pub async fn extract_cutscene_on_demand(
     let response = tokio::time::timeout(Duration::from_secs(120), rx)
         .await
         .map_err(|_| {
-            let msg = format!("การสกัดคัตซีน {} หมดเวลาหลังจาก 120 วินาที", cg_name);
+            let msg = format!("Cutscene extraction for '{}' timed out after 120s", cg_name);
             emit_log(&app, &msg);
             msg
         })?
         .map_err(|_| {
-            let msg = format!("การเชื่อมต่อกับ CUE4Parse Worker ขาดหายระหว่างสกัด {}", cg_name);
+            let msg = format!("Lost connection to CUE4Parse Worker while extracting '{}'", cg_name);
             emit_log(&app, &msg);
             msg
         })?;
 
     let status = response.get("status").and_then(|s| s.as_str()).unwrap_or("error");
     if status == "cancelled" {
-        emit_log(&app, &format!("การสกัดคัตซีน {} ถูกยกเลิกโดยผู้ใช้", cg_name));
+        emit_log(&app, &format!("[EXTRACT] Cutscene extraction for '{}' was cancelled by user", cg_name));
         return Err("CANCELLED".into());
     }
     if status == "ok" {
@@ -1283,7 +1283,7 @@ pub async fn extract_cutscene_on_demand(
         let _ = app.emit("extraction-progress", json!({
             "cg_name": &cg_name,
             "stage": 2,
-            "status_text": "กำลังสกัดสตรีมวิดีโอความละเอียดสูง",
+            "status_text": "Extracting high-resolution video stream",
             "percent": 50
         }));
 
@@ -1291,7 +1291,7 @@ pub async fn extract_cutscene_on_demand(
         if video_file.to_lowercase().ends_with(".bk2") {
             let mp4_dest = PathBuf::from(&video_file).with_extension("mp4");
             if !mp4_dest.exists() {
-                emit_log(&app, &format!("กำลังแปลงรูปแบบ BK2 เป็น MP4 สำหรับคัตซีน {}", cg_name));
+                emit_log(&app, &format!("[CONVERT] Transcoding BK2 to MP4 for cutscene '{}'...", cg_name));
                 let tools_dir = get_tools_dir(&app);
                 let ffmpeg_bin = tools_dir.join("ffmpeg.exe");
                 let ffmpeg_cmd = if ffmpeg_bin.exists() {
@@ -1314,7 +1314,7 @@ pub async fn extract_cutscene_on_demand(
             }
             if mp4_dest.exists() {
                 video_file = mp4_dest.to_string_lossy().to_string();
-                emit_log(&app, &format!("แปลงไฟล์ MP4 สำเร็จ {}", video_file));
+                emit_log(&app, &format!("[CONVERT] Transcoded MP4 successfully: {}", video_file));
             }
         }
 
@@ -1333,14 +1333,14 @@ pub async fn extract_cutscene_on_demand(
         let _ = app.emit("extraction-progress", json!({
             "cg_name": &cg_name,
             "stage": 3,
-            "status_text": "กำลังสกัดธนาคารเสียงและสตรีมเสียง Wwise",
+            "status_text": "Extracting Wwise soundbanks and audio streams",
             "percent": 75
         }));
 
         let _ = app.emit("extraction-progress", json!({
             "cg_name": &cg_name,
             "stage": 4,
-            "status_text": "กำลังประมวลผลโครงสร้างเสียงและดัชนี",
+            "status_text": "Processing audio structures and hierarchy",
             "percent": 88
         }));
 
@@ -1351,7 +1351,7 @@ pub async fn extract_cutscene_on_demand(
             let _ = app.emit("extraction-progress", json!({
                 "cg_name": &cg_name,
                 "stage": 5,
-                "status_text": "กำลังสร้างภาพตัวอย่างและเตรียมความพร้อม",
+                "status_text": "Generating cutscene preview and assets",
                 "percent": 95
             }));
 
@@ -1414,7 +1414,7 @@ pub async fn extract_cutscene_on_demand(
         let _ = app.emit("extraction-progress", json!({
             "cg_name": &cg_name,
             "stage": 5,
-            "status_text": "กำลังสร้างภาพตัวอย่างและเตรียมความพร้อม",
+            "status_text": "Finalizing cutscene extraction and preview",
             "percent": 100
         }));
 
@@ -1432,7 +1432,7 @@ pub async fn extract_cutscene_on_demand(
         })
     } else {
         let msg = response.get("message").and_then(|m| m.as_str()).unwrap_or("Extraction failed");
-        emit_log(&app, &format!("การสกัดคัตซีน {} ล้มเหลว: {}", cg_name, msg));
+        emit_log(&app, &format!("[EXTRACT] Cutscene extraction failed for '{}': {}", cg_name, msg));
         Err(msg.to_string())
     }
 }
@@ -1484,7 +1484,7 @@ pub async fn cancel_extraction(
             }));
         }
     }
-    emit_log(&app, "ส่งสัญญาณยกเลิกการสกัดคัตซีนเรียบร้อยแล้ว");
+    emit_log(&app, "[EXTRACT] Extraction cancellation signal sent successfully.");
     Ok(())
 }
 
@@ -2238,7 +2238,7 @@ pub fn resolve_configdb_dir(
     } else if !env.paks_dir.trim().is_empty() {
         env.paks_dir.trim().to_string()
     } else {
-        return Err("ไม่พบไดเรกทอรีแพ็กเกจเกม กรุณาระบุในแถบตั้งค่า".to_string());
+        return Err("Game packages directory not found. Please configure it in Settings.".to_string());
     };
 
     let paks_path = PathBuf::from(paks_str);
@@ -2258,7 +2258,7 @@ pub fn resolve_configdb_dir(
         }
     }
 
-    Err("ไม่พบไดเรกทอรี ConfigDB ในโฟลเดอร์เกม".to_string())
+    Err("ConfigDB directory not found in game folder.".to_string())
 }
 
 pub async fn dump_local_configdb_internal(
@@ -2280,7 +2280,7 @@ pub async fn dump_local_configdb_internal(
     };
 
     if !db_path.exists() {
-        return Err("ไดเรกทอรี ConfigDB ที่ระบุไม่มีอยู่จริง".to_string());
+        return Err("Specified ConfigDB directory does not exist.".to_string());
     }
 
     let data_dir = crate::commands::downloader::get_data_dir(app);
@@ -2312,10 +2312,10 @@ pub async fn dump_local_configdb_internal(
 
     let status = response.get("status").and_then(|s| s.as_str()).unwrap_or("configdb_dump_failed");
     if status == "configdb_dumped" {
-        emit_log(app, "สกัดฐานข้อมูล ConfigDB จากเครื่องสำเร็จเรียบร้อย");
+        emit_log(app, "[CONFIGDB] Successfully extracted SQLite ConfigDB data from local game files.");
         Ok(true)
     } else {
-        Err("ไม่สามารถสกัดข้อมูลจาก ConfigDB ในเครื่องได้".to_string())
+        Err("Failed to extract data from local ConfigDB.".to_string())
     }
 }
 

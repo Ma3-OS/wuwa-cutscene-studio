@@ -80,10 +80,10 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
         if parent.exists() && parent.is_dir() {
             (None, Some(parent.to_path_buf()))
         } else {
-            return Err("ไม่พบไฟล์หรือโฟลเดอร์ที่ระบุ".to_string());
+            return Err("Specified file or directory not found".to_string());
         }
     } else {
-        return Err("ไม่พบไฟล์หรือโฟลเดอร์ที่ระบุ".to_string());
+        return Err("Specified file or directory not found".to_string());
     };
 
     #[cfg(target_os = "windows")]
@@ -148,7 +148,7 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
             }
         }
 
-        // กรณีการเรียก Shell API ไม่สำเร็จ จะใช้คำสั่ง explorer.exe เป็นทางเลือกสำรอง
+        // Fall back to explorer.exe if Shell API call fails
         use std::os::windows::process::CommandExt;
         let mut cmd = std::process::Command::new("explorer.exe");
         cmd.creation_flags(0x08000000);
@@ -193,7 +193,7 @@ pub fn open_file(path: String) -> Result<(), String> {
 pub fn open_media_external(path: String) -> Result<(), String> {
     let p = PathBuf::from(&path);
     if !p.exists() || !p.is_file() {
-        return Err("ไม่พบไฟล์วิดีโอที่ระบุ".to_string());
+        return Err("Specified media file not found".to_string());
     }
     open::that(&p).map_err(|e| e.to_string())?;
     Ok(())

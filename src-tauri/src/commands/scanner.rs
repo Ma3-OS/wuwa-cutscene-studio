@@ -374,7 +374,7 @@ pub fn detect_game_path() -> Option<String> {
     None
 }
 
-/// ลบภาพปกที่มืดสนิทหรือขนาดเล็กกว่าเกณฑ์ 3.5 KB ออกจากแคชตอนเริ่มระบบ
+/// Purge pitch-black or undersized covers (< 3.5 KB) from cache at startup
 pub fn purge_black_thumbnails_on_startup(app: &AppHandle) {
     let cache_dir = crate::commands::downloader::get_base_dir(app).join("thumbnails");
     if cache_dir.exists() {

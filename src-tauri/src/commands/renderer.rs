@@ -74,7 +74,7 @@ pub async fn cancel_render(
     for handle in handles {
         handle.is_cancelled.store(true, Ordering::SeqCst);
         if let Some(pid) = handle.pid {
-            emit_log(&app, &format!("กำลังสั่งหยุดโพรเซสเรนเดอร์หมายเลข {}", pid));
+            emit_log(&app, &format!("[RENDER] Terminating render process PID {}", pid));
             #[cfg(target_os = "windows")]
             {
                 let _ = std::process::Command::new("taskkill")
@@ -91,11 +91,11 @@ pub async fn cancel_render(
         if let Some(partial) = handle.partial_file {
             if partial.exists() {
                 let _ = fs::remove_file(&partial);
-                emit_log(&app, "ลบไฟล์วิดีโอชั่วคราวที่ไม่สมบูรณ์เรียบร้อยแล้ว");
+                emit_log(&app, "[RENDER] Incomplete temporary output video cleaned up.");
             }
         }
     }
-    emit_log(&app, "ยกเลิกการเรนเดอร์เรียบร้อยแล้ว");
+    emit_log(&app, "[RENDER] Video rendering cancelled.");
     Ok(())
 }
 
@@ -322,20 +322,20 @@ pub async fn render_video(
         match res {
             Ok(Ok(wav)) => wav_paths.push(wav),
             Ok(Err(e)) => {
-                emit_log(&app, &format!("ข้ามแทร็กเสียงที่ไม่สมบูรณ์ {}", e));
+                emit_log(&app, &format!("[AUDIO] Skipping incomplete audio track: {}", e));
             }
             Err(join_err) => {
-                emit_log(&app, &format!("เกิดข้อผิดพลาดกับแทร็กเสียงคู่ขนาน {}", join_err));
+                emit_log(&app, &format!("[AUDIO] Error in parallel audio worker: {}", join_err));
             }
         }
     }
     if wav_paths.is_empty() && !video_info.sounds.is_empty() {
         let mut lock = render_state.0.lock().await;
         lock.retain(|h| !Arc::ptr_eq(&h.is_cancelled, &is_cancelled));
-        return Err("ไม่สามารถแปลงแทร็กเสียงใดๆ ได้เลย กรุณาตรวจสอบไฟล์เสียง".into());
+        return Err("Failed to convert audio tracks. Please verify source audio files.".into());
     }
     wav_paths.sort();
-    emit_log(&app, "เตรียมสตรีมเสียงแบบคู่ขนานสำเร็จ");
+    emit_log(&app, "[AUDIO] Parallel audio streams prepared successfully.");
 
     // 2. Build FFmpeg command with Hardware Acceleration Probe
     let has_sub = video_info.ass_path.is_some() || video_info.srt_path.is_some();
@@ -365,7 +365,7 @@ pub async fn render_video(
 
     // Probe hardware encoder
     let detected_encoder = probe_video_encoder(&ffmpeg_exe);
-    emit_log(&app, &format!("ตรวจพบตัวเข้ารหัสวิดีโอ {}", detected_encoder));
+    emit_log(&app, &format!("[RENDER] Detected video encoder: {}", detected_encoder));
 
     let mut filter_parts = Vec::new();
     let mut video_map = "-map 0:v:0".to_string();
@@ -491,7 +491,7 @@ pub async fn render_video(
         ));
         audio_map = Some("-map [aout]".to_string());
     } else {
-        emit_log(&app, "คำเตือน: ไม่พบแทร็กเสียงสำหรับคัตซีนนี้ คลิปที่เรนเดอร์อาจไม่มีเสียง");
+        emit_log(&app, "[RENDER] Warning: No audio tracks found for this cutscene. Output video will have no audio.");
         audio_map = Some("-map 0:a:0?".to_string());
         audio_codec = vec!["-c:a", "copy"];
     }
@@ -538,7 +538,7 @@ pub async fn render_video(
     }
     cmd.args(&args);
 
-    emit_log(&app, &format!("กำลังเรนเดอร์วิดีโอ {} ด้วย FFmpeg", out_name));
+    emit_log(&app, &format!("[RENDER] Rendering video '{}' with FFmpeg...", out_name));
 
     if is_cancelled.load(Ordering::SeqCst) {
         for wav in &wav_paths {
@@ -565,7 +565,7 @@ pub async fn render_video(
     // Auto-fallback: if hardware encoder failed and we didn't cancel, retry with libx264
     if let Ok(ref out) = output_res {
         if !out.status.success() && detected_encoder != "libx264" && !is_cancelled.load(Ordering::SeqCst) {
-            emit_log(&app, "การเรนเดอร์ด้วยฮาร์ดแวร์ขัดข้อง กำลังสลับไปใช้ซีพียู libx264 อัตโนมัติ");
+            emit_log(&app, "[RENDER] Hardware encoder failure. Falling back to software libx264...");
             let fallback_codec = ["-c:v", "libx264", "-preset", "superfast", "-crf", "18", "-pix_fmt", "yuv420p", "-threads", "0"];
             let fallback_args = build_ffmpeg_args(
                 &validated_input_str,
@@ -638,7 +638,7 @@ pub async fn render_video(
         return Err(format!("Video rendering failed: {}", err_msg));
     }
 
-    emit_log(&app, &format!("เรนเดอร์สำเร็จ {}", out_name));
+    emit_log(&app, &format!("[RENDER] Successfully rendered '{}'", out_name));
 
     // Smart thumbnail generation for completed render
     let thumb_cache_dir = crate::commands::downloader::get_base_dir(&app).join("thumbnails");

@@ -215,7 +215,7 @@ pub fn generate_captions(
     if dialogue_events.is_empty() && lyric_events.is_empty() {
         emit_log(
             app,
-            &format!("ไม่พบบทสนทนาหรือเนื้อเพลงสำหรับคัตซีน {}", cg_name),
+            &format!("[SUBTITLE] No dialogue or lyric entries found for cutscene '{}'", cg_name),
         );
         return Ok((None, None));
     }
@@ -266,7 +266,7 @@ pub fn generate_captions(
     emit_log(
         app,
         &format!(
-            "สร้างซับไตเติลสำเร็จ {} รายการสำหรับคัตซีน {}",
+            "[SUBTITLE] Successfully generated {} subtitle events for cutscene '{}'",
             all_events.len(),
             safe_name
         ),

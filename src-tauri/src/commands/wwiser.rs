@@ -251,7 +251,7 @@ pub async fn run_wwiser_for_banks(
     // Scan all referenced .wem files from generated .txtp files and auto-extract from PAKs if missing
     let wem_ids = extract_wem_ids_from_txtp_dir(&txtp_dir);
     if !wem_ids.is_empty() {
-        emit_log(app, &format!("พบไฟล์สตรีมเสียง .wem ที่ถูกอ้างอิง {} ไฟล์ กำลังตรวจสอบและสกัดจากแพ็กเกจเกม...", wem_ids.len()));
+        emit_log(app, &format!("[WWISE] Detected {} referenced .wem audio stream(s). Extracting from game paks...", wem_ids.len()));
         let config_state = app.state::<crate::config::ConfigState>();
         let extractor_state = app.state::<crate::commands::extractor::ExtractorState>();
         let cfg = config_state.0.lock().unwrap().clone();
