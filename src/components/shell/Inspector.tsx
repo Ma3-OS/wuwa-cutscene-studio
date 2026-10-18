@@ -417,36 +417,11 @@ export const Inspector: React.FC<InspectorProps> = ({
                   )}
                 </div>
 
-                {/* Subtitle Language Selector: Two-tier layout (Quick Pills + Full Dropdown) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-medium text-[#71717A] uppercase tracking-wider block">
-                      {t("inspectorSubLangTitle")}
-                    </label>
-                  </div>
-
-                  <StudioSegmentedControl<string>
-                    value={
-                      ["th", "en", "ja", "zh-Hans", "ko"].includes(currentSubLang)
-                        ? currentSubLang
-                        : "other"
-                    }
-                    onChange={(val) => {
-                      if (val !== "other") {
-                        updateConfig({ subtitle_lang: val });
-                        toast.success(`${t("toastSubLangSwitched")}: ${val.toUpperCase()}`);
-                      }
-                    }}
-                    className="w-full bg-[#121215]"
-                    options={[
-                      { value: "th", label: "TH" },
-                      { value: "en", label: "EN" },
-                      { value: "ja", label: "JA" },
-                      { value: "zh-Hans", label: "ZH" },
-                      { value: "ko", label: "KO" },
-                    ]}
-                  />
-
+                {/* Subtitle Language Selector: Single Clean Dropdown */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-[#71717A] uppercase tracking-wider block">
+                    {t("inspectorSubLangTitle")}
+                  </label>
                   <StudioSelect
                     value={currentSubLang}
                     onChange={(e) => {
@@ -586,37 +561,18 @@ export const Inspector: React.FC<InspectorProps> = ({
               ) : (
                 /* Single Cutscene Actions: Separate Raw Extraction & Render */
                 <div className="space-y-2">
-                  {/* Progressive extraction status / button */}
-                  {isCached ? (
-                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-500/[0.08] border border-emerald-500/20 text-[11px]">
-                      <span className="flex items-center gap-1.5 font-medium text-emerald-400">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>{t("inspectorRawReady")}</span>
-                      </span>
-                      {onExtractRaw && (
-                        <button
-                          type="button"
-                          onClick={onExtractRaw}
-                          disabled={isRendering || isExtracting}
-                          className="text-[10px] text-neutral-400 hover:text-white transition-colors cursor-pointer outline-none underline underline-offset-2"
-                        >
-                          {t("inspectorReExtract")}
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    onExtractRaw && (
-                      <StudioButton
-                        variant="secondary"
-                        size="md"
-                        className="w-full h-9 text-xs font-medium bg-[#1c1c21] text-neutral-300 hover:bg-[#25252c] border border-white/[0.06]"
-                        onClick={onExtractRaw}
-                        disabled={isRendering || isExtracting}
-                      >
-                        <FolderArchive className="w-3.5 h-3.5 text-neutral-400" />
-                        <span>{t("inspectorExtractRaw")}</span>
-                      </StudioButton>
-                    )
+                  {/* Optional raw extraction button when not yet cached */}
+                  {!isCached && onExtractRaw && (
+                    <StudioButton
+                      variant="secondary"
+                      size="md"
+                      className="w-full h-9 text-xs font-medium bg-[#1c1c21] text-neutral-300 hover:bg-[#25252c] border border-white/[0.06]"
+                      onClick={onExtractRaw}
+                      disabled={isRendering || isExtracting}
+                    >
+                      <FolderArchive className="w-3.5 h-3.5 text-neutral-400" />
+                      <span>{t("inspectorExtractRaw")}</span>
+                    </StudioButton>
                   )}
 
                   {/* Action 2: Start video render or cancel */}
