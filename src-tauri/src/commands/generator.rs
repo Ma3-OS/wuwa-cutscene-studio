@@ -50,17 +50,27 @@ pub fn resolve_videocaption_file(data_dir: &Path) -> PathBuf {
 }
 
 pub fn resolve_multitext_file(data_dir: &Path, lang: &str) -> PathBuf {
-    let p = data_dir.join("Textmaps").join(lang).join("multi_text").join("MultiText.json");
+    let norm_lang = match lang.trim() {
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans",
+        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant",
+        other => other,
+    };
+    let p = data_dir.join("Textmaps").join(norm_lang).join("multi_text").join("MultiText.json");
     if p.exists() {
         p
     } else {
-        let p2 = data_dir.join(format!("MultiText_{}.json", lang));
+        let p2 = data_dir.join(format!("MultiText_{}.json", norm_lang));
         if p2.exists() {
             p2
-        } else if data_dir.join("MultiText_en.json").exists() {
-            data_dir.join("MultiText_en.json")
         } else {
-            data_dir.join("MultiText.json")
+            let p_raw = data_dir.join(format!("MultiText_{}.json", lang));
+            if p_raw.exists() {
+                p_raw
+            } else if data_dir.join("MultiText_en.json").exists() {
+                data_dir.join("MultiText_en.json")
+            } else {
+                data_dir.join("MultiText.json")
+            }
         }
     }
 }
@@ -321,8 +331,15 @@ pub async fn generate_single_video_info(
     mp4_path: String,
     locale: String,
     girl_or_boy: String,
+    subtitle_lang: Option<String>,
 ) -> Result<VideoInfo, String> {
-    let config = state.0.lock().unwrap().clone();
+    let mut config = state.0.lock().unwrap().clone();
+    if let Some(sub_l) = subtitle_lang {
+        let trimmed = sub_l.trim();
+        if !trimmed.is_empty() {
+            config.subtitle_lang = trimmed.to_string();
+        }
+    }
     let export_dir = config.get_effective_export_dir();
     let data_dir = get_data_dir(&app);
     let render_dir = config.get_effective_render_dir();
@@ -1347,6 +1364,15 @@ pub fn get_cutscene_dialogue(
     let data_dir = get_data_dir(&app);
     let l = lang.unwrap_or_else(|| "th".to_string());
 
+    let multitext_path = resolve_multitext_file(&data_dir, &l);
+    if !multitext_path.exists() {
+        let app_handle = app.clone();
+        let target_lang = l.clone();
+        tokio::spawn(async move {
+            let _ = crate::commands::downloader::download_data(app_handle, Some(target_lang)).await;
+        });
+    }
+
     let config_state = app.state::<crate::config::ConfigState>();
     let cfg = config_state.0.lock().unwrap().clone();
     let ruby_cfg = crate::subtitles::RubyConfig {
@@ -1400,8 +1426,15 @@ pub fn export_subtitles_bundle(
     app: AppHandle,
     state: tauri::State<'_, crate::config::ConfigState>,
     cg_name: String,
+    lang: Option<String>,
 ) -> Result<Vec<String>, String> {
-    let config = state.0.lock().unwrap().clone();
+    let mut config = state.0.lock().unwrap().clone();
+    if let Some(l) = lang {
+        let trimmed = l.trim();
+        if !trimmed.is_empty() {
+            config.subtitle_lang = trimmed.to_string();
+        }
+    }
     let export_dir = config.get_effective_export_dir();
     let safe_name = sanitize_cutscene_filename(&cg_name);
     let target_dir = export_dir.join("cutscenes").join(&safe_name).join("subtitles");

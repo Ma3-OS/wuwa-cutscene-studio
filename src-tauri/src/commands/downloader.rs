@@ -219,7 +219,12 @@ pub async fn download_tools(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Result<(), String> {
-    let lang = textmap_lang.unwrap_or_else(|| "th".to_string());
+    let raw_lang = textmap_lang.unwrap_or_else(|| "th".to_string());
+    let lang = match raw_lang.trim() {
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans".to_string(),
+        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant".to_string(),
+        other => other.to_string(),
+    };
     let json_dir = get_data_dir(&app);
     fs::create_dir_all(&json_dir).map_err(|e| e.to_string())?;
     

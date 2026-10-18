@@ -14,3 +14,5 @@ export function getTranslation(key: TranslationKey, lang: AppLanguage = "th"): s
   const dict = translations[lang] || translations.th;
   return dict[key] || translations.th[key] || key;
 }
+
+export * from "./languages";

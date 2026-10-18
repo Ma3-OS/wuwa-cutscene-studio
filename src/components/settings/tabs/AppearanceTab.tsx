@@ -1,9 +1,11 @@
 import React from "react";
 import { StudioSelect } from "../../ui/StudioSelect";
+import { SUBTITLE_LANGUAGES } from "../../../locales";
 
 interface AppearanceTabProps {
   config: {
     app_language?: string;
+    subtitle_lang?: string;
     app_font?: string;
     enable_ui_sounds?: boolean;
     auto_open_output?: boolean;
@@ -42,6 +44,21 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({
             { value: "th", label: t("langTh") },
             { value: "en", label: t("langEn") },
           ]}
+        />
+
+        {/* Default Subtitle Language */}
+        <StudioSelect
+          label={t("subLangLabel")}
+          value={config.subtitle_lang || "th"}
+          onChange={(e) =>
+            updateConfig({
+              subtitle_lang: e.target.value,
+            })
+          }
+          options={SUBTITLE_LANGUAGES.map((l) => ({
+            value: l.code,
+            label: `${l.shortLabel} ${t(l.labelKey)}`,
+          }))}
         />
 
         {/* Font Family */}

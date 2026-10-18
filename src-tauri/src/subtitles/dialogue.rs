@@ -57,9 +57,20 @@ pub fn load_cutscene_dialogues_for_cg(
         return (Vec::new(), Vec::new());
     }
 
-    let multitext_lang_path = data_dir.join(format!("MultiText_{}.json", lang));
-    let multitext_path = if multitext_lang_path.exists() {
+    let norm_lang = match lang.trim() {
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans",
+        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant",
+        other => other,
+    };
+    let multitext_hier = data_dir.join("Textmaps").join(norm_lang).join("multi_text").join("MultiText.json");
+    let multitext_lang_path = data_dir.join(format!("MultiText_{}.json", norm_lang));
+    let multitext_raw_path = data_dir.join(format!("MultiText_{}.json", lang));
+    let multitext_path = if multitext_hier.exists() {
+        multitext_hier
+    } else if multitext_lang_path.exists() {
         multitext_lang_path
+    } else if multitext_raw_path.exists() {
+        multitext_raw_path
     } else if data_dir.join("MultiText_en.json").exists() {
         data_dir.join("MultiText_en.json")
     } else {

@@ -538,7 +538,8 @@ function AppContent() {
       const payload = await RendererAPI.generateSingleVideoInfo(
         targetDiskPath,
         locale,
-        renderGender
+        renderGender,
+        config.subtitle_lang
       );
 
       useTaskStore.getState().appendLog({
@@ -641,6 +642,7 @@ function AppContent() {
         locale,
         gender: matched?.roverType === "Girl" ? "Girl" : matched?.roverType === "Boy" ? "Boy" : gender,
         subtitleMode,
+        subtitleLang: config.subtitle_lang || "th",
         renderResolution,
       };
     });

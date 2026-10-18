@@ -94,11 +94,26 @@ export const SubtitleLabView: React.FC = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [isFullscreen]);
 
+  // Sync with config.subtitle_lang
+  useEffect(() => {
+    const raw = config.subtitle_lang || "th";
+    const mapped: "th" | "en" | "ja" | "zh" =
+      raw === "zh-Hans" || raw === "zh-Hant" || raw === "zh"
+        ? "zh"
+        : raw === "en" || raw === "ja"
+        ? raw
+        : "th";
+    setSampleLang(mapped);
+    setRubyText(SAMPLE_TEXTS[mapped].ruby);
+    setBaseText(SAMPLE_TEXTS[mapped].base);
+  }, [config.subtitle_lang]);
+
   // Handle switching sample language
   const handleLanguageSwitch = (lang: "th" | "en" | "ja" | "zh") => {
     setSampleLang(lang);
     setRubyText(SAMPLE_TEXTS[lang].ruby);
     setBaseText(SAMPLE_TEXTS[lang].base);
+    updateConfig({ subtitle_lang: lang });
   };
 
   // Apply style preset

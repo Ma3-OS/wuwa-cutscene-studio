@@ -3,6 +3,7 @@ import { StudioButton } from "@/components/ui/StudioButton";
 import { StudioSegmentedControl } from "@/components/ui/StudioSegmentedControl";
 import { StudioSelect } from "@/components/ui/StudioSelect";
 import { useApp } from "@/context/AppContext";
+import { SUBTITLE_LANGUAGES } from "@/locales";
 
 interface BatchPresetBarProps {
   batchGender: "Girl" | "Boy";
@@ -11,6 +12,8 @@ interface BatchPresetBarProps {
   setBatchLocale: (val: string) => void;
   batchSubMode: "Hard-sub" | "Soft-sub" | "None";
   setBatchSubMode: (val: "Hard-sub" | "Soft-sub" | "None") => void;
+  batchSubLang: string;
+  setBatchSubLang: (val: string) => void;
   batchResolution: string;
   setBatchResolution: (val: string) => void;
   autoAction: "none" | "chime" | "folder" | "sleep" | "shutdown";
@@ -25,6 +28,8 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
   setBatchLocale,
   batchSubMode,
   setBatchSubMode,
+  batchSubLang,
+  setBatchSubLang,
   batchResolution,
   setBatchResolution,
   autoAction,
@@ -79,6 +84,18 @@ export const BatchPresetBar: React.FC<BatchPresetBarProps> = ({
               { value: "Soft-sub", label: t("subModeSoftsub") },
               { value: "None", label: t("subModeNone") },
             ]}
+          />
+        </div>
+
+        {/* Subtitle Language */}
+        <div className="w-36 shrink-0">
+          <StudioSelect
+            value={batchSubLang}
+            onChange={(e) => setBatchSubLang(e.target.value)}
+            options={SUBTITLE_LANGUAGES.map((l) => ({
+              value: l.code,
+              label: `${l.shortLabel} ${l.nativeLabel}`,
+            }))}
           />
         </div>
 

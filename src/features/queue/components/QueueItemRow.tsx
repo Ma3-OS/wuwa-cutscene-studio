@@ -66,7 +66,13 @@ export const QueueItemRow: React.FC<QueueItemRowProps> = ({
             <span>•</span>
             <span>{item.gender === "Girl" ? t("roverGirl") : t("roverBoy")}</span>
             <span>•</span>
-            <span>{item.locale.toUpperCase()}</span>
+            <span>VO: {item.locale.toUpperCase()}</span>
+            {item.subtitleMode !== "None" && item.subtitleLang && (
+              <>
+                <span>•</span>
+                <span>SUB: {item.subtitleLang.toUpperCase()}</span>
+              </>
+            )}
             <span>•</span>
             <span>{subModeLabel}</span>
             {item.renderResolution && item.renderResolution !== "original" && (

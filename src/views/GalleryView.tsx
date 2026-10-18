@@ -691,6 +691,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
         locale: config.locale_selection || "ja",
         gender: (config.char_selection as "Girl" | "Boy") || "Girl",
         subtitleMode: "Hard-sub",
+        subtitleLang: config.subtitle_lang || "th",
         renderResolution: config.render_resolution || "1920x1080",
       },
     ]);

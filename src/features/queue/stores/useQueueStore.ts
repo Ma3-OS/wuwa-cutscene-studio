@@ -10,6 +10,7 @@ export interface QueueItem {
   locale: string;
   gender: "Girl" | "Boy";
   subtitleMode: "None" | "Soft-sub" | "Hard-sub";
+  subtitleLang?: string;
   renderResolution: string;
   status: "queued" | "rendering" | "completed" | "failed";
   progress: number;
@@ -30,6 +31,7 @@ interface QueueState {
     locale?: string;
     gender?: "Girl" | "Boy";
     subtitleMode?: "None" | "Soft-sub" | "Hard-sub";
+    subtitleLang?: string;
     renderResolution?: string;
   }) => void;
   setParallel: (parallel: boolean) => void;
@@ -92,6 +94,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
               locale: presets.locale || i.locale,
               gender: presets.gender || i.gender,
               subtitleMode: presets.subtitleMode || i.subtitleMode,
+              subtitleLang: presets.subtitleLang || i.subtitleLang,
               renderResolution: presets.renderResolution || i.renderResolution,
             }
           : i
@@ -184,7 +187,8 @@ export const useQueueStore = create<QueueState>((set, get) => ({
         const payload = await RendererAPI.generateSingleVideoInfo(
           targetPath,
           item.locale,
-          item.gender
+          item.gender,
+          item.subtitleLang
         );
 
         set((state) => ({

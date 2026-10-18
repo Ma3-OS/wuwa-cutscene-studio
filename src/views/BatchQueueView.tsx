@@ -39,6 +39,7 @@ export const BatchQueueView: React.FC = () => {
   const [batchGender, setBatchGender] = useState<"Girl" | "Boy">("Girl");
   const [batchLocale, setBatchLocale] = useState<string>(config.locale_selection || "ja");
   const [batchSubMode, setBatchSubMode] = useState<"Hard-sub" | "Soft-sub" | "None">("Hard-sub");
+  const [batchSubLang, setBatchSubLang] = useState<string>(config.subtitle_lang || "th");
   const [batchResolution, setBatchResolution] = useState<string>(config.render_resolution || "1920x1080");
   const [autoAction, setAutoAction] = useState<"none" | "chime" | "folder" | "sleep" | "shutdown">("none");
 
@@ -92,6 +93,7 @@ export const BatchQueueView: React.FC = () => {
       gender: batchGender,
       locale: batchLocale,
       subtitleMode: batchSubMode,
+      subtitleLang: batchSubLang,
       renderResolution: batchResolution,
     });
     toast.success(t("toastQueuePresetApplied"));
@@ -140,6 +142,7 @@ export const BatchQueueView: React.FC = () => {
         locale: batchLocale,
         gender: batchGender,
         subtitleMode: batchSubMode,
+        subtitleLang: batchSubLang,
         renderResolution: batchResolution,
       };
     });
@@ -185,6 +188,8 @@ export const BatchQueueView: React.FC = () => {
           setBatchLocale={setBatchLocale}
           batchSubMode={batchSubMode}
           setBatchSubMode={setBatchSubMode}
+          batchSubLang={batchSubLang}
+          setBatchSubLang={setBatchSubLang}
           batchResolution={batchResolution}
           setBatchResolution={setBatchResolution}
           autoAction={autoAction}

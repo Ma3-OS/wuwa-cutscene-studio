@@ -91,16 +91,31 @@ pub fn load_music_lyrics_for_cg(
         sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    let trans_file = data_dir.join(format!("MultiText_{}.json", lang));
-    let trans_path = if trans_file.exists() {
+    let norm_lang = match lang.trim() {
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans",
+        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant",
+        other => other,
+    };
+    let trans_hier = data_dir.join("Textmaps").join(norm_lang).join("multi_text").join("MultiText.json");
+    let trans_file = data_dir.join(format!("MultiText_{}.json", norm_lang));
+    let trans_raw = data_dir.join(format!("MultiText_{}.json", lang));
+    let trans_path = if trans_hier.exists() {
+        trans_hier
+    } else if trans_file.exists() {
         trans_file
+    } else if trans_raw.exists() {
+        trans_raw
+    } else if data_dir.join("MultiText_en.json").exists() {
+        data_dir.join("MultiText_en.json")
     } else {
         data_dir.join("MultiText.json")
     };
 
-    let orig_file_zh = data_dir.join("MultiText_zh.json");
+    let orig_file_zh = data_dir.join("MultiText_zh-Hans.json");
     let orig_path = if orig_file_zh.exists() {
         orig_file_zh
+    } else if data_dir.join("MultiText_zh.json").exists() {
+        data_dir.join("MultiText_zh.json")
     } else {
         data_dir.join("MultiText.json")
     };

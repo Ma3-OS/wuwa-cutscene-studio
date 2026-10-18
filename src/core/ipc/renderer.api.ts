@@ -39,12 +39,14 @@ export const RendererAPI = {
   generateSingleVideoInfo: async (
     mp4Path: string,
     locale: string,
-    girlOrBoy: string
+    girlOrBoy: string,
+    subtitleLang?: string
   ): Promise<VideoInfoPayload> => {
     return await invoke<VideoInfoPayload>("generate_single_video_info", {
       mp4Path,
       locale,
       girlOrBoy,
+      subtitleLang,
     });
   },
 
@@ -69,8 +71,8 @@ export const RendererAPI = {
     });
   },
 
-  exportSubtitlesBundle: async (cgName: string): Promise<string[]> => {
-    return await invoke<string[]>("export_subtitles_bundle", { cgName });
+  exportSubtitlesBundle: async (cgName: string, lang?: string): Promise<string[]> => {
+    return await invoke<string[]>("export_subtitles_bundle", { cgName, lang });
   },
 
   cancelRender: async (): Promise<void> => {

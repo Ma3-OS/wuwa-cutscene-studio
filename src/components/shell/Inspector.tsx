@@ -28,6 +28,7 @@ import { StudioSelect } from "../ui/StudioSelect";
 import { useApp } from "../../context/AppContext";
 import { RendererAPI, type CutsceneSubtitleLineDto } from "../../core/ipc";
 import { resolveThumbnailSrc } from "../../utils/thumbnailResolver";
+import { SUBTITLE_LANGUAGES } from "../../locales";
 
 const dialogueCache = new Map<string, CutsceneSubtitleLineDto[]>();
 
@@ -113,7 +114,8 @@ export const Inspector: React.FC<InspectorProps> = ({
   onOpenRenderedVideo: _onOpenRenderedVideo,
   onOpenOutputDir,
 }) => {
-  const { t } = useApp();
+  const { t, config, updateConfig } = useApp();
+  const currentSubLang = config.subtitle_lang || "th";
   const [dialogueLines, setDialogueLines] = useState<CutsceneSubtitleLineDto[]>([]);
   const [isDialogueOpen, setIsDialogueOpen] = useState(false);
   const [copiedType, setCopiedType] = useState<string | null>(null);
@@ -126,19 +128,20 @@ export const Inspector: React.FC<InspectorProps> = ({
     const clean = (fileName || "").replace(/\.[^/.]+$/, "");
     if (!clean) return;
 
-    if (dialogueCache.has(clean)) {
-      setDialogueLines(dialogueCache.get(clean) || []);
+    const cacheKey = `${clean}:${currentSubLang}`;
+    if (dialogueCache.has(cacheKey)) {
+      setDialogueLines(dialogueCache.get(cacheKey) || []);
       return;
     }
 
-    RendererAPI.getCutsceneDialogue(clean)
+    RendererAPI.getCutsceneDialogue(clean, currentSubLang)
       .then((lines) => {
         const resolved = lines || [];
-        dialogueCache.set(clean, resolved);
+        dialogueCache.set(cacheKey, resolved);
         setDialogueLines(resolved);
       })
       .catch(() => setDialogueLines([]));
-  }, [selectedFile, fileName]);
+  }, [selectedFile, fileName, currentSubLang]);
 
   const handleCopyText = (text: string, type: string, successMsg: string) => {
     navigator.clipboard.writeText(text);
@@ -159,7 +162,7 @@ export const Inspector: React.FC<InspectorProps> = ({
     const clean = (fileName || "").replace(/\.[^/.]+$/, "");
     if (!clean) return;
     try {
-      const files = await RendererAPI.exportSubtitlesBundle(clean);
+      const files = await RendererAPI.exportSubtitlesBundle(clean, currentSubLang);
       if (files && files.length > 0) {
         toast.success(t("toastExportSubSuccess"));
       } else {
@@ -403,17 +406,73 @@ export const Inspector: React.FC<InspectorProps> = ({
                   )}
                 </div>
 
+                {/* Subtitle Language Selector: Quick Pills + 13 Languages Dropdown */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-medium text-[#71717A] uppercase tracking-wider block">
+                      {t("inspectorSubLangTitle")}
+                    </label>
+                    <span className="text-[10px] font-mono text-neutral-400">
+                      {SUBTITLE_LANGUAGES.find((l) => l.code === currentSubLang)?.nativeLabel || currentSubLang.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex-1 min-w-0">
+                      <StudioSegmentedControl<string>
+                        value={
+                          ["th", "en", "ja", "zh-Hans", "ko"].includes(currentSubLang)
+                            ? currentSubLang
+                            : "other"
+                        }
+                        onChange={(val) => {
+                          if (val !== "other") {
+                            updateConfig({ subtitle_lang: val });
+                            toast.success(`${t("toastSubLangSwitched")}: ${val.toUpperCase()}`);
+                          }
+                        }}
+                        className="w-full bg-[#121215]"
+                        options={[
+                          { value: "th", label: "TH" },
+                          { value: "en", label: "EN" },
+                          { value: "ja", label: "JA" },
+                          { value: "zh-Hans", label: "ZH" },
+                          { value: "ko", label: "KO" },
+                        ]}
+                      />
+                    </div>
+                    <div className="w-24 shrink-0">
+                      <StudioSelect
+                        value={currentSubLang}
+                        onChange={(e) => {
+                          updateConfig({ subtitle_lang: e.target.value });
+                          toast.success(`${t("toastSubLangSwitched")}: ${e.target.value.toUpperCase()}`);
+                        }}
+                        options={SUBTITLE_LANGUAGES.map((l) => ({
+                          value: l.code,
+                          label: `${l.shortLabel} ${l.nativeLabel}`,
+                        }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Subtitle Mode: Horizontal Sliding Pill */}
-                <StudioSegmentedControl<"None" | "Soft-sub" | "Hard-sub">
-                  value={subtitleMode}
-                  onChange={onSubtitleModeChange}
-                  className="w-full bg-[#121215]"
-                  options={[
-                    { value: "Hard-sub", label: t("subModeHardsub") },
-                    { value: "Soft-sub", label: t("subModeSoftsub") },
-                    { value: "None", label: t("subModeNone") },
-                  ]}
-                />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-[#71717A] uppercase tracking-wider block">
+                    {t("subStudioTitle")}
+                  </label>
+                  <StudioSegmentedControl<"None" | "Soft-sub" | "Hard-sub">
+                    value={subtitleMode}
+                    onChange={onSubtitleModeChange}
+                    className="w-full bg-[#121215]"
+                    options={[
+                      { value: "Hard-sub", label: t("subModeHardsub") },
+                      { value: "Soft-sub", label: t("subModeSoftsub") },
+                      { value: "None", label: t("subModeNone") },
+                    ]}
+                  />
+                </div>
 
                 {/* Dialogue Script Box */}
                 {!isMulti && dialogueLines.length > 0 && (
