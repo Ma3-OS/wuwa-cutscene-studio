@@ -117,6 +117,7 @@ export const Inspector: React.FC<InspectorProps> = ({
   const { t, config, updateConfig } = useApp();
   const currentSubLang = config.subtitle_lang || "th";
   const [dialogueLines, setDialogueLines] = useState<CutsceneSubtitleLineDto[]>([]);
+  const [isLoadingDialogue, setIsLoadingDialogue] = useState(false);
   const [isDialogueOpen, setIsDialogueOpen] = useState(false);
   const [copiedType, setCopiedType] = useState<string | null>(null);
 
@@ -134,13 +135,31 @@ export const Inspector: React.FC<InspectorProps> = ({
       return;
     }
 
+    let isSubscribed = true;
+    setIsLoadingDialogue(true);
+
     RendererAPI.getCutsceneDialogue(clean, currentSubLang)
       .then((lines) => {
+        if (!isSubscribed) return;
         const resolved = lines || [];
-        dialogueCache.set(cacheKey, resolved);
+        if (resolved.length > 0) {
+          dialogueCache.set(cacheKey, resolved);
+        }
         setDialogueLines(resolved);
       })
-      .catch(() => setDialogueLines([]));
+      .catch(() => {
+        if (!isSubscribed) return;
+        setDialogueLines([]);
+      })
+      .finally(() => {
+        if (isSubscribed) {
+          setIsLoadingDialogue(false);
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
   }, [selectedFile, fileName, currentSubLang]);
 
   const handleCopyText = (text: string, type: string, successMsg: string) => {
@@ -460,7 +479,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                 </div>
 
                 {/* Dialogue Script Box */}
-                {!isMulti && dialogueLines.length > 0 && (
+                {!isMulti && (dialogueLines.length > 0 || isLoadingDialogue) && (
                   <div className="space-y-2 pt-2 border-t border-white/[0.04]">
                     <div className="flex items-center justify-between gap-1">
                       <button
@@ -470,9 +489,15 @@ export const Inspector: React.FC<InspectorProps> = ({
                       >
                         <MessageSquareText className="w-3.5 h-3.5 text-[#8E8E93] shrink-0" />
                         <span className="whitespace-nowrap shrink-0">{t("inspectorDialogueTitle")}</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-[#71717A] shrink-0">
-                          {dialogueLines.length}
-                        </span>
+                        {isLoadingDialogue ? (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 shrink-0 animate-pulse">
+                            Syncing...
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-[#71717A] shrink-0">
+                            {dialogueLines.length}
+                          </span>
+                        )}
                         {isDialogueOpen ? (
                           <ChevronUp className="w-3 h-3 text-[#71717A] shrink-0" />
                         ) : (
@@ -483,7 +508,8 @@ export const Inspector: React.FC<InspectorProps> = ({
                         <button
                           type="button"
                           onClick={handleCopyAllDialogue}
-                          className="w-6 h-6 rounded-md text-[#8E8E93] hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors cursor-pointer outline-none"
+                          disabled={isLoadingDialogue || dialogueLines.length === 0}
+                          className="w-6 h-6 rounded-md text-[#8E8E93] hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors cursor-pointer outline-none disabled:opacity-30 disabled:pointer-events-none"
                           title={t("inspectorCopyAllDialogue")}
                           aria-label={t("inspectorCopyAllDialogue")}
                         >
@@ -492,7 +518,8 @@ export const Inspector: React.FC<InspectorProps> = ({
                         <button
                           type="button"
                           onClick={handleExportSubtitles}
-                          className="w-6 h-6 rounded-md text-[#8E8E93] hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors cursor-pointer outline-none"
+                          disabled={isLoadingDialogue || dialogueLines.length === 0}
+                          className="w-6 h-6 rounded-md text-[#8E8E93] hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors cursor-pointer outline-none disabled:opacity-30 disabled:pointer-events-none"
                           title={t("inspectorExportSubs")}
                           aria-label={t("inspectorExportSubs")}
                         >
@@ -503,14 +530,20 @@ export const Inspector: React.FC<InspectorProps> = ({
 
                     {isDialogueOpen && (
                       <div className="max-h-36 overflow-y-auto space-y-1.5 p-2.5 rounded-lg bg-[#121215] text-[11px]">
-                        {dialogueLines.map((line) => (
-                          <div key={line.caption_id} className="flex gap-2 leading-relaxed">
-                            <span className="text-[10px] font-mono text-[#71717A] shrink-0 pt-0.5">
-                              {line.time_formatted}
-                            </span>
-                            <span className="text-[#D4D4D8]">{line.content}</span>
+                        {isLoadingDialogue ? (
+                          <div className="py-3 text-center text-[#8E8E93] text-xs">
+                            Loading subtitles for {currentSubLang.toUpperCase()}...
                           </div>
-                        ))}
+                        ) : (
+                          dialogueLines.map((line) => (
+                            <div key={line.caption_id} className="flex gap-2 leading-relaxed">
+                              <span className="text-[10px] font-mono text-[#71717A] shrink-0 pt-0.5">
+                                {line.time_formatted}
+                              </span>
+                              <span className="text-[#D4D4D8]">{line.content}</span>
+                            </div>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>

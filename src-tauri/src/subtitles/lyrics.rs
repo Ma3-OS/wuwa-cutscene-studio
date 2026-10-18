@@ -4,6 +4,7 @@ use std::path::Path;
 use serde_json::Value;
 
 use super::ass_writer::hex_to_ass_color;
+use super::dialogue::resolve_multitext_file;
 use super::ruby::strip_html_tags;
 use super::types::{CutsceneSubtitleLine, LyricConfig, MusicLyricRaw, SubtitleEvent};
 
@@ -91,34 +92,12 @@ pub fn load_music_lyrics_for_cg(
         sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    let norm_lang = match lang.trim() {
-        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans",
-        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant",
-        other => other,
-    };
-    let trans_hier = data_dir.join("Textmaps").join(norm_lang).join("multi_text").join("MultiText.json");
-    let trans_file = data_dir.join(format!("MultiText_{}.json", norm_lang));
-    let trans_raw = data_dir.join(format!("MultiText_{}.json", lang));
-    let trans_path = if trans_hier.exists() {
-        trans_hier
-    } else if trans_file.exists() {
-        trans_file
-    } else if trans_raw.exists() {
-        trans_raw
-    } else if data_dir.join("MultiText_en.json").exists() {
-        data_dir.join("MultiText_en.json")
-    } else {
-        data_dir.join("MultiText.json")
-    };
+    let trans_path = resolve_multitext_file(data_dir, lang);
+    if !trans_path.exists() {
+        return (Vec::new(), Vec::new());
+    }
 
-    let orig_file_zh = data_dir.join("MultiText_zh-Hans.json");
-    let orig_path = if orig_file_zh.exists() {
-        orig_file_zh
-    } else if data_dir.join("MultiText_zh.json").exists() {
-        data_dir.join("MultiText_zh.json")
-    } else {
-        data_dir.join("MultiText.json")
-    };
+    let orig_path = resolve_multitext_file(data_dir, "zh-Hans");
 
     let trans_map = load_text_map(&trans_path);
     let orig_map = if orig_path.exists() {
@@ -156,7 +135,7 @@ pub fn load_music_lyrics_for_cg(
             clean_orig.clone()
         };
 
-        let is_chinese_sub = norm_lang.starts_with("zh");
+        let is_chinese_sub = lang.trim().starts_with("zh");
 
         let primary_font = if is_chinese_sub {
             "Microsoft YaHei"

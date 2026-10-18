@@ -8,7 +8,7 @@ pub mod ass_writer;
 pub use types::*;
 pub use ruby::{clean_subtitle_text, clean_subtitle_for_ass, strip_html_tags, parse_ruby_segments, RubyAnnotation, RubyLineResult};
 pub use lyrics::{load_music_lyrics_for_cg, extract_clean_cg_tag};
-pub use dialogue::load_cutscene_dialogues_for_cg;
+pub use dialogue::{load_cutscene_dialogues_for_cg, resolve_multitext_file};
 pub use ass_writer::{
     generate_captions,
     build_ass_script,

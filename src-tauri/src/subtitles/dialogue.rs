@@ -8,6 +8,46 @@ use super::lyrics::extract_clean_cg_tag;
 use super::ruby::{clean_subtitle_for_ass, clean_subtitle_text, parse_ruby_segments};
 use super::types::{CutsceneSubtitleLine, RubyConfig, SubtitleEvent};
 
+pub fn resolve_multitext_file(data_dir: &Path, lang: &str) -> std::path::PathBuf {
+    let norm_lang = match lang.trim() {
+        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans",
+        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant",
+        other => other,
+    };
+
+    // 1. Hierarchical structure from Arikatsu: Textmaps/<norm_lang>/multi_text/MultiText.json
+    let p_hier = data_dir.join("Textmaps").join(norm_lang).join("multi_text").join("MultiText.json");
+    if p_hier.exists() {
+        return p_hier;
+    }
+
+    // 2. Flat named file: MultiText_<norm_lang>.json
+    let p_norm = data_dir.join(format!("MultiText_{}.json", norm_lang));
+    if p_norm.exists() {
+        return p_norm;
+    }
+
+    // 3. Raw lang name if different from norm_lang
+    let trimmed = lang.trim();
+    if trimmed != norm_lang {
+        let p_raw = data_dir.join(format!("MultiText_{}.json", trimmed));
+        if p_raw.exists() {
+            return p_raw;
+        }
+    }
+
+    // 4. Fallback to MultiText.json ONLY for Thai ("th")
+    if norm_lang.eq_ignore_ascii_case("th") {
+        let p_default = data_dir.join("MultiText.json");
+        if p_default.exists() {
+            return p_default;
+        }
+    }
+
+    // Return expected candidate path so that .exists() returns false when file is missing
+    p_norm
+}
+
 pub fn load_cutscene_dialogues_for_cg(
     data_dir: &Path,
     cg_name: &str,
@@ -57,25 +97,10 @@ pub fn load_cutscene_dialogues_for_cg(
         return (Vec::new(), Vec::new());
     }
 
-    let norm_lang = match lang.trim() {
-        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans",
-        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant",
-        other => other,
-    };
-    let multitext_hier = data_dir.join("Textmaps").join(norm_lang).join("multi_text").join("MultiText.json");
-    let multitext_lang_path = data_dir.join(format!("MultiText_{}.json", norm_lang));
-    let multitext_raw_path = data_dir.join(format!("MultiText_{}.json", lang));
-    let multitext_path = if multitext_hier.exists() {
-        multitext_hier
-    } else if multitext_lang_path.exists() {
-        multitext_lang_path
-    } else if multitext_raw_path.exists() {
-        multitext_raw_path
-    } else if data_dir.join("MultiText_en.json").exists() {
-        data_dir.join("MultiText_en.json")
-    } else {
-        data_dir.join("MultiText.json")
-    };
+    let multitext_path = resolve_multitext_file(data_dir, lang);
+    if !multitext_path.exists() {
+        return (Vec::new(), Vec::new());
+    }
 
     let mt_str = match fs::read_to_string(&multitext_path) {
         Ok(s) => s,
@@ -198,4 +223,66 @@ pub fn load_cutscene_dialogues_for_cg(
     }
 
     (events, lines)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resolve_multitext_file_thai_fallback() {
+        let unique_name = format!("wuwa_test_th_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos());
+        let test_dir = std::env::temp_dir().join(unique_name);
+        let _ = fs::create_dir_all(&test_dir);
+
+        // When only MultiText.json exists, "th" resolves to it
+        let legacy_file = test_dir.join("MultiText.json");
+        fs::write(&legacy_file, "[]").unwrap();
+        assert_eq!(resolve_multitext_file(&test_dir, "th"), legacy_file);
+
+        // When MultiText_th.json exists, "th" prefers it
+        let th_file = test_dir.join("MultiText_th.json");
+        fs::write(&th_file, "[]").unwrap();
+        assert_eq!(resolve_multitext_file(&test_dir, "th"), th_file);
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_resolve_multitext_file_non_thai_no_fallback() {
+        let unique_name = format!("wuwa_test_non_th_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos());
+        let test_dir = std::env::temp_dir().join(unique_name);
+        let _ = fs::create_dir_all(&test_dir);
+
+        // MultiText.json exists (Thai text)
+        let legacy_file = test_dir.join("MultiText.json");
+        fs::write(&legacy_file, "[]").unwrap();
+
+        // Requesting "en" must NOT fall back to Thai MultiText.json
+        let en_path = resolve_multitext_file(&test_dir, "en");
+        assert_eq!(en_path, test_dir.join("MultiText_en.json"));
+        assert!(!en_path.exists());
+
+        // Requesting "ja" must NOT fall back to Thai MultiText.json
+        let ja_path = resolve_multitext_file(&test_dir, "ja");
+        assert_eq!(ja_path, test_dir.join("MultiText_ja.json"));
+        assert!(!ja_path.exists());
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_resolve_multitext_file_chinese_variants() {
+        let unique_name = format!("wuwa_test_zh_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos());
+        let test_dir = std::env::temp_dir().join(unique_name);
+        let _ = fs::create_dir_all(&test_dir);
+
+        let zh_path = resolve_multitext_file(&test_dir, "zh");
+        assert_eq!(zh_path, test_dir.join("MultiText_zh-Hans.json"));
+
+        let zh_hant_path = resolve_multitext_file(&test_dir, "zh-Hant");
+        assert_eq!(zh_hant_path, test_dir.join("MultiText_zh-Hant.json"));
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
 }

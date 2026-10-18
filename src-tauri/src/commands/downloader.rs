@@ -7,7 +7,10 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use zip::ZipArchive;
 
+use std::sync::LazyLock;
 use crate::commands::log::emit_log;
+
+static DOWNLOAD_DATA_MUTEX: LazyLock<tokio::sync::Mutex<()>> = LazyLock::new(|| tokio::sync::Mutex::new(()));
 
 #[derive(Clone, Serialize)]
 struct ProgressPayload {
@@ -288,6 +291,7 @@ pub async fn download_data(
     textmap_lang: Option<String>,
     branch_override: Option<String>,
 ) -> Result<(), String> {
+    let _lock = DOWNLOAD_DATA_MUTEX.lock().await;
     let raw_lang = textmap_lang.unwrap_or_else(|| "th".to_string());
     let lang = match raw_lang.trim() {
         "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans".to_string(),
@@ -426,6 +430,9 @@ pub async fn download_data(
 
             // 2. Save root convenience copy
             fs::write(&lang_file_path, &serialized).map_err(|e| e.to_string())?;
+            if lang == "th" {
+                let _ = fs::write(json_dir.join("MultiText.json"), &serialized);
+            }
             let _ = fs::write(&version_file, &branch);
             emit_log(&app, &format!("Merged {} text entries into {}", final_list.len(), lang_file_name));
         } else if !remote_success {

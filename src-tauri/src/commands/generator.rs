@@ -49,31 +49,7 @@ pub fn resolve_videocaption_file(data_dir: &Path) -> PathBuf {
     if p.exists() { p } else { data_dir.join("videocaption.json") }
 }
 
-pub fn resolve_multitext_file(data_dir: &Path, lang: &str) -> PathBuf {
-    let norm_lang = match lang.trim() {
-        "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans",
-        "zh-tw" | "zh-hk" | "zh-hant" | "zh_hant" | "zh_tw" => "zh-Hant",
-        other => other,
-    };
-    let p = data_dir.join("Textmaps").join(norm_lang).join("multi_text").join("MultiText.json");
-    if p.exists() {
-        p
-    } else {
-        let p2 = data_dir.join(format!("MultiText_{}.json", norm_lang));
-        if p2.exists() {
-            p2
-        } else {
-            let p_raw = data_dir.join(format!("MultiText_{}.json", lang));
-            if p_raw.exists() {
-                p_raw
-            } else if data_dir.join("MultiText_en.json").exists() {
-                data_dir.join("MultiText_en.json")
-            } else {
-                data_dir.join("MultiText.json")
-            }
-        }
-    }
-}
+pub use crate::subtitles::resolve_multitext_file;
 
 pub fn strip_event_suffix(name: &str) -> &str {
     let suffixes = [
@@ -1308,7 +1284,7 @@ pub struct DialogueMatch {
 
 
 #[tauri::command]
-pub fn search_dialogue(
+pub async fn search_dialogue(
     app: AppHandle,
     query: String,
     lang: Option<String>,
@@ -1321,7 +1297,12 @@ pub fn search_dialogue(
     let data_dir = get_data_dir(&app);
     let l = lang.unwrap_or_else(|| "th".to_string());
     let videocaption_path = resolve_videocaption_file(&data_dir);
-    let multitext_path = resolve_multitext_file(&data_dir, &l);
+    let mut multitext_path = resolve_multitext_file(&data_dir, &l);
+
+    if !multitext_path.exists() {
+        let _ = crate::commands::downloader::download_data(app.clone(), Some(l.clone()), None).await;
+        multitext_path = resolve_multitext_file(&data_dir, &l);
+    }
 
     if !videocaption_path.exists() || !multitext_path.exists() {
         return Ok(vec![]);
@@ -1384,7 +1365,7 @@ pub fn search_dialogue(
 }
 
 #[tauri::command]
-pub fn get_cutscene_dialogue(
+pub async fn get_cutscene_dialogue(
     app: AppHandle,
     cg_name: String,
     lang: Option<String>,
@@ -1392,13 +1373,16 @@ pub fn get_cutscene_dialogue(
     let data_dir = get_data_dir(&app);
     let l = lang.unwrap_or_else(|| "th".to_string());
 
-    let multitext_path = resolve_multitext_file(&data_dir, &l);
+    let mut multitext_path = resolve_multitext_file(&data_dir, &l);
     if !multitext_path.exists() {
-        let app_handle = app.clone();
-        let target_lang = l.clone();
-        tokio::spawn(async move {
-            let _ = crate::commands::downloader::download_data(app_handle, Some(target_lang), None).await;
-        });
+        emit_log(&app, &format!("Subtitle textmap for '{}' not found locally. Synchronizing from remote database...", l));
+        let _ = crate::commands::downloader::download_data(app.clone(), Some(l.clone()), None).await;
+        multitext_path = resolve_multitext_file(&data_dir, &l);
+    }
+
+    if !multitext_path.exists() {
+        emit_log(&app, &format!("Warning: Subtitle textmap for '{}' unavailable after synchronization attempt", l));
+        return Ok(Vec::new());
     }
 
     let config_state = app.state::<crate::config::ConfigState>();
@@ -1450,7 +1434,7 @@ pub fn get_cutscene_dialogue(
 }
 
 #[tauri::command]
-pub fn export_subtitles_bundle(
+pub async fn export_subtitles_bundle(
     app: AppHandle,
     state: tauri::State<'_, crate::config::ConfigState>,
     cg_name: String,
@@ -1463,6 +1447,13 @@ pub fn export_subtitles_bundle(
             config.subtitle_lang = trimmed.to_string();
         }
     }
+    let data_dir = get_data_dir(&app);
+    let l = if config.subtitle_lang.is_empty() { "th".to_string() } else { config.subtitle_lang.clone() };
+    let multitext_path = resolve_multitext_file(&data_dir, &l);
+    if !multitext_path.exists() {
+        let _ = crate::commands::downloader::download_data(app.clone(), Some(l.clone()), None).await;
+    }
+
     let export_dir = config.get_effective_export_dir();
     let safe_name = sanitize_cutscene_filename(&cg_name);
     let target_dir = export_dir.join("cutscenes").join(&safe_name).join("subtitles");
