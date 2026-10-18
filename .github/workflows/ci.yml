@@ -49,8 +49,8 @@ jobs:
       - name: Verify Rust compilation
         run: cargo check --manifest-path src-tauri/Cargo.toml
 
-      - name: Run Subtitle & Alignment Unit Tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml subtitles
+      - name: Run Backend Unit Tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
 
       - name: Build Frontend Application
         run: npm run build

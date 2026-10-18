@@ -1,7 +1,7 @@
 {
   "name": "wuwa-cutscene-studio",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Desktop studio for extracting, customizing subtitles, and rendering Wuthering Waves cutscenes.",
   "type": "module",
   "scripts": {

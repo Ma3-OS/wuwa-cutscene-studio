@@ -126,11 +126,11 @@ fn extract_zip(zip_path: &Path, dest_dir: &Path, app: &AppHandle, task_name: &st
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
         
-        // Enforce enclosed_name to eliminate Zip Slip (Path Traversal)
         let safe_rel_path = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => {
-                return Err(format!("Unsafe path detected in zip archive: {}", file.name()));
+                let entry_name = file.name().map(|n| n.to_string()).unwrap_or_else(|_| "invalid entry".to_string());
+                return Err(format!("Unsafe path detected in zip archive: {}", entry_name));
             }
         };
 

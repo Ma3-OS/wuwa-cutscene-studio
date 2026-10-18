@@ -44,7 +44,7 @@ flowchart TB
 ### Presentation Tier (Frontend)
 - **Framework:** React 19 running on Vite 7 with strict TypeScript 5.8 typing.
 - **Styling:** Tailwind CSS v4 utilizing a Monochrome Neutral Dark palette with high-contrast accessibility tokens.
-- **Micro-Interactions:** Hardware-accelerated transitions via Framer Motion.
+- **Micro-Interactions:** Hardware-accelerated transitions via motion (`motion/react`).
 
 ### Native Core Tier (Desktop Engine)
 - **Host Framework:** Tauri v2 providing a lightweight WebKit / WebView2 container backed by native Rust.
