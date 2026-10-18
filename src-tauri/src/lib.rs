@@ -67,6 +67,7 @@ pub fn run() {
             commands::extractor::extract_cutscene_on_demand,
             commands::extractor::cancel_extraction,
             commands::extractor::extract_wem_batch,
+            commands::extractor::dump_local_configdb,
             commands::extractor::get_full_catalog_with_status,
             commands::extractor::get_cutscene_thumbnail,
             commands::extractor::clear_video_index_cache,

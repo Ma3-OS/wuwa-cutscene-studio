@@ -275,7 +275,7 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
     let lang_file_path = json_dir.join(&lang_file_name);
     
     if needs_force_refresh || !lang_file_path.exists() {
-        emit_log(&app, &format!("Downloading and merging textmaps for '{}' (Base, 1stHalf, 2ndHalf, Subtitles, Flows)...", lang));
+        emit_log(&app, &format!("กำลังดาวน์โหลดและผสานข้อมูลข้อความสำหรับภาษา {}...", lang));
         
         let sub_textmap_sources = vec![
             format!("https://raw.githubusercontent.com/Arikatsu/WutheringWaves_Data/{}/Textmaps/{}/multi_text/MultiText.json", branch, lang),
@@ -287,17 +287,41 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
         ];
 
         let mut merged_map: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
+
+        // 1. Preload local textmap entries if already present (e.g. from local SQLite ConfigDB extraction or previous session)
+        let hierarchical_textmap = json_dir.join("Textmaps").join(&lang).join("multi_text").join("MultiText.json");
+        let local_candidates = [&lang_file_path, &hierarchical_textmap];
+        for cand in local_candidates {
+            if cand.exists() {
+                if let Ok(content) = fs::read_to_string(cand) {
+                    if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                        for item in items {
+                            if let Some(id) = item.get("Id").and_then(|v| v.as_str()) {
+                                merged_map.insert(id.to_string(), item);
+                            }
+                        }
+                        if !merged_map.is_empty() {
+                            emit_log(&app, &format!("ตรวจพบและโหลดข้อมูลข้อความท้องถิ่นภาษา {} สำเร็จ {} รายการ", lang, merged_map.len()));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) WuWaCutsceneStudio/1.0")
             .timeout(std::time::Duration::from_secs(90))
             .build()
             .map_err(|e| e.to_string())?;
 
+        let mut remote_success = false;
         for (idx, url) in sub_textmap_sources.iter().enumerate() {
-            emit_progress(&app, &format!("Textmap ({}/{})", idx + 1, sub_textmap_sources.len()), (idx as f32) / (sub_textmap_sources.len() as f32));
+            emit_progress(&app, &format!("Textmap {} of {}", idx + 1, sub_textmap_sources.len()), (idx as f32) / (sub_textmap_sources.len() as f32));
             if let Ok(res) = client.get(url).send().await {
                 if res.status().is_success() {
                     if let Ok(items) = res.json::<Vec<serde_json::Value>>().await {
+                        remote_success = true;
                         for item in items {
                             if let Some(id) = item.get("Id").and_then(|v| v.as_str()) {
                                 let content = item.get("Content").and_then(|v| v.as_str()).unwrap_or("");
@@ -323,9 +347,15 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
             let _ = fs::write(hierarchical_textmap_dir.join("MultiText.json"), &serialized);
 
             // 2. Save root convenience copy
-            fs::write(&lang_file_path, serialized).map_err(|e| e.to_string())?;
+            fs::write(&lang_file_path, &serialized).map_err(|e| e.to_string())?;
             let _ = fs::write(&version_file, branch);
             emit_log(&app, &format!("Merged {} text entries into {}", final_list.len(), lang_file_name));
+        } else if !remote_success {
+            emit_log(&app, &format!("คำเตือน ไม่สามารถดึงข้อมูลข้อความภาษา {} จาก Arikatsu ได้และไม่พบไฟล์ในเครื่อง", lang));
+            let _ = app.emit("system-alert", serde_json::json!({
+                "title": "ไม่พบฐานข้อมูลบทบรรยาย",
+                "message": format!("ไม่สามารถดึงข้อมูลภาษา {} จากเครื่องหรืออินเทอร์เน็ตได้ กรุณาตรวจสอบการเชื่อมต่อ", lang)
+            }));
         }
     }
     

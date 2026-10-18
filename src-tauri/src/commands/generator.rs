@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::oneshot;
 
@@ -480,7 +480,35 @@ pub async fn generate_single_video_info(
 
     if needs_version_sync || !videodata_path.exists() || !videosound_path.exists() || !videocaption_path.exists() || !multitext_path.exists() {
         emit_log(&app, &format!("ตรวจพบฐานข้อมูลยังไม่สมบูรณ์ กำลังซิงค์ข้อมูลสาขา {} ภาษา {}", crate::config::tools_manifest::DATABASE_BRANCH, lang));
-        let _ = crate::commands::downloader::download_data(app.clone(), Some(lang)).await;
+        let _ = crate::commands::downloader::download_data(app.clone(), Some(lang.clone())).await;
+    }
+
+    let mut videodata_path = resolve_videodata_file(&data_dir);
+    let mut videosound_path = resolve_videosound_file(&data_dir);
+    let mut videocaption_path = resolve_videocaption_file(&data_dir);
+    let mut multitext_path = resolve_multitext_file(&data_dir, &lang);
+
+    // If still missing after remote sync attempt (e.g. offline or GitHub unreachable), attempt local ConfigDB dump
+    if !videodata_path.exists() || !videosound_path.exists() || !videocaption_path.exists() || !multitext_path.exists() {
+        emit_log(&app, "ดาวน์โหลดข้อมูลจาก Arikatsu ไม่สำเร็จ กำลังพยายามสกัดข้อมูลจาก ConfigDB ในเครื่อง...");
+        let extractor_state = app.state::<crate::commands::extractor::ExtractorState>();
+        let config_state = app.state::<crate::config::ConfigState>();
+        let _ = crate::commands::extractor::dump_local_configdb_internal(&app, &extractor_state, &config_state, None).await;
+
+        videodata_path = resolve_videodata_file(&data_dir);
+        videosound_path = resolve_videosound_file(&data_dir);
+        videocaption_path = resolve_videocaption_file(&data_dir);
+        multitext_path = resolve_multitext_file(&data_dir, &lang);
+    }
+
+    if !videodata_path.exists() || !videosound_path.exists() {
+        let err_msg = "ไม่พบฐานข้อมูลคัตซีนและไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ กรุณาตรวจสอบการตั้งค่าโฟลเดอร์เกมหรือการเชื่อมต่อเครือข่าย";
+        emit_log(&app, &format!("เกิดข้อผิดพลาด {}", err_msg));
+        let _ = app.emit("system-alert", serde_json::json!({
+            "title": "ไม่พบฐานข้อมูล",
+            "message": err_msg,
+        }));
+        return Err(err_msg.to_string());
     }
 
     let videodata_str = fs::read_to_string(&videodata_path).map_err(|e| e.to_string())?;

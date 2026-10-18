@@ -31,6 +31,10 @@ export const ToolsAPI = {
     await invoke("download_data", { textmapLang });
   },
 
+  dumpLocalConfigDb: async (customDbDir?: string): Promise<boolean> => {
+    return await invoke<boolean>("dump_local_configdb", { customDbDir });
+  },
+
   openFolder: async (path: string): Promise<void> => {
     await invoke("open_folder", { path });
   },

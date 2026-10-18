@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { toast } from "sonner";
 import { useTaskStore } from "../../features/task-monitor/stores/useTaskStore";
 import { useExtractionStore } from "../../features/catalog/stores/useExtractionStore";
 
@@ -12,6 +13,11 @@ interface ExtractionProgressPayload {
   stage: number;
   status_text: string;
   percent: number;
+}
+
+interface SystemAlertPayload {
+  title?: string;
+  message: string;
 }
 
 function classifyLogMessage(text: string): "info" | "warn" | "error" | "success" {
@@ -101,6 +107,16 @@ export function setupGlobalEventListeners(): Promise<() => void> {
       }
     });
 
+    const unlistenAlert = await listen<SystemAlertPayload>("system-alert", (event) => {
+      const payload = event.payload;
+      if (payload && payload.message) {
+        toast.error(payload.message, {
+          description: payload.title,
+          duration: 6000,
+        });
+      }
+    });
+
     return () => {
       listenerRefCount--;
       if (listenerRefCount <= 0) {
@@ -111,6 +127,7 @@ export function setupGlobalEventListeners(): Promise<() => void> {
         unlistenLog();
         unlistenProgress();
         unlistenExtraction();
+        unlistenAlert();
         setupPromise = null;
         listenerRefCount = 0;
       }

@@ -2190,3 +2190,105 @@ pub async fn extract_wem_batch(
     extract_wem_batch_internal(&app, &extractor_state, &state, wems, &PathBuf::from(output_dir), &locale).await
 }
 
+pub fn resolve_configdb_dir(
+    app: &AppHandle,
+    config_state: &ConfigState,
+) -> Result<PathBuf, String> {
+    let cfg = config_state.0.lock().unwrap().clone();
+    let env = detect_game_env_internal(app, &cfg);
+    let paks_str = if !cfg.game_paks_dir.trim().is_empty() {
+        cfg.game_paks_dir.trim().to_string()
+    } else if !env.paks_dir.trim().is_empty() {
+        env.paks_dir.trim().to_string()
+    } else {
+        return Err("ไม่พบไดเรกทอรีแพ็กเกจเกม กรุณาระบุในแถบตั้งค่า".to_string());
+    };
+
+    let paks_path = PathBuf::from(paks_str);
+    let mut candidates = Vec::new();
+    if let Some(content_dir) = paks_path.parent() {
+        candidates.push(content_dir.join("Aki").join("ConfigDB"));
+        candidates.push(content_dir.join("ConfigDB"));
+        if let Some(client_dir) = content_dir.parent() {
+            candidates.push(client_dir.join("Saved").join("ConfigDB"));
+            candidates.push(client_dir.join("ConfigDB"));
+        }
+    }
+
+    for cand in candidates {
+        if cand.exists() && cand.is_dir() {
+            return Ok(cand);
+        }
+    }
+
+    Err("ไม่พบไดเรกทอรี ConfigDB ในโฟลเดอร์เกม".to_string())
+}
+
+pub async fn dump_local_configdb_internal(
+    app: &AppHandle,
+    extractor_state: &ExtractorState,
+    config_state: &ConfigState,
+    custom_db_dir: Option<String>,
+) -> Result<bool, String> {
+    ensure_daemon_alive(app, extractor_state, config_state).await?;
+
+    let db_path = if let Some(custom) = custom_db_dir {
+        if !custom.trim().is_empty() {
+            PathBuf::from(custom.trim())
+        } else {
+            resolve_configdb_dir(app, config_state)?
+        }
+    } else {
+        resolve_configdb_dir(app, config_state)?
+    };
+
+    if !db_path.exists() {
+        return Err("ไดเรกทอรี ConfigDB ที่ระบุไม่มีอยู่จริง".to_string());
+    }
+
+    let data_dir = crate::commands::downloader::get_data_dir(app);
+    let req_id = format!("configdb_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0));
+    let cmd_json = json!({
+        "cmd": "dump_configdb",
+        "id": req_id,
+        "db_dir": db_path.to_string_lossy().to_string(),
+        "output_dir": data_dir.to_string_lossy().to_string(),
+    });
+
+    let (tx, rx) = oneshot::channel();
+    {
+        let mut manager_lock = extractor_state.0.lock().await;
+        if let Some(manager) = manager_lock.as_mut() {
+            manager.pending.lock().await.insert(req_id.clone(), tx);
+            let line = format!("{}\n", cmd_json);
+            manager.stdin.write_all(line.as_bytes()).await.map_err(|e| e.to_string())?;
+            manager.stdin.flush().await.map_err(|e| e.to_string())?;
+        } else {
+            return Err("Extractor daemon not available".into());
+        }
+    }
+
+    let response = tokio::time::timeout(Duration::from_secs(60), rx)
+        .await
+        .map_err(|_| "ConfigDB extraction timed out after 60 seconds".to_string())?
+        .map_err(|_| "Daemon channel dropped".to_string())?;
+
+    let status = response.get("status").and_then(|s| s.as_str()).unwrap_or("configdb_dump_failed");
+    if status == "configdb_dumped" {
+        emit_log(app, "สกัดฐานข้อมูล ConfigDB จากเครื่องสำเร็จเรียบร้อย");
+        Ok(true)
+    } else {
+        Err("ไม่สามารถสกัดข้อมูลจาก ConfigDB ในเครื่องได้".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn dump_local_configdb(
+    app: AppHandle,
+    state: tauri::State<'_, ConfigState>,
+    extractor_state: tauri::State<'_, ExtractorState>,
+    custom_db_dir: Option<String>,
+) -> Result<bool, String> {
+    dump_local_configdb_internal(&app, &extractor_state, &state, custom_db_dir).await
+}
+

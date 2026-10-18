@@ -156,7 +156,11 @@ pub fn load_music_lyrics_for_cg(
             clean_orig.clone()
         };
 
-        let primary_font = if display_trans.chars().all(|c| c.is_ascii() || c.is_whitespace() || c.is_ascii_punctuation()) {
+        let is_chinese_sub = norm_lang.starts_with("zh");
+
+        let primary_font = if is_chinese_sub {
+            "Microsoft YaHei"
+        } else if display_trans.chars().all(|c| c.is_ascii() || c.is_whitespace() || c.is_ascii_punctuation()) {
             "Arial"
         } else {
             "Kanit Medium"
@@ -173,7 +177,9 @@ pub fn load_music_lyrics_for_cg(
         let zh_fs = ((th_fs as f32 * 0.76).round() as u32).max(26);
         let lyric_color_ass = hex_to_ass_color(if l_cfg.color.is_empty() { "#FFFFFF" } else { &l_cfg.color });
 
-        let ass_text = if l_cfg.bilingual && !clean_orig.is_empty() && clean_orig != display_trans {
+        let show_bilingual = l_cfg.bilingual && !is_chinese_sub && !clean_orig.is_empty() && clean_orig != display_trans;
+
+        let ass_text = if show_bilingual {
             format!(
                 r"{{\an7\fn{}\i1\fs{}\c{}}}{}\N{{\fnMicrosoft YaHei\i1\fs{}\c{}}}{}",
                 primary_font, th_fs, lyric_color_ass, display_trans, zh_fs, lyric_color_ass, clean_orig
@@ -185,7 +191,7 @@ pub fn load_music_lyrics_for_cg(
             )
         };
 
-        let srt_text = if l_cfg.bilingual && !clean_orig.is_empty() && clean_orig != display_trans {
+        let srt_text = if show_bilingual {
             format!("{}\n{}", display_trans, clean_orig)
         } else {
             display_trans.clone()
@@ -240,4 +246,37 @@ fn load_text_map(path: &Path) -> HashMap<String, String> {
     }
 
     map
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_chinese_lyrics_no_duplicate() {
+        let norm_lang = "zh-Hans";
+        let is_chinese_sub = norm_lang.starts_with("zh");
+        assert!(is_chinese_sub);
+
+        let clean_orig = "原版中文歌词";
+        let display_trans = "原版中文歌詞"; // e.g. subtle discrepancy
+        let bilingual = true;
+
+        let show_bilingual = bilingual && !is_chinese_sub && !clean_orig.is_empty() && clean_orig != display_trans;
+        assert!(!show_bilingual, "Chinese subtitles must never enable bilingual stacking");
+    }
+
+    #[test]
+    fn test_non_chinese_lyrics_bilingual() {
+        let norm_lang = "th";
+        let is_chinese_sub = norm_lang.starts_with("zh");
+        assert!(!is_chinese_sub);
+
+        let clean_orig = "原版中文歌词";
+        let display_trans = "เนื้อเพลงแปลภาษาไทย";
+        let bilingual = true;
+
+        let show_bilingual = bilingual && !is_chinese_sub && !clean_orig.is_empty() && clean_orig != display_trans;
+        assert!(show_bilingual, "Non-Chinese subtitles should display bilingual lines when enabled");
+    }
 }
