@@ -300,10 +300,10 @@ export const Inspector: React.FC<InspectorProps> = ({
                     <StudioButton
                       variant="secondary"
                       size="sm"
-                      className="flex-1 text-[11px]"
+                      className="flex-1 text-[11px] h-8 bg-white/[0.04] hover:bg-white/[0.08] text-neutral-200 border border-white/[0.06]"
                       onClick={onOpenRawVideo}
                     >
-                      <Play className="w-3 h-3 text-[#A1A1AA]" />
+                      <Play className="w-3.5 h-3.5 text-neutral-300 fill-neutral-300/20" />
                       <span>{isCached ? t("btnPlayRaw") : t("inspectorExtractToPlay")}</span>
                     </StudioButton>
                   ) : (
@@ -311,24 +311,16 @@ export const Inspector: React.FC<InspectorProps> = ({
                       In-Engine 3D Sequence
                     </div>
                   )}
-                  <StudioButton
-                    variant="secondary"
-                    size="sm"
-                    className="w-7 h-7 p-0 flex items-center justify-center shrink-0"
-                    onClick={onOpenClipFolder}
-                    title={t("btnClipFolder")}
-                  >
-                    <FolderOpen className="w-3 h-3 text-[#A1A1AA]" />
-                  </StudioButton>
                   {selectedFile && onOpenExternal && (
                     <StudioButton
                       variant="secondary"
                       size="sm"
-                      className="w-7 h-7 p-0 flex items-center justify-center shrink-0"
+                      className="h-8 px-2.5 flex items-center gap-1.5 text-[11px] text-neutral-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] shrink-0"
                       onClick={onOpenExternal}
                       title={t("inspectorOpenExternal")}
                     >
-                      <ExternalLink className="w-3 h-3 text-[#A1A1AA]" />
+                      <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+                      <span>{t("quickLookOpenExternal")}</span>
                     </StudioButton>
                   )}
                 </div>
@@ -406,61 +398,54 @@ export const Inspector: React.FC<InspectorProps> = ({
                   )}
                 </div>
 
-                {/* Subtitle Language Selector: Quick Pills + 13 Languages Dropdown */}
-                <div className="space-y-1">
+                {/* Subtitle Language Selector: Two-tier layout (Quick Pills + Full Dropdown) */}
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] font-medium text-[#71717A] uppercase tracking-wider block">
                       {t("inspectorSubLangTitle")}
                     </label>
-                    <span className="text-[10px] font-mono text-neutral-400">
-                      {SUBTITLE_LANGUAGES.find((l) => l.code === currentSubLang)?.nativeLabel || currentSubLang.toUpperCase()}
-                    </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex-1 min-w-0">
-                      <StudioSegmentedControl<string>
-                        value={
-                          ["th", "en", "ja", "zh-Hans", "ko"].includes(currentSubLang)
-                            ? currentSubLang
-                            : "other"
-                        }
-                        onChange={(val) => {
-                          if (val !== "other") {
-                            updateConfig({ subtitle_lang: val });
-                            toast.success(`${t("toastSubLangSwitched")}: ${val.toUpperCase()}`);
-                          }
-                        }}
-                        className="w-full bg-[#121215]"
-                        options={[
-                          { value: "th", label: "TH" },
-                          { value: "en", label: "EN" },
-                          { value: "ja", label: "JA" },
-                          { value: "zh-Hans", label: "ZH" },
-                          { value: "ko", label: "KO" },
-                        ]}
-                      />
-                    </div>
-                    <div className="w-24 shrink-0">
-                      <StudioSelect
-                        value={currentSubLang}
-                        onChange={(e) => {
-                          updateConfig({ subtitle_lang: e.target.value });
-                          toast.success(`${t("toastSubLangSwitched")}: ${e.target.value.toUpperCase()}`);
-                        }}
-                        options={SUBTITLE_LANGUAGES.map((l) => ({
-                          value: l.code,
-                          label: `${l.shortLabel} ${l.nativeLabel}`,
-                        }))}
-                      />
-                    </div>
-                  </div>
+                  <StudioSegmentedControl<string>
+                    value={
+                      ["th", "en", "ja", "zh-Hans", "ko"].includes(currentSubLang)
+                        ? currentSubLang
+                        : "other"
+                    }
+                    onChange={(val) => {
+                      if (val !== "other") {
+                        updateConfig({ subtitle_lang: val });
+                        toast.success(`${t("toastSubLangSwitched")}: ${val.toUpperCase()}`);
+                      }
+                    }}
+                    className="w-full bg-[#121215]"
+                    options={[
+                      { value: "th", label: "TH" },
+                      { value: "en", label: "EN" },
+                      { value: "ja", label: "JA" },
+                      { value: "zh-Hans", label: "ZH" },
+                      { value: "ko", label: "KO" },
+                    ]}
+                  />
+
+                  <StudioSelect
+                    value={currentSubLang}
+                    onChange={(e) => {
+                      updateConfig({ subtitle_lang: e.target.value });
+                      toast.success(`${t("toastSubLangSwitched")}: ${e.target.value.toUpperCase()}`);
+                    }}
+                    options={SUBTITLE_LANGUAGES.map((l) => ({
+                      value: l.code,
+                      label: `${l.shortLabel} — ${l.nativeLabel}`,
+                    }))}
+                    className="h-8 bg-[#121215] border border-white/[0.06] text-xs"
+                  />
                 </div>
 
                 {/* Subtitle Mode: Horizontal Sliding Pill */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-medium text-[#71717A] uppercase tracking-wider block">
-                    {t("subStudioTitle")}
+                    {t("inspectorSubModeLabel")}
                   </label>
                   <StudioSegmentedControl<"None" | "Soft-sub" | "Hard-sub">
                     value={subtitleMode}
@@ -568,18 +553,37 @@ export const Inspector: React.FC<InspectorProps> = ({
               ) : (
                 /* Single Cutscene Actions: Separate Raw Extraction & Render */
                 <div className="space-y-2">
-                  {/* Action 1: Extract raw file to project */}
-                  {onExtractRaw && (
-                    <StudioButton
-                      variant="secondary"
-                      size="md"
-                      className="w-full h-9 text-xs font-semibold bg-[#1c1c21] text-neutral-200 hover:bg-[#25252c] border-0"
-                      onClick={onExtractRaw}
-                      disabled={isRendering || isExtracting}
-                    >
-                      <FolderArchive className="w-3.5 h-3.5 text-neutral-400" />
-                      <span>{t("inspectorExtractRaw")}</span>
-                    </StudioButton>
+                  {/* Progressive extraction status / button */}
+                  {isCached ? (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-500/[0.08] border border-emerald-500/20 text-[11px]">
+                      <span className="flex items-center gap-1.5 font-medium text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>{t("inspectorRawReady")}</span>
+                      </span>
+                      {onExtractRaw && (
+                        <button
+                          type="button"
+                          onClick={onExtractRaw}
+                          disabled={isRendering || isExtracting}
+                          className="text-[10px] text-neutral-400 hover:text-white transition-colors cursor-pointer outline-none underline underline-offset-2"
+                        >
+                          {t("inspectorReExtract")}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    onExtractRaw && (
+                      <StudioButton
+                        variant="secondary"
+                        size="md"
+                        className="w-full h-9 text-xs font-medium bg-[#1c1c21] text-neutral-300 hover:bg-[#25252c] border border-white/[0.06]"
+                        onClick={onExtractRaw}
+                        disabled={isRendering || isExtracting}
+                      >
+                        <FolderArchive className="w-3.5 h-3.5 text-neutral-400" />
+                        <span>{t("inspectorExtractRaw")}</span>
+                      </StudioButton>
+                    )
                   )}
 
                   {/* Action 2: Start video render or cancel */}
@@ -597,7 +601,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                     <StudioButton
                       variant="primary"
                       size="md"
-                      className="w-full h-9 text-xs font-semibold bg-white text-black hover:bg-neutral-200 border-0"
+                      className="w-full h-9 text-xs font-semibold bg-white text-black hover:bg-neutral-200 border-0 shadow-lg shadow-white/5 transition-all"
                       onClick={onRender}
                       disabled={isExtracting}
                     >

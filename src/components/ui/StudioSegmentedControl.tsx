@@ -22,11 +22,11 @@ export function StudioSegmentedControl<T extends string>({
   className = "",
   size = "md",
 }: StudioSegmentedControlProps<T>) {
-  const sizeClasses = size === "sm" ? "p-0.5 text-xs h-7" : "p-1 text-xs h-8";
+  const sizeClasses = size === "sm" ? "p-0.5 text-xs h-7" : "p-0.5 text-xs h-8";
 
   return (
     <div
-      className={`inline-flex items-center rounded-lg bg-white/[0.04] select-none ${sizeClasses} ${className}`}
+      className={`inline-flex items-center rounded-lg bg-[#0d0d11] border border-white/[0.06] select-none ${sizeClasses} ${className}`}
     >
       {options.map((opt) => {
         const isSelected = opt.value === value;
@@ -36,20 +36,20 @@ export function StudioSegmentedControl<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`relative flex-1 flex items-center justify-center gap-1.5 px-3 py-1 font-medium transition-colors cursor-pointer rounded-md outline-none text-xs ${
-              isSelected ? "text-white" : "text-[#737373] hover:text-[#A3A3A3]"
+            className={`relative flex-1 flex items-center justify-center gap-1.5 px-2 py-1 font-medium transition-colors cursor-pointer rounded-md outline-none text-xs ${
+              isSelected ? "text-white font-semibold" : "text-neutral-400 hover:text-neutral-200"
             }`}
           >
             {isSelected && (
               <motion.div
                 layoutId={`segmented-active-${options.map((o) => o.value).join("-")}`}
-                className="absolute inset-0 rounded-md bg-neutral-800 shadow-sm border border-white/10"
+                className="absolute inset-0 rounded-md bg-[#25252b] shadow-sm shadow-black/40 border border-white/15"
                 transition={{ type: "spring", stiffness: 500, damping: 35 }}
               />
             )}
-            <span className="relative z-10 flex items-center justify-center gap-1.5 truncate">
-              {Icon && <Icon className="w-3.5 h-3.5" />}
-              {opt.label}
+            <span className="relative z-10 flex items-center justify-center gap-1 truncate">
+              {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+              <span className="truncate">{opt.label}</span>
             </span>
           </button>
         );
