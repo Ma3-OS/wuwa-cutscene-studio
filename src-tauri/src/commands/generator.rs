@@ -480,7 +480,7 @@ pub async fn generate_single_video_info(
 
     if needs_version_sync || !videodata_path.exists() || !videosound_path.exists() || !videocaption_path.exists() || !multitext_path.exists() {
         emit_log(&app, &format!("ตรวจพบฐานข้อมูลยังไม่สมบูรณ์ กำลังซิงค์ข้อมูลสาขา {} ภาษา {}", crate::config::tools_manifest::DATABASE_BRANCH, lang));
-        let _ = crate::commands::downloader::download_data(app.clone(), Some(lang.clone())).await;
+        let _ = crate::commands::downloader::download_data(app.clone(), Some(lang.clone()), None).await;
     }
 
     let mut videodata_path = resolve_videodata_file(&data_dir);
@@ -1397,7 +1397,7 @@ pub fn get_cutscene_dialogue(
         let app_handle = app.clone();
         let target_lang = l.clone();
         tokio::spawn(async move {
-            let _ = crate::commands::downloader::download_data(app_handle, Some(target_lang)).await;
+            let _ = crate::commands::downloader::download_data(app_handle, Some(target_lang), None).await;
         });
     }
 

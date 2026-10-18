@@ -31,6 +31,7 @@ pub fn run() {
             config::get_default_paths,
             commands::downloader::download_tools,
             commands::downloader::download_data,
+            commands::downloader::check_database_version,
             commands::wwiser::run_wwiser,
             commands::status::check_dependencies,
             commands::status::open_folder,

@@ -18,17 +18,28 @@ export interface StorageStatsDto {
   total_formatted: string;
 }
 
+export interface DatabaseVersionStatusDto {
+  local_version: string;
+  remote_version: string;
+  is_up_to_date: boolean;
+  available_branches: string[];
+}
+
 export const ToolsAPI = {
   checkDependencies: async (): Promise<DependencyStatusDto> => {
     return await invoke<DependencyStatusDto>("check_dependencies");
+  },
+
+  checkDatabaseVersion: async (): Promise<DatabaseVersionStatusDto> => {
+    return await invoke<DatabaseVersionStatusDto>("check_database_version");
   },
 
   downloadTools: async (): Promise<void> => {
     await invoke("download_tools");
   },
 
-  downloadData: async (textmapLang?: string): Promise<void> => {
-    await invoke("download_data", { textmapLang });
+  downloadData: async (textmapLang?: string, branchOverride?: string): Promise<void> => {
+    await invoke("download_data", { textmapLang, branchOverride });
   },
 
   dumpLocalConfigDb: async (customDbDir?: string): Promise<boolean> => {

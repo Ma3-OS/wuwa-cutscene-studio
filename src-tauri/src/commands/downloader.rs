@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager};
 use reqwest::Client;
 use futures::StreamExt;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use zip::ZipArchive;
 
 use crate::commands::log::emit_log;
@@ -217,8 +217,77 @@ pub async fn download_tools(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct DatabaseVersionStatusDto {
+    pub local_version: String,
+    pub remote_version: String,
+    pub is_up_to_date: bool,
+    pub available_branches: Vec<String>,
+}
+
 #[tauri::command]
-pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Result<(), String> {
+pub async fn check_database_version(app: AppHandle) -> Result<DatabaseVersionStatusDto, String> {
+    let json_dir = get_data_dir(&app);
+    let version_file = json_dir.join("version.txt");
+    let local_version = if version_file.exists() {
+        fs::read_to_string(&version_file).unwrap_or_default().trim().to_string()
+    } else {
+        String::new()
+    };
+
+    let client = Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) WuWaCutsceneStudio/1.0")
+        .timeout(std::time::Duration::from_secs(6))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut remote_version = DATABASE_BRANCH.to_string();
+    let mut available_branches = vec![DATABASE_BRANCH.to_string()];
+
+    // 1. Query Arikatsu repo default_branch
+    if let Ok(res) = client.get("https://api.github.com/repos/Arikatsu/WutheringWaves_Data").send().await {
+        if res.status().is_success() {
+            if let Ok(repo_info) = res.json::<serde_json::Value>().await {
+                if let Some(def_b) = repo_info.get("default_branch").and_then(|v| v.as_str()) {
+                    remote_version = def_b.to_string();
+                }
+            }
+        }
+    }
+
+    // 2. Query available branches
+    if let Ok(res) = client.get("https://api.github.com/repos/Arikatsu/WutheringWaves_Data/branches").send().await {
+        if res.status().is_success() {
+            if let Ok(branches_json) = res.json::<Vec<serde_json::Value>>().await {
+                let mut branches = Vec::new();
+                for b in branches_json {
+                    if let Some(name) = b.get("name").and_then(|v| v.as_str()) {
+                        branches.push(name.to_string());
+                    }
+                }
+                if !branches.is_empty() {
+                    available_branches = branches;
+                }
+            }
+        }
+    }
+
+    let is_up_to_date = !local_version.is_empty() && local_version == remote_version;
+
+    Ok(DatabaseVersionStatusDto {
+        local_version,
+        remote_version,
+        is_up_to_date,
+        available_branches,
+    })
+}
+
+#[tauri::command]
+pub async fn download_data(
+    app: AppHandle,
+    textmap_lang: Option<String>,
+    branch_override: Option<String>,
+) -> Result<(), String> {
     let raw_lang = textmap_lang.unwrap_or_else(|| "th".to_string());
     let lang = match raw_lang.trim() {
         "zh" | "zh-cn" | "zh-hans" | "zh_hans" | "zh_cn" => "zh-Hans".to_string(),
@@ -228,7 +297,16 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
     let json_dir = get_data_dir(&app);
     fs::create_dir_all(&json_dir).map_err(|e| e.to_string())?;
     
-    let branch = DATABASE_BRANCH;
+    let branch = if let Some(b) = branch_override {
+        let trimmed = b.trim();
+        if !trimmed.is_empty() {
+            trimmed.to_string()
+        } else {
+            DATABASE_BRANCH.to_string()
+        }
+    } else {
+        DATABASE_BRANCH.to_string()
+    };
     let version_file = json_dir.join("version.txt");
     let current_version = if version_file.exists() {
         fs::read_to_string(&version_file).unwrap_or_default().trim().to_string()
@@ -348,7 +426,7 @@ pub async fn download_data(app: AppHandle, textmap_lang: Option<String>) -> Resu
 
             // 2. Save root convenience copy
             fs::write(&lang_file_path, &serialized).map_err(|e| e.to_string())?;
-            let _ = fs::write(&version_file, branch);
+            let _ = fs::write(&version_file, &branch);
             emit_log(&app, &format!("Merged {} text entries into {}", final_list.len(), lang_file_name));
         } else if !remote_success {
             emit_log(&app, &format!("คำเตือน ไม่สามารถดึงข้อมูลข้อความภาษา {} จาก Arikatsu ได้และไม่พบไฟล์ในเครื่อง", lang));

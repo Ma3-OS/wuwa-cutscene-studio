@@ -7,6 +7,7 @@ export interface GameEnvironmentDto {
   keys_found: boolean;
   keys_path: string;
   dynamic_keys_count: number;
+  game_version?: string | null;
 }
 
 export interface ExtractedAssetResult {

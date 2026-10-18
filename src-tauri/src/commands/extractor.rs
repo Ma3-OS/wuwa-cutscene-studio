@@ -96,6 +96,7 @@ pub struct GameEnvironmentDto {
     pub keys_found: bool,
     pub keys_path: String,
     pub dynamic_keys_count: usize,
+    pub game_version: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -438,6 +439,41 @@ pub fn detect_game_env_internal(
         }
     }
 
+    let mut detected_game_version = None;
+    if !found_paks_dir.is_empty() {
+        let paks = PathBuf::from(&found_paks_dir);
+        let mut probe_dirs = Vec::new();
+        if let Some(content) = paks.parent() {
+            probe_dirs.push(content.to_path_buf());
+            if let Some(client) = content.parent() {
+                probe_dirs.push(client.to_path_buf());
+                if let Some(game_root) = client.parent() {
+                    probe_dirs.push(game_root.to_path_buf());
+                }
+            }
+        }
+        for dir in probe_dirs {
+            let ini_path = dir.join("config.ini");
+            if ini_path.exists() {
+                if let Ok(content) = fs::read_to_string(&ini_path) {
+                    for line in content.lines() {
+                        let trimmed = line.trim();
+                        if trimmed.starts_with("game_version=") || trimmed.starts_with("version=") {
+                            let ver = trimmed.split('=').nth(1).unwrap_or("").trim();
+                            if !ver.is_empty() {
+                                detected_game_version = Some(ver.to_string());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if detected_game_version.is_some() {
+                break;
+            }
+        }
+    }
+
     GameEnvironmentDto {
         game_paks_found: !found_paks_dir.is_empty(),
         paks_dir: found_paks_dir,
@@ -445,6 +481,7 @@ pub fn detect_game_env_internal(
         keys_found: !found_keys_path.is_empty(),
         keys_path: found_keys_path,
         dynamic_keys_count,
+        game_version: detected_game_version,
     }
 }
 
