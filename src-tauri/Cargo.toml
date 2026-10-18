@@ -3,7 +3,7 @@ name = "wuwa-cutscene-studio"
 version = "1.0.0"
 description = "High-performance Wuthering Waves cutscene extractor, subtitle studio & video renderer"
 authors = ["Ma3-OS"]
-edition = "2021"
+edition = "2024"
 default-run = "wuwa-cutscene-studio"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

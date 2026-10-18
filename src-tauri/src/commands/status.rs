@@ -92,7 +92,7 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
         use std::ffi::c_void;
 
         #[link(name = "shell32")]
-        extern "system" {
+        unsafe extern "system" {
             fn SHParseDisplayName(
                 psz_name: *const u16,
                 pbc: *mut c_void,
@@ -112,7 +112,7 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
         }
 
         #[link(name = "ole32")]
-        extern "system" {
+        unsafe extern "system" {
             fn CoInitializeEx(pv_reserved: *mut c_void, dw_co_init: u32) -> i32;
             fn CoUninitialize();
         }

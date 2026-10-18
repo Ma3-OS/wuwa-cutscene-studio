@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Platform-Windows_x64-18181b?style=for-the-badge&labelColor=09090b" alt="Platform" />
   <img src="https://img.shields.io/badge/Tauri-v2-18181b?style=for-the-badge&labelColor=09090b" alt="Tauri v2" />
   <img src="https://img.shields.io/badge/React-19-18181b?style=for-the-badge&labelColor=09090b" alt="React 19" />
-  <img src="https://img.shields.io/badge/Rust-2021-18181b?style=for-the-badge&labelColor=09090b" alt="Rust 2021" />
+  <img src="https://img.shields.io/badge/Rust-2024-18181b?style=for-the-badge&labelColor=09090b" alt="Rust 2024" />
 </p>
 
 <p align="center">
