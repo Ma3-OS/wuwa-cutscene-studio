@@ -98,9 +98,9 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
   }
 
   return (
-    <div className="h-10 px-3.5 border-b border-white/[0.04] flex items-center justify-between gap-2 shrink-0 bg-[#131316]">
+    <div className="h-10 px-3 border-b border-white/[0.04] flex items-center justify-between gap-2 shrink-0 bg-[#131316] overflow-hidden">
       {/* Left Side: Segmented Filter Pills & Rover Gender Pills */}
-      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 shrink-0">
           <button
             type="button"
@@ -177,6 +177,8 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
           >
             {toolbarMode === "icon" ? (
               <User className="w-3 h-3 text-neutral-400" />
+            ) : toolbarMode === "compact" ? (
+              <span>{t("galleryFilterAll")}</span>
             ) : (
               <span>{t("galleryFilterAllGenders")}</span>
             )}
@@ -230,14 +232,14 @@ export const GalleryToolbar: React.FC<GalleryToolbarProps> = ({
           <Search className="w-3.5 h-3.5" />
         </button>
       ) : (
-        <div className="flex-1 min-w-[140px] max-w-[280px] relative flex items-center bg-white/[0.04] rounded-lg px-2 border border-white/[0.06] focus-within:border-white/20 transition-colors">
+        <div className="flex-1 min-w-[80px] max-w-[260px] relative flex items-center bg-white/[0.04] rounded-lg px-2 border border-white/[0.06] focus-within:border-white/20 transition-colors">
           <Search className="w-3.5 h-3.5 text-neutral-500 pointer-events-none shrink-0 mr-1.5" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             placeholder={t("sidebarSearchCutscene")}
-            className="w-full h-7 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
+            className="w-full h-7 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none min-w-0"
           />
           {searchQuery && (
             <button

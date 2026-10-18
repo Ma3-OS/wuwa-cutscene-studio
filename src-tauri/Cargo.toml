@@ -1,6 +1,6 @@
 [package]
 name = "wuwa-cutscene-studio"
-version = "1.0.1"
+version = "1.0.2"
 description = "High-performance Wuthering Waves cutscene extractor, subtitle studio & video renderer"
 authors = ["Ma3-OS"]
 edition = "2024"

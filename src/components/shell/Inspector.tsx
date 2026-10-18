@@ -172,7 +172,16 @@ export const Inspector: React.FC<InspectorProps> = ({
   const handleCopyAllDialogue = () => {
     if (dialogueLines.length === 0) return;
     const fullText = dialogueLines
-      .map((l) => `${l.time_formatted}: ${l.content}`)
+      .map((l) => {
+        let text = `${l.time_formatted}: ${l.content}`;
+        if (l.ruby_text) {
+          text += ` — ${l.ruby_text}`;
+        }
+        if (l.is_lyric && l.lyric_orig) {
+          text += ` — ${l.lyric_orig}`;
+        }
+        return text;
+      })
       .join("\n");
     handleCopyText(fullText, "dialogue", t("toastAllDialogueCopied"));
   };
@@ -504,18 +513,41 @@ export const Inspector: React.FC<InspectorProps> = ({
                     </div>
 
                     {isDialogueOpen && (
-                      <div className="max-h-36 overflow-y-auto space-y-1.5 p-2.5 rounded-lg bg-[#121215] text-[11px]">
+                      <div className="max-h-48 overflow-y-auto space-y-2 p-2.5 rounded-lg bg-[#121215] text-[11px]">
                         {isLoadingDialogue ? (
                           <div className="py-3 text-center text-[#8E8E93] text-xs">
                             Loading subtitles for {currentSubLang.toUpperCase()}...
                           </div>
                         ) : (
                           dialogueLines.map((line) => (
-                            <div key={line.caption_id} className="flex gap-2 leading-relaxed">
-                              <span className="text-[10px] font-mono text-[#71717A] shrink-0 pt-0.5">
-                                {line.time_formatted}
-                              </span>
-                              <span className="text-[#D4D4D8]">{line.content}</span>
+                            <div
+                              key={line.caption_id}
+                              className="flex flex-col gap-0.5 leading-relaxed border-b border-white/[0.03] pb-1.5 last:border-0 last:pb-0"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-mono text-[#71717A] shrink-0">
+                                  {line.time_formatted}
+                                </span>
+                                {line.is_lyric && (
+                                  <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500/15 text-purple-300 font-medium shrink-0">
+                                    🎵 {t("subTabLyric")}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[#D4D4D8] pl-0.5">{line.content}</span>
+                              {line.is_lyric && line.lyric_orig && (
+                                <span className="text-[10px] text-[#A1A1AA] italic pl-0.5">
+                                  {line.lyric_orig}
+                                </span>
+                              )}
+                              {line.ruby_text && (
+                                <div className="text-[10px] text-amber-300/90 flex items-center gap-1 font-mono pl-0.5">
+                                  <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 font-sans">
+                                    {t("readingGuideBadge")}
+                                  </span>
+                                  <span>{line.ruby_text}</span>
+                                </div>
+                              )}
                             </div>
                           ))
                         )}

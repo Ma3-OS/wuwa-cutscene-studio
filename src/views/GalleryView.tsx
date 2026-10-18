@@ -73,9 +73,9 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       for (const entry of entries) {
         const width = entry.contentRect.width;
         let nextMode: "full" | "compact" | "icon" = "full";
-        if (width < 540) {
+        if (width < 640) {
           nextMode = "icon";
-        } else if (width < 780) {
+        } else if (width < 960) {
           nextMode = "compact";
         } else {
           nextMode = "full";

@@ -23,6 +23,9 @@ export interface CutsceneSubtitleLineDto {
   duration: number;
   time_formatted: string;
   content: string;
+  ruby_text?: string | null;
+  is_lyric?: boolean;
+  lyric_orig?: string | null;
 }
 
 export const RendererAPI = {

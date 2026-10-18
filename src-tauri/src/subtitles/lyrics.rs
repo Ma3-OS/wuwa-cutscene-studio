@@ -195,12 +195,21 @@ pub fn load_music_lyrics_for_cg(
         let m_part = m % 60;
         let time_formatted = format!("{:02}:{:02}:{:02}", h, m_part, s_part);
 
+        let orig_display = if !clean_orig.is_empty() && clean_orig != display_trans {
+            Some(clean_orig.clone())
+        } else {
+            None
+        };
+
         lines.push(CutsceneSubtitleLine {
             caption_id: sid,
             show_moment: start_sec * 30.0,
             duration: (end_sec - start_sec) * 30.0,
             time_formatted,
             content: display_trans,
+            ruby_text: None,
+            is_lyric: true,
+            lyric_orig: orig_display,
         });
     }
 

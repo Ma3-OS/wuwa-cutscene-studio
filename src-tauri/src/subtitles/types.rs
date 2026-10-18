@@ -7,6 +7,12 @@ pub struct CutsceneSubtitleLine {
     pub duration: f64,
     pub time_formatted: String,
     pub content: String,
+    #[serde(default)]
+    pub ruby_text: Option<String>,
+    #[serde(default)]
+    pub is_lyric: bool,
+    #[serde(default)]
+    pub lyric_orig: Option<String>,
 }
 
 #[derive(Clone, Debug)]

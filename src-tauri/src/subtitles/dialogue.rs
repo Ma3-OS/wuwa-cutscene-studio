@@ -190,7 +190,7 @@ pub fn load_cutscene_dialogues_for_cg(
         });
 
         if r_cfg.enabled {
-            for anno in ruby_res.annotations {
+            for anno in &ruby_res.annotations {
                 events.push(SubtitleEvent {
                     layer: 1,
                     start_ms,
@@ -213,12 +213,26 @@ pub fn load_cutscene_dialogues_for_cg(
         let m_part = m % 60;
         let time_formatted = format!("{:02}:{:02}:{:02}", h, m_part, s_part);
 
+        let ruby_summary = if !ruby_res.annotations.is_empty() {
+            let items: Vec<String> = ruby_res
+                .annotations
+                .iter()
+                .map(|a| format!("{} ➔ {}", a.base_text, a.ruby_text))
+                .collect();
+            Some(items.join(", "))
+        } else {
+            None
+        };
+
         lines.push(CutsceneSubtitleLine {
             caption_id: cap_id,
             show_moment,
             duration,
             time_formatted,
             content: srt_text,
+            ruby_text: ruby_summary,
+            is_lyric: false,
+            lyric_orig: None,
         });
     }
 
